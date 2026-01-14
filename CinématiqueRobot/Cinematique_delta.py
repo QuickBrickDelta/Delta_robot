@@ -62,26 +62,33 @@ ax = fig.add_subplot(111, projection='3d')
 # Tracer les points
 ax.scatter(*P_fixe, color='brown', s=60, label='Origine P_fixe')
 ax.scatter(*M1, color='red', s=50, label='Moteur M1')
-ax.scatter(*B1, color='green', s=50, label='Coude B1')
-ax.scatter(*E1, color='blue', s=50, label='Attache E1')
-ax.scatter(*Eff, color='purple', s=50, label='Centre effecteur')
+ax.scatter(*Eff, color='magenta', s=50, label='Centre effecteur')
 
-# Tracer les segments du bras
-ax.plot([M1[0], B1[0]], [M1[1], B1[1]], [M1[2], B1[2]], color='black', label='Coude')
-ax.plot([B1[0], B1G[0]], [B1[1], B1G[1]], [B1[2], B1G[2]])
-ax.plot([B1[0], B1D[0]], [B1[1], B1D[1]], [B1[2], B1D[2]])
-ax.plot([B1G[0], E1G[0]], [B1G[1], E1G[1]], [B1G[2], E1G[2]])
-ax.plot([B1D[0], E1D[0]], [B1D[1], E1D[1]], [B1D[2], E1D[2]])
-ax.plot([E1D[0], E1[0]], [E1D[1], E1[1]], [E1D[2], E1[2]])
-ax.plot([E1D[0], E1[0]], [E1D[1], E1[1]], [E1D[2], E1[2]])
-ax.plot([E1[0], Eff[0]], [E1[1], Eff[1]], [E1[2], Eff[2]])
-ax.plot([P_fixe[0], M1[0]], [P_fixe[1], M1[1]], [P_fixe[2], M1[2]])
+# Tracer les segments du bras (parallélogramme)
+ax.plot([M1[0], B1[0]], [M1[1], B1[1]], [M1[2], B1[2]], color='black')
+ax.plot([B1[0], B1D[0]], [B1[1], B1D[1]], [B1[2], B1D[2]], color='black')
+ax.plot([B1[0], B1G[0]], [B1[1], B1G[1]], [B1[2], B1G[2]], color='black')
+ax.plot([B1G[0], E1G[0]], [B1G[1], E1G[1]], [B1G[2], E1G[2]], color='orange')
+ax.plot([B1D[0], E1D[0]], [B1D[1], E1D[1]], [B1D[2], E1D[2]], color='teal')
+ax.plot([E1G[0], E1D[0]], [E1G[1], E1D[1]], [E1G[2], E1D[2]], color='purple', linestyle='dashed')
+ax.plot([E1[0], Eff[0]], [E1[1], Eff[1]], [E1[2], Eff[2]], color='magenta', linestyle='dashed')
+ax.plot([P_fixe[0], M1[0]], [P_fixe[1], M1[1]], [P_fixe[2], M1[2]], color='brown')
+
 # Axes et labels
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 ax.set_title('Bras 1 du robot Delta')
 ax.legend()
-ax.set_box_aspect([1,1,1])  # Axes proportionnés
+
+# Même échelle sur les 3 axes
+all_points = np.array([P_fixe, M1, B1, B1G, B1D, E1, E1G, E1D, Eff])
+max_range = np.ptp(all_points, axis=0).max() / 2.0
+mid_x = (all_points[:,0].max() + all_points[:,0].min()) * 0.5
+mid_y = (all_points[:,1].max() + all_points[:,1].min()) * 0.5
+mid_z = (all_points[:,2].max() + all_points[:,2].min()) * 0.5
+ax.set_xlim(mid_x - max_range, mid_x + max_range)
+ax.set_ylim(mid_y - max_range, mid_y + max_range)
+ax.set_zlim(mid_z - max_range, mid_z + max_range)
 
 plt.show()
