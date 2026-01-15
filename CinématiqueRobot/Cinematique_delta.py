@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 #Définir la géométrie du robot
 f = 0.1   # Rayon qui sépare les moteurs du point central fixe
 e = 0.1   # Rayon qui sépare les cotés de la plaquette éffecteur 
-r_parralelogramme = 0.01 #Rayon de la tige horizontale du parralélogramme
+r_parralelogramme = 0.05 #Rayon de la tige horizontale du parralélogramme
 
 Lc = 0.3  # Longueur du coude
 Lb = 0.5  # Longueur du bras
@@ -20,6 +20,8 @@ def GetAngleMoteur1(x_eff,y_eff,z_eff): # Fonction qui trouve l'angle de M1 en f
     val = d1/Denom
 
     theta1 = np.arctan2(b1,a1) - np.arccos(val)
+    theta_print = np.degrees(theta1 % (2*np.pi))
+    print("Angle Theta",theta_print)
     return theta1
 
 def GetGeometrieRobot(x_eff,y_eff,z_eff): # Fonction qui détermine la géométrie du robot en fonction de la position de l'effecteur
