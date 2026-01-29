@@ -1,0 +1,15 @@
+# Logs
+logs/
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environnements virtuels
+.venv/
+venv/
+
+# plots directory
+.plots_algo_path/
+plots_algo_path/
