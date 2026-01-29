@@ -4,10 +4,37 @@ import random
 import config_traj  # Pour les variables globales
 from other_fct_traj import cost_do_bloc_from, output_pos_for_color, distance_between_3_points
 
+from python_tsp.exact import solve_tsp_dynamic_programming
+from python_tsp.heuristics import solve_tsp_local_search
+
 # importer les variables globales depuis config_traj
 blocs = config_traj.blocs
 home_position = config_traj.home_position
 MAX_BLOCS_OPTIMAL = config_traj.MAX_BLOCS_OPTIMAL
+
+'''
+These are all TSP (planning) algorithms to order a set of "blocs" to minimize total cost.
+'''
+
+### Distance matrix computation for TSP solver
+def compute_distance_matrix(blocs, start_pos):
+    n = len(blocs)
+    dist = np.zeros((n + 1, n + 1), dtype=float)
+
+    # 0 -> i : home -> bloc_i -> output(bloc_i)
+    for i in range(n):
+        dist[0, i+1] = cost_do_bloc_from(start_pos, blocs[i])
+
+    # i -> j : output(bloc_i) -> bloc_j -> output(bloc_j)
+    for i in range(n):
+        pos_i_out = output_pos_for_color(blocs[i][0])
+        for j in range(n):
+            if i == j:
+                dist[i+1, j+1] = 0.0
+            else:
+                dist[i+1, j+1] = cost_do_bloc_from(pos_i_out, blocs[j])
+
+    return dist
 
 
 ### -------------- Optimal planning function ----------------
@@ -30,9 +57,41 @@ def plan_optimal_bruteforce(blocs, start_pos):
 
     return list(best_order), best_total
 
+def plan_exact_tsp(blocs, start_pos):
+    if len(blocs) == 0:
+        return [], 0.0
+
+    dist_matrix = compute_distance_matrix(blocs, start_pos)
+
+    permutation, _ = solve_tsp_dynamic_programming(dist_matrix)
+
+    # enlever 0
+    order = [blocs[i - 1] for i in permutation if i != 0]
+
+    # IMPORTANT: recalculer avec TON modèle (sans retour implicite)
+    true_cost = total_cost_for_order(order, start_pos)
+    return order, true_cost
+
 
 ### -------------- Low computing planning function ----------------
 
+def plan_heuristic_tsp(blocs, start_pos):
+    # O(n^2) avec solve_tsp_local_search
+    n = len(blocs)
+    if n == 0:
+        return [], 0.0
+
+    dist_matrix = compute_distance_matrix(blocs, start_pos)
+
+    # solution heuristique
+    permutation, _ = solve_tsp_local_search(dist_matrix)
+
+    # convertir la permutation (indices) en ordre de blocs
+    order = [blocs[i - 1] for i in permutation if i != 0]
+
+    # IMPORTANT: recalculer avec TON modèle (sans retour implicite)
+    true_cost = total_cost_for_order(order, start_pos)
+    return order, true_cost
 
 def total_cost_for_order(order, start_pos):
     pos = start_pos
