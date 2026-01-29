@@ -16,6 +16,7 @@ import config_traj
 
 # ---- Import tes algos (adapte selon tes noms de fichiers) ----
 from shortest_path_algorithms import plan_nearest_neighbor, plan_optimal_bruteforce, plan_cheapest_insertion, plan_greedy_then_swap_improve, plan_random_restart_greedy
+from shortest_path_algorithms import plan_exact_tsp, plan_heuristic_tsp
 
 # ---- Import helpers pour scorer (coût total) ----
 from other_fct_traj import output_pos_for_color, cost_do_bloc_from
@@ -131,7 +132,7 @@ def setup_logger():
 def main():
     setup_logger()
     run_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    plots_dir = os.path.join("plots_algo_path", f"run_{run_stamp}")
+    plots_dir = os.path.join("Trajectoire", "plots_algo_path", f"run_{run_stamp}")
     os.makedirs(plots_dir, exist_ok=True)
 
     start_pos = config_traj.home_position
@@ -139,9 +140,9 @@ def main():
 
     # ---- Paramètres benchmark (n = nb d'instances, m = nb de blocs/instance) ----
     vitesse_mvt = 50.0  # cm/s
-    n_instances = 20     # nombre d'instances par valeur de m
-    m_values = range(2,40)  # nombre de blocs (m)
-    seed = 30            # reproductibilité
+    n_instances = 5     # nombre d'instances par valeur de m
+    m_values = range(2,30)  # nombre de blocs (m)
+    seed = 20            # reproductibilité
     repeats_per_instance = 3  # répéter chaque algo sur la même instance pour lisser le bruit
     warmup = 1
 
@@ -161,11 +162,13 @@ def main():
             ("Cheapest insertion", lambda blocs: (lambda: plan_cheapest_insertion(blocs, start_pos))),
             ("Nearest neighbor + swap", lambda blocs: (lambda: plan_greedy_then_swap_improve(blocs, start_pos, max_passes=20))),
             ("Random-restart", lambda blocs: (lambda: plan_random_restart_greedy(blocs, start_pos, restarts=300, k=3, seed=42))),
+            ("Heuristic TSP", lambda blocs: (lambda: plan_heuristic_tsp(blocs, start_pos))),
         ]
 
         # brute-force seulement si m <= max_opt
         if m_blocs <= max_opt:
             algo_specs.append(("Optimal brute-force", lambda blocs: (lambda: plan_optimal_bruteforce(blocs, start_pos))))
+            algo_specs.append(("Exact TSP DP", lambda blocs: (lambda: plan_exact_tsp(blocs, start_pos))))
 
         # ---- Accumulateurs ----
         # metrics[name] = {"dists": [...], "means": [...], "bests":[...]}
