@@ -140,8 +140,8 @@ def main():
 
     # ---- Paramètres benchmark (n = nb d'instances, m = nb de blocs/instance) ----
     vitesse_mvt = 50.0  # cm/s
-    n_instances = 5     # nombre d'instances par valeur de m
-    m_values = range(2,30)  # nombre de blocs (m)
+    n_instances = 2     # nombre d'instances par valeur de m
+    m_values = range(2,17)  # nombre de blocs (m)
     seed = 20            # reproductibilité
     repeats_per_instance = 3  # répéter chaque algo sur la même instance pour lisser le bruit
     warmup = 1
@@ -158,17 +158,16 @@ def main():
         # NB: on va créer les lambdas *à l'intérieur* de la boucle sur "blocs"
         #     pour utiliser l'instance courante.
         algo_specs = [
-            ("Nearest neighbor O(n^2)", lambda blocs: (lambda: plan_nearest_neighbor(blocs, start_pos))),
-            ("Cheapest insertion", lambda blocs: (lambda: plan_cheapest_insertion(blocs, start_pos))),
-            ("Nearest neighbor + swap", lambda blocs: (lambda: plan_greedy_then_swap_improve(blocs, start_pos, max_passes=20))),
-            ("Random-restart", lambda blocs: (lambda: plan_random_restart_greedy(blocs, start_pos, restarts=300, k=3, seed=42))),
-            ("Heuristic TSP", lambda blocs: (lambda: plan_heuristic_tsp(blocs, start_pos))),
+            #("Nearest neighbor O(n^2)", lambda blocs: (lambda: plan_nearest_neighbor(blocs, start_pos))),
+            #("Cheapest insertion", lambda blocs: (lambda: plan_cheapest_insertion(blocs, start_pos))),
+            #("Nearest neighbor + swap", lambda blocs: (lambda: plan_greedy_then_swap_improve(blocs, start_pos, max_passes=20))),
+            ("Exact TSP DP", lambda blocs: (lambda: plan_exact_tsp(blocs, start_pos))),
+            #("Heuristic TSP", lambda blocs: (lambda: plan_heuristic_tsp(blocs, start_pos))),
         ]
 
         # brute-force seulement si m <= max_opt
         if m_blocs <= max_opt:
             algo_specs.append(("Optimal brute-force", lambda blocs: (lambda: plan_optimal_bruteforce(blocs, start_pos))))
-            algo_specs.append(("Exact TSP DP", lambda blocs: (lambda: plan_exact_tsp(blocs, start_pos))))
 
         # ---- Accumulateurs ----
         # metrics[name] = {"dists": [...], "means": [...], "bests":[...]}
