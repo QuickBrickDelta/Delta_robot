@@ -49,6 +49,10 @@ def _algo_worker(q, algo_name, blocs_list, start_pos):
             "Cheapest insertion": spa.plan_cheapest_insertion,
             "Nearest neighbor + swap": spa.plan_greedy_then_swap_improve,
             "Random Restart Greedy": spa.plan_random_restart_greedy,
+            "Regret-3 + VND": spa.plan_regret3_plus_vnd,
+            "Lookahead(L=8,k=2) + VND": spa.plan_lookahead_L8_k2_plus_vnd,
+            "GRASP(R=200) + VND": lambda blocs, start_pos: spa.plan_grasp_vnd(blocs, start_pos, R=200, rcl_size=8, seed=123, vnd_loops=20),
+
         }
 
         fn = algo_map[algo_name]
