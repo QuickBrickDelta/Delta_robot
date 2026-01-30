@@ -228,8 +228,8 @@ def main():
 
     # ---- Paramètres benchmark (n = nb d'instances, m = nb de blocs/instance) ----
     vitesse_mvt = 50.0  # cm/s
-    n_instances = 10     # nombre d'instances par valeur de m
-    m_values = range(2,40)  # nombre de blocs (m)
+    n_instances = 2     # nombre d'instances par valeur de m
+    m_values = range(2,25)  # nombre de blocs (m)
     seed = 20            # reproductibilité
     repeats_per_instance = 3  # répéter chaque algo sur la même instance pour lisser le bruit
     warmup = 1
@@ -260,13 +260,45 @@ def main():
 
         # ---- Accumulateurs ----
         # metrics[name] = {"dists": [...], "means": [...], "bests":[...]}
-        metrics = {name: {"dists": [], "mean_t_calculations": [], "best_t_calculations": []} for name in algo_specs}
+        metrics = {
+            name: {
+                "dists": [],
+                "ratios": [],
+                "mean_t_calculations": [],
+                "best_t_calculations": []
+            }
+            for name in algo_specs
+        }
+
 
         logging.info(f"\nBenchmark multi-instances")
         logging.info(f"n_instances={n_instances} | m_blocs={m_blocs} | repeats/instance={repeats_per_instance} | seed={seed+m_blocs}")
         logging.info("-" * 90)
 
         for blocs in instances:
+            # ----- baseline exact (une fois par instance) -----
+            opt_dist = float("nan")
+            try:
+                # 1 run, pas de repeats: tu veux juste la valeur de référence
+                _, _, _, exact_result = time_one(
+                    algo_name="Exact TSP DP",   # ou "Optimal brute-force" si tu veux pour m petit
+                    blocs=blocs,
+                    start_pos=start_pos,
+                    repeats=1,
+                    warmup=0,
+                    timeout_sec=ABS_TIMEOUT_SEC
+                )
+
+                if exact_result is not None:
+                    exact_order, exact_dist = exact_result
+                    if exact_dist is None:
+                        exact_dist = total_cost_for_order(exact_order, start_pos)
+                    opt_dist = float(exact_dist)
+
+            except Exception as e:
+                logging.warning(f"[BASELINE EXACT FAILED] m={m_blocs}: {e}")
+                opt_dist = float("nan")
+
             for name in algo_specs:
                 if name in disabled_algo:
                     continue
@@ -292,11 +324,20 @@ def main():
                     metrics[name]["mean_t_calculations"].append(mean_t_calculations)
                     metrics[name]["best_t_calculations"].append(best_t)
 
+                    # ratio vs optimum exact (si dispo)
+                    if np.isfinite(opt_dist) and opt_dist > 0:
+                        metrics[name]["ratios"].append(dist / opt_dist)
+                    else:
+                        metrics[name]["ratios"].append(float("nan"))
+
+
                 except Exception as e:
                     logging.warning(f"Algo '{name}' failed on one instance: {e}")
                     metrics[name]["dists"].append(float("nan"))
                     metrics[name]["mean_t_calculations"].append(float("nan"))
                     metrics[name]["best_t_calculations"].append(float("nan"))
+                    metrics[name]["ratios"].append(float("nan"))
+
 
                     if isinstance(e, TimeoutError):
                         logging.warning(f"[TIMEOUT] Disable '{name}' for next m (timeout {ABS_TIMEOUT_SEC}s)")
@@ -342,8 +383,10 @@ def main():
             f"{'dist_mean':>10s} | {'dist_std':>10s} | "
             f"{'t_calc(ms)':>12s} | {'t_calc_std':>12s} | "
             f"{'t_move(ms)':>12s} | {'t_move_std':>12s} | "
-            f"{'t_total(ms)':>12s} | {'t_total_std':>12s}"
+            f"{'t_total(ms)':>12s} | {'t_total_std':>12s} | "
+            f"{'ratio':>8s} | {'r_std':>8s}"
         )
+
         logging.info("-" * 160)
 
         summary = []
@@ -374,6 +417,12 @@ def main():
             t_total = [t_move[i] + t_calc[i] for i in range(L)]
             t_mean_total = stats.mean(t_total)
             t_std_total  = stats.pstdev(t_total) if len(t_total) > 1 else 0.0
+            
+            # ratio vs optimal exact
+            ratios = clean(metrics[name]["ratios"])
+            r_mean = stats.mean(ratios) if len(ratios) else float("nan")
+            r_std  = stats.pstdev(ratios) if len(ratios) > 1 else 0.0
+
 
             summary.append(
                 (name, d_mean, d_std,
@@ -388,7 +437,9 @@ def main():
                 t_mean_calc,
                 t_mean_mvt,
                 t_mean_total,
-                d_mean
+                d_mean,
+                r_mean,
+                r_std
             ])
 
             logging.info(
@@ -396,8 +447,11 @@ def main():
                 f"{d_mean:10.2f} | {d_std:10.2f} | "
                 f"{t_mean_calc*1000:12.3f} | {t_std_calc*1000:12.3f} | "
                 f"{t_mean_mvt*1000:12.3f} | {t_std_mvt*1000:12.3f} | "
-                f"{t_mean_total*1000:12.3f} | {t_std_total*1000:12.3f}"
+                f"{t_mean_total*1000:12.3f} | {t_std_total*1000:12.3f} | "
+                f"{r_mean:8.4f} | {r_std:8.4f}"
             )
+
+
 
             # --- Stockage pour plots ---
             if name not in sweep_results:
@@ -406,7 +460,8 @@ def main():
                     "t_calc": [],
                     "t_move": [],
                     "t_total": [],
-                    "dist": []
+                    "dist": [],
+                    "ratio": []
                 }
 
 
@@ -415,6 +470,7 @@ def main():
             sweep_results[name]["t_move"].append(t_mean_mvt)
             sweep_results[name]["t_total"].append(t_mean_total)
             sweep_results[name]["dist"].append(d_mean)
+            sweep_results[name]["ratio"].append(r_mean)
 
 
         # ---- Classements ----
@@ -481,6 +537,12 @@ def main():
         filename="dist_vs_m.png"
     )
 
+    plot_metric(
+        metric_key="ratio",
+        title="Ratio dist/optimum (plus proche de 1.0 = meilleur)",
+        ylabel="dist / dist_opt",
+        filename="ratio_vs_m.png"
+    )
 
     # ----- SAVE CSV RESULTS -----
     csv_path = os.path.join(plots_dir, "results.csv")
@@ -493,7 +555,9 @@ def main():
             "t_calc_mean_sec",
             "t_move_mean_sec",
             "t_total_mean_sec",
-            "dist_mean"
+            "dist_mean",
+            "ratio_mean",
+            "ratio_std"
         ])
         writer.writerows(csv_rows)
 
