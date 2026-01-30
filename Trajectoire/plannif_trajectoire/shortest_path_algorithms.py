@@ -58,6 +58,7 @@ def plan_optimal_bruteforce(blocs, start_pos):
     return list(best_order), best_total
 
 def plan_exact_tsp(blocs, start_pos):
+    ## O(n^2 * 2^n) avec solve_tsp_dynamic_programming
     if len(blocs) == 0:
         return [], 0.0
 
