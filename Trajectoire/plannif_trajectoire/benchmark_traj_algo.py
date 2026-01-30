@@ -11,15 +11,87 @@ import matplotlib
 matplotlib.use("Agg")   # backend non interactif, orienté fichiers
 import matplotlib.pyplot as plt
 import csv
+import multiprocessing as mp
+import traceback
 
 import config_traj
 
 # ---- Import tes algos (adapte selon tes noms de fichiers) ----
 from shortest_path_algorithms import plan_nearest_neighbor, plan_optimal_bruteforce, plan_cheapest_insertion, plan_greedy_then_swap_improve, plan_random_restart_greedy
 from shortest_path_algorithms import plan_exact_tsp, plan_heuristic_tsp
+from shortest_path_algorithms import plan_bnb_basic, plan_bnb_heuristic
+
 
 # ---- Import helpers pour scorer (coût total) ----
 from other_fct_traj import output_pos_for_color, cost_do_bloc_from
+
+# Pour Windows multiprocessing
+mp.freeze_support()
+
+def _algo_worker(q, algo_name, blocs_list, start_pos):
+    """
+    Worker TOP-LEVEL (picklable). Exécute l'algo demandé.
+    """
+    try:
+        import time
+        import shortest_path_algorithms as spa
+
+        # Rebuild blocs en list[tuple]
+        blocs = [tuple(b) for b in blocs_list]
+
+        algo_map = {
+            "Exact TSP DP": spa.plan_exact_tsp,
+            "Heuristic TSP": spa.plan_heuristic_tsp,
+            "Branch and Bound Basic": spa.plan_bnb_basic,
+            "Branch and Bound Heuristic": spa.plan_bnb_heuristic,
+            "Optimal brute-force": spa.plan_optimal_bruteforce,
+            "Nearest neighbor O(n^2)": spa.plan_nearest_neighbor,
+            "Cheapest insertion": spa.plan_cheapest_insertion,
+            "Nearest neighbor + swap": spa.plan_greedy_then_swap_improve,
+            "Random Restart Greedy": spa.plan_random_restart_greedy,
+        }
+
+        fn = algo_map[algo_name]
+
+        t0 = time.perf_counter()
+        res = fn(blocs, start_pos)
+        t1 = time.perf_counter()
+        q.put(("ok", res, t1 - t0, None))
+
+    except Exception as e:
+        q.put(("err", None, None, f"{repr(e)}\n{traceback.format_exc()}"))
+
+def run_algo_with_timeout(algo_name, blocs, start_pos, timeout_sec):
+    """
+    Exécute un ALGO (par nom) dans un process séparé.
+    blocs: np.array(dtype=object) ou list
+    start_pos: tuple(x,y) ou ce que tu utilises
+    """
+    ctx = mp.get_context("spawn")   # Windows
+    q = ctx.Queue()
+
+    # Convertir blocs en structure picklable
+    if hasattr(blocs, "tolist"):
+        blocs_list = blocs.tolist()
+    else:
+        blocs_list = list(blocs)
+
+    p = ctx.Process(target=_algo_worker, args=(q, algo_name, blocs_list, start_pos))
+    p.start()
+    p.join(timeout_sec)
+
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        return (False, None, timeout_sec, True, "timeout")
+
+    if q.empty():
+        return (False, None, 0.0, False, "no_result")
+
+    status, res, elapsed, err = q.get()
+    if status == "ok":
+        return (True, res, elapsed, False, None)
+    return (False, None, 0.0, False, err)
 
 def clean(vals):
     """Garde seulement les floats/ints valides (pas NaN/inf)."""
@@ -44,27 +116,37 @@ def total_cost_for_order(order, start_pos):
         pos = output_pos_for_color(b[0])
     return total
 
-def time_one(run_fn, repeats=10, warmup=1):
+def time_one(algo_name, blocs, start_pos, repeats=10, warmup=1, timeout_sec=None):
     """
-    Mesure le temps d'exécution d'une fonction qui retourne (order, total_cost)
+    Mesure le temps d'exécution d'un algo (par nom) avec watchdog.
     Return: (best_time, mean_time, stdev_time, last_result)
     """
-    # warm-up
     last_result = None
-    for _ in range(warmup):
-        last_result = run_fn()
-
     times = []
-    for _ in range(repeats):
-        t0 = time.perf_counter()
-        last_result = run_fn()
-        t1 = time.perf_counter()
-        times.append(t1 - t0)
 
-    best = min(times)
-    mean = stats.mean(times)
+    # warmup
+    for _ in range(warmup):
+        if timeout_sec is None:
+            # pas recommandé sur Windows si tu veux pouvoir kill
+            raise ValueError("timeout_sec doit être défini sur Windows pour watchdog")
+        ok, res, elapsed, to, err = run_algo_with_timeout(algo_name, blocs, start_pos, timeout_sec)
+        if not ok:
+            raise TimeoutError(f"Warmup failed: {'timeout' if to else err}")
+        last_result = res
+
+    for _ in range(repeats):
+        ok, res, elapsed, to, err = run_algo_with_timeout(algo_name, blocs, start_pos, timeout_sec)
+        if not ok:
+            raise TimeoutError(f"Repeat failed: {'timeout' if to else err}")
+        last_result = res
+        times.append(elapsed)
+
+    best = min(times) if times else 0.0
+    mean = stats.mean(times) if times else 0.0
     stdev = stats.pstdev(times) if len(times) > 1 else 0.0
     return best, mean, stdev, last_result
+
+
 
 def generate_random_bloc_list(num_blocs, area_size=100, grid=5):
     """
@@ -136,12 +218,18 @@ def main():
     os.makedirs(plots_dir, exist_ok=True)
 
     start_pos = config_traj.home_position
-    max_opt = 7 # max blocs pour algo optimal
+
+    # --- Explosion watcher ---
+    ABS_TIMEOUT_SEC = 1.45        # si un run dépasse 250ms -> timeout
+    EXPLODE_MEAN_SEC = 1.40       # si mean dépasse 200ms -> on stop pour les m suivants
+    GROWTH_FACTOR = 62.0           # si mean(m) > 8 * mean(m-1) -> explosion
+    disabled_algo = set()         # algos désactivés pour les prochains m
+    prev_mean_by_algo = {}        # pour détecter croissance
 
     # ---- Paramètres benchmark (n = nb d'instances, m = nb de blocs/instance) ----
     vitesse_mvt = 50.0  # cm/s
-    n_instances = 2     # nombre d'instances par valeur de m
-    m_values = range(2,17)  # nombre de blocs (m)
+    n_instances = 10     # nombre d'instances par valeur de m
+    m_values = range(2,40)  # nombre de blocs (m)
     seed = 20            # reproductibilité
     repeats_per_instance = 3  # répéter chaque algo sur la même instance pour lisser le bruit
     warmup = 1
@@ -158,44 +246,45 @@ def main():
         # NB: on va créer les lambdas *à l'intérieur* de la boucle sur "blocs"
         #     pour utiliser l'instance courante.
         algo_specs = [
-            #("Nearest neighbor O(n^2)", lambda blocs: (lambda: plan_nearest_neighbor(blocs, start_pos))),
-            #("Cheapest insertion", lambda blocs: (lambda: plan_cheapest_insertion(blocs, start_pos))),
-            #("Nearest neighbor + swap", lambda blocs: (lambda: plan_greedy_then_swap_improve(blocs, start_pos, max_passes=20))),
-            ("Exact TSP DP", lambda blocs: (lambda: plan_exact_tsp(blocs, start_pos))),
-            #("Heuristic TSP", lambda blocs: (lambda: plan_heuristic_tsp(blocs, start_pos))),
+            "Exact TSP DP",
+            "Branch and Bound Basic",
+            "Branch and Bound Heuristic",
+            # "Heuristic TSP",
+            "Optimal brute-force",
         ]
 
-        # brute-force seulement si m <= max_opt
-        if m_blocs <= max_opt:
-            algo_specs.append(("Optimal brute-force", lambda blocs: (lambda: plan_optimal_bruteforce(blocs, start_pos))))
+        # Filtrer les algos désactivés
+        # Enlève les algos "explosés"
+        algo_specs = [name for name in algo_specs if name not in disabled_algo]
+
 
         # ---- Accumulateurs ----
         # metrics[name] = {"dists": [...], "means": [...], "bests":[...]}
-        metrics = {name: {"dists": [], "mean_t_calculations": [], "best_t_calculations": []} for name, _ in algo_specs}
+        metrics = {name: {"dists": [], "mean_t_calculations": [], "best_t_calculations": []} for name in algo_specs}
 
         logging.info(f"\nBenchmark multi-instances")
         logging.info(f"n_instances={n_instances} | m_blocs={m_blocs} | repeats/instance={repeats_per_instance} | seed={seed+m_blocs}")
         logging.info("-" * 90)
 
         for blocs in instances:
-            for name, make_runner in algo_specs:
-
-                run_fn = make_runner(blocs)
+            for name in algo_specs:
+                if name in disabled_algo:
+                    continue
 
                 try:
                     best_t, mean_t_calculations, stdev_t, result = time_one(
-                    run_fn,
-                    repeats=repeats_per_instance,
-                    warmup=warmup
+                        algo_name=name,
+                        blocs=blocs,
+                        start_pos=start_pos,
+                        repeats=repeats_per_instance,
+                        warmup=warmup,
+                        timeout_sec=ABS_TIMEOUT_SEC
                     )
 
-                    # result doit être (order, dist) ou (order, None)
                     if result is None:
                         raise ValueError("Algo returned None")
 
                     order, dist = result
-
-                    # Si dist n'est pas fourni, on le recalcule
                     if dist is None:
                         dist = total_cost_for_order(order, start_pos)
 
@@ -204,12 +293,43 @@ def main():
                     metrics[name]["best_t_calculations"].append(best_t)
 
                 except Exception as e:
-                    # On enregistre l'erreur et on continue, sinon metrics reste vide et ça crash au mean()
                     logging.warning(f"Algo '{name}' failed on one instance: {e}")
-                    # Option: append NaN pour garder le même nombre d'échantillons
                     metrics[name]["dists"].append(float("nan"))
                     metrics[name]["mean_t_calculations"].append(float("nan"))
                     metrics[name]["best_t_calculations"].append(float("nan"))
+
+                    if isinstance(e, TimeoutError):
+                        logging.warning(f"[TIMEOUT] Disable '{name}' for next m (timeout {ABS_TIMEOUT_SEC}s)")
+                        disabled_algo.add(name)
+
+                        
+
+
+        # ---------------- Explosion watcher (après agrégation) ----------------
+        for name in list(metrics.keys()):
+            t_calc_clean = clean(metrics[name]["mean_t_calculations"])
+
+            # si aucun data valide
+            if len(t_calc_clean) == 0:
+                continue
+
+            mean_m = stats.mean(t_calc_clean)
+
+            # Rule A: mean trop grand sur ce m
+            if mean_m > EXPLODE_MEAN_SEC:
+                logging.warning(f"[EXPLODE] Disable '{name}' for next m: mean_m={mean_m:.4f}s > {EXPLODE_MEAN_SEC:.4f}s")
+                disabled_algo.add(name)
+                continue
+
+            # Rule B: croissance vs m précédent (sur la moyenne agrégée)
+            prev = prev_mean_by_algo.get(name, None)
+            if prev is not None and mean_m > GROWTH_FACTOR * prev:
+                logging.warning(f"[EXPLODE] Disable '{name}' for next m: growth mean_m={mean_m:.4f}s > {GROWTH_FACTOR}*{prev:.4f}s")
+                disabled_algo.add(name)
+                continue
+
+            prev_mean_by_algo[name] = mean_m
+# ----------------------------------------------------------------------
 
 
         logging.info("\n")  # newline après le \r
@@ -309,23 +429,29 @@ def main():
 
     def plot_metric(metric_key, title, ylabel, filename):
         plt.figure()
+        has_any = False
+
         for algo_name, series in sweep_results.items():
             ms = series["m"]
             ys = series[metric_key]
-
-            # Courbe seulement (pas de trend)
+            if len(ms) == 0:
+                continue
+            has_any = True
             plt.plot(ms, ys, marker='o', label=algo_name, markersize=5, linewidth=2)
 
         plt.xlabel("Nombre de blocs (m)")
         plt.ylabel(ylabel)
         plt.title(title)
         plt.grid(True)
-        plt.legend()
+
+        if has_any:
+            plt.legend()
+
         outpath = os.path.join(plots_dir, filename)
         plt.savefig(outpath, dpi=200, bbox_inches="tight")
-        plt.close()   # mieux que plt.show() pour un benchmark
-
+        plt.close()
         logging.info(f"Plot saved: {outpath}")
+
 
 
     plot_metric(

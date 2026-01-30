@@ -235,3 +235,189 @@ def plan_random_restart_greedy(blocs, start_pos, restarts=200, k=3, seed=0):
 
     return best_order, best_total
 
+
+# ===================== Branch & Bound (chemin ouvert, exact) =====================
+
+def _build_cost_tables(blocs, start_pos):
+    """
+    Pour indices i,j sur blocs:
+      cost_start[i] = coût start_pos -> bloc_i -> out(bloc_i)
+      cost_ij[i][j] = coût out(bloc_i) -> bloc_j -> out(bloc_j)
+    """
+    blocs_list = [tuple(b) for b in blocs]
+    n = len(blocs_list)
+
+    cost_start = [0.0] * n
+    for i in range(n):
+        cost_start[i] = cost_do_bloc_from(start_pos, blocs_list[i])
+
+    cost_ij = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        out_i = output_pos_for_color(blocs_list[i][0])
+        for j in range(n):
+            if i == j:
+                cost_ij[i][j] = 0.0
+            else:
+                cost_ij[i][j] = cost_do_bloc_from(out_i, blocs_list[j])
+
+    return blocs_list, cost_start, cost_ij
+
+
+def plan_bnb_basic(blocs, start_pos):
+    """
+    Branch & Bound EXACT pour ton modèle (chemin ouvert).
+    Complexité pire cas O(n!), mais prune beaucoup.
+    """
+    blocs_list, cost_start, cost_ij = _build_cost_tables(blocs, start_pos)
+    n = len(blocs_list)
+    if n == 0:
+        return [], 0.0
+    if n == 1:
+        return [blocs_list[0]], cost_start[0]
+
+    # Upper bound initial : ton greedy (rapide)
+    best_order, best_cost = plan_nearest_neighbor(blocs_list, start_pos)
+
+    # Lower bound admissible :
+    # - on devra quitter chaque noeud non-visité au moins une fois,
+    # - sauf le dernier (chemin ouvert) => on soustrait la plus grosse "min_out"
+    min_out = [0.0] * n
+    for i in range(n):
+        m = float("inf")
+        for j in range(n):
+            if i != j:
+                m = min(m, cost_ij[i][j])
+        # si n==1, pas le cas; ici n>=2
+        min_out[i] = m
+
+    def bound(cur_idx, unv, cur_cost):
+        # cur_idx = -1 si on est encore au start
+        if not unv:
+            return cur_cost
+
+        if cur_idx == -1:
+            min_from_cur = min(cost_start[j] for j in unv)
+        else:
+            min_from_cur = min(cost_ij[cur_idx][j] for j in unv)
+
+        # optimistic outgoing for remaining nodes
+        outs = [min_out[j] for j in unv]
+        # dernier noeud n’a pas besoin de sortie dans un chemin ouvert
+        return cur_cost + min_from_cur + (sum(outs) - max(outs))
+
+    best_idx_order = None
+    nodes_expanded = 0
+
+    def dfs(cur_idx, unv, idx_path, cur_cost):
+        nonlocal best_cost, best_idx_order, nodes_expanded
+        nodes_expanded += 1
+
+        if bound(cur_idx, unv, cur_cost) >= best_cost:
+            return
+
+        if not unv:
+            if cur_cost < best_cost:
+                best_cost = cur_cost
+                best_idx_order = idx_path[:]
+            return
+
+        # Branching: essayer les prochains les moins chers d’abord (prune +)
+        if cur_idx == -1:
+            cand = sorted(unv, key=lambda j: cost_start[j])
+        else:
+            cand = sorted(unv, key=lambda j: cost_ij[cur_idx][j])
+
+        for nxt in cand:
+            step = cost_start[nxt] if cur_idx == -1 else cost_ij[cur_idx][nxt]
+            new_cost = cur_cost + step
+            if new_cost >= best_cost:
+                continue
+            new_unv = [x for x in unv if x != nxt]
+            dfs(nxt, new_unv, idx_path + [nxt], new_cost)
+
+    dfs(-1, list(range(n)), [], 0.0)
+
+    if best_idx_order is None:
+        # fallback (ne devrait pas arriver)
+        return best_order, best_cost
+
+    order = [blocs_list[i] for i in best_idx_order]
+    return order, best_cost
+
+
+def plan_bnb_heuristic(blocs, start_pos, max_passes_swap=20):
+    """
+    Branch & Bound EXACT + heuristiques de pruning :
+      - Upper bound initial plus serré: greedy + swap improve
+      - Branching order: plus prometteur d'abord
+      - Même borne admissible que basic (simple & safe)
+    """
+    blocs_list, cost_start, cost_ij = _build_cost_tables(blocs, start_pos)
+    n = len(blocs_list)
+    if n == 0:
+        return [], 0.0
+    if n == 1:
+        return [blocs_list[0]], cost_start[0]
+
+    # Upper bound initial meilleur
+    best_order, best_cost = plan_greedy_then_swap_improve(blocs_list, start_pos, max_passes=max_passes_swap)
+
+    min_out = [0.0] * n
+    for i in range(n):
+        m = float("inf")
+        for j in range(n):
+            if i != j:
+                m = min(m, cost_ij[i][j])
+        min_out[i] = m
+
+    def bound(cur_idx, unv, cur_cost):
+        if not unv:
+            return cur_cost
+
+        if cur_idx == -1:
+            min_from_cur = min(cost_start[j] for j in unv)
+        else:
+            min_from_cur = min(cost_ij[cur_idx][j] for j in unv)
+
+        outs = [min_out[j] for j in unv]
+        return cur_cost + min_from_cur + (sum(outs) - max(outs))
+
+    best_idx_order = None
+    nodes_expanded = 0
+
+    def dfs(cur_idx, unv, idx_path, cur_cost):
+        nonlocal best_cost, best_idx_order, nodes_expanded
+        nodes_expanded += 1
+
+        if bound(cur_idx, unv, cur_cost) >= best_cost:
+            return
+
+        if not unv:
+            if cur_cost < best_cost:
+                best_cost = cur_cost
+                best_idx_order = idx_path[:]
+            return
+
+        # Branching: ordre "meilleur prochain coup"
+        if cur_idx == -1:
+            cand = sorted(unv, key=lambda j: cost_start[j])
+        else:
+            cand = sorted(unv, key=lambda j: cost_ij[cur_idx][j])
+
+        for nxt in cand:
+            step = cost_start[nxt] if cur_idx == -1 else cost_ij[cur_idx][nxt]
+            new_cost = cur_cost + step
+            if new_cost >= best_cost:
+                continue
+            new_unv = [x for x in unv if x != nxt]
+            dfs(nxt, new_unv, idx_path + [nxt], new_cost)
+
+    dfs(-1, list(range(n)), [], 0.0)
+
+    if best_idx_order is None:
+        return best_order, best_cost
+
+    order = [blocs_list[i] for i in best_idx_order]
+    return order, best_cost
+
+
