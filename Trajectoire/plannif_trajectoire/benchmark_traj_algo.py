@@ -232,8 +232,8 @@ def main():
 
     # ---- Paramètres benchmark (n = nb d'instances, m = nb de blocs/instance) ----
     vitesse_mvt = 50.0  # cm/s
-    n_instances = 2     # nombre d'instances par valeur de m
-    m_values = range(2,25)  # nombre de blocs (m)
+    n_instances = 25     # nombre d'instances par valeur de m
+    m_values = range(2,30)  # nombre de blocs (m)
     seed = 20            # reproductibilité
     repeats_per_instance = 3  # répéter chaque algo sur la même instance pour lisser le bruit
     warmup = 1
@@ -255,6 +255,13 @@ def main():
             "Branch and Bound Heuristic",
             # "Heuristic TSP",
             "Optimal brute-force",
+            "Nearest neighbor O(n^2)",
+            "Cheapest insertion",
+            "Nearest neighbor + swap",
+            "Random Restart Greedy",
+            "Regret-3 + VND",
+            "Lookahead(L=8,k=2) + VND",
+            "GRASP(R=200) + VND",
         ]
 
         # Filtrer les algos désactivés
