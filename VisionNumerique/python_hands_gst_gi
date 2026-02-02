@@ -1,0 +1,262 @@
+#!/home/allt5140/venvs/cam_311/bin/python
+# -*- coding: utf-8 -*-
+
+"""
+python_hands_gst_gi.py
+Capture caméra CSI via GStreamer (PyGObject) -> numpy (BGR) -> MediaPipe Hands
+Affichage carré (letterbox/crop), 5 FPS.
+
+Dépendances système : python3-gi, gir1.2-gst-1.0, gstreamer1.0-libcamera, plugins base/good.
+Dépendances venv 3.11 : mediapipe, opencv-python, numpy
+
+Lancement :
+    source ~/venvs/cam_311/bin/activate
+    python /home/allt5140/Desktop/Delta_robot/VisionNumerique/python_hands_gst_gi.py
+
+Touches :
+    q : quitter
+    c : letterbox/crop
+    m : complexité modèle MediaPipe (0 -> 1 -> 2)
+    b : afficher/masquer la boîte englobante
+"""
+
+import sys
+import time
+import signal
+from typing import List, Tuple
+
+import numpy as np
+import cv2
+import mediapipe as mp
+
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import Gst, GObject
+
+# ---------- Réglages ----------
+WINDOW_SIZE = 900
+SQUARE_MODE = "letterbox"   # "letterbox" ou "crop"
+SHOW_BBOX = True
+MODEL_COMPLEXITY = 0
+TARGET_FPS = 5
+WIDTH, HEIGHT = 1920, 1080   # sortie du pipeline (NV12)
+
+# Pipeline GStreamer (libcamerasrc -> NV12 -> appsink)
+# Remarque : caps NV12 + appsink sans conversion en BGR ici, on fait la conversion côté numpy/OpenCV.
+GST_PIPELINE = (
+    f"libcamerasrc ! "
+    f"video/x-raw,format=NV12,width={WIDTH},height={HEIGHT},framerate={TARGET_FPS}/1 ! "
+    f"queue max-size-buffers=1 leaky=downstream ! "
+    f"appsink name=sink emit-signals=true drop=true max-buffers=1 sync=false"
+)
+
+# ---------- Outils image carrée ----------
+def to_square_letterbox(bgr: np.ndarray, size: int):
+    h, w = bgr.shape[:2]
+    scale = min(size / w, size / h)
+    nw, nh = max(1, int(w * scale)), max(1, int(h * scale))
+    resized = cv2.resize(bgr, (nw, nh), interpolation=cv2.INTER_AREA)
+    canvas = np.zeros((size, size, 3), dtype=np.uint8)
+    x0, y0 = (size - nw) // 2, (size - nh) // 2
+    canvas[y0:y0 + nh, x0:x0 + nw] = resized
+    return canvas, scale, x0, y0
+
+def to_square_crop(bgr: np.ndarray, size: int):
+    h, w = bgr.shape[:2]
+    side = min(h, w)
+    x0, y0 = (w - side) // 2, (h - side) // 2
+    crop = bgr[y0:y0 + side, x0:x0 + side]
+    resized = cv2.resize(crop, (size, size), interpolation=cv2.INTER_AREA)
+    return resized, side, x0, y0
+
+def project_points_to_square_letterbox(points_xy, scale, x0, y0):
+    out = []
+    for x, y in points_xy:
+        out.append((int(x * scale + x0), int(y * scale + y0)))
+    return out
+
+def project_points_to_square_crop(points_xy, size, side, x_off, y_off):
+    scale = size / side
+    out = []
+    for x, y in points_xy:
+        out.append((int((x - x_off) * scale), int((y - y_off) * scale)))
+    return out
+
+def bbox_from_points(pts: List[Tuple[int, int]], pad: int = 6,
+                     clamp_w: int = WINDOW_SIZE, clamp_h: int = WINDOW_SIZE):
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    x1, y1 = max(0, min(xs) - pad), max(0, min(ys) - pad)
+    x2, y2 = min(clamp_w - 1, max(xs) + pad), min(clamp_h - 1, max(ys) + pad)
+    return x1, y1, x2, y2
+
+# ---------- Conversion NV12 -> BGR ----------
+def nv12_to_bgr(nv12_bytes: bytes, w: int, h: int) -> np.ndarray:
+    """
+    nv12_bytes : taille attendue w*h*3/2
+    Retour : image BGR (h, w, 3)
+    """
+    y_size = w * h
+    uv_size = w * h // 2
+    assert len(nv12_bytes) >= y_size + uv_size, "Buffer NV12 incomplet"
+    y = np.frombuffer(nv12_bytes[:y_size], dtype=np.uint8).reshape(h, w)
+    uv = np.frombuffer(nv12_bytes[y_size:y_size + uv_size], dtype=np.uint8).reshape(h // 2, w)
+    # OpenCV sait convertir NV12 (Y + UV demi-résolution) vers BGR
+    nv12 = np.vstack((y, uv))
+    bgr = cv2.cvtColor(nv12, cv2.COLOR_YUV2BGR_NV12)
+    return bgr
+
+# ---------- MediaPipe Hands ----------
+mp_hands = mp.solutions.hands
+def make_hands(model_complexity: int):
+    return mp_hands.Hands(
+        static_image_mode=False,
+        max_num_hands=2,
+        model_complexity=model_complexity,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
+
+# ---------- Boucle principale ----------
+def main():
+    global SQUARE_MODE, SHOW_BBOX, MODEL_COMPLEXITY
+
+    # Init GStreamer
+    Gst.init(None)
+    pipeline = Gst.parse_launch(GST_PIPELINE)
+    appsink = pipeline.get_by_name("sink")
+    if appsink is None:
+        raise SystemExit("Erreur GStreamer : appsink introuvable.")
+
+    # Pour recevoir des buffers via signaux (pull)
+    appsink.set_property("emit-signals", True)
+
+    # Start
+    pipeline.set_state(Gst.State.PLAYING)
+
+    hands = make_hands(MODEL_COMPLEXITY)
+
+    win = "LIVE carre - MediaPipe Hands (GStreamer GI)"
+    cv2.namedWindow(win, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(win, WINDOW_SIZE, WINDOW_SIZE)
+
+    last, frames, fps_est = time.time(), 0, 0.0
+
+    # Gestion signaux
+    stop = {"flag": False}
+    def _sigint(_sig, _frm):
+        stop["flag"] = True
+    signal.signal(signal.SIGINT, _sigint)
+
+    while not stop["flag"]:
+        # Récupérer un échantillon depuis appsink
+        sample = appsink.emit("try-pull-sample", int(1e9 / (TARGET_FPS * 2)))  # timeout ~100ms
+        if sample is None:
+            # Pas de frame -> continue (laisse tourner GStreamer)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
+            continue
+
+        buf = sample.get_buffer()
+        caps = sample.get_caps()
+        # Extraire width/height depuis caps
+        s = caps.get_structure(0)
+        w = s.get_value('width')
+        h = s.get_value('height')
+
+        # Mapper le buffer NV12
+        success, map_info = buf.map(Gst.MapFlags.READ)
+        if not success:
+            continue
+        try:
+            frame_bgr = nv12_to_bgr(map_info.data, w, h)
+        finally:
+            buf.unmap(map_info)
+
+        # MediaPipe sur frame source (BGR -> RGB)
+        rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        result = hands.process(rgb)
+
+        # Image carrée + projection
+        if SQUARE_MODE == "letterbox":
+            square, scale, x0, y0 = to_square_letterbox(frame_bgr, WINDOW_SIZE)
+            mode_text = "LETTERBOX (FOV max)"
+        else:
+            square, side, x_off, y_off = to_square_crop(frame_bgr, WINDOW_SIZE)
+            mode_text = "CROP (centre)"
+
+        n_hands = 0
+        if result.multi_hand_landmarks:
+            n_hands = len(result.multi_hand_landmarks)
+            handed_list = result.multi_handedness or [None] * n_hands
+            for idx, hand_landmarks in enumerate(result.multi_hand_landmarks):
+                handedness = handed_list[idx] if idx < len(handed_list) else None
+
+                # Landmarks -> pixels source
+                pts_src = []
+                for lm in hand_landmarks.landmark:
+                    x_px = lm.x * w
+                    y_px = lm.y * h
+                    pts_src.append((x_px, y_px))
+
+                # Projection
+                if SQUARE_MODE == "letterbox":
+                    pts_sq = project_points_to_square_letterbox(pts_src, scale, x0, y0)
+                else:
+                    pts_sq = project_points_to_square_crop(pts_src, WINDOW_SIZE, side, x_off, y_off)
+
+                # Dessin
+                for a, b in mp_hands.HAND_CONNECTIONS:
+                    xa, ya = pts_sq[a]
+                    xb, yb = pts_sq[b]
+                    cv2.line(square, (xa, ya), (xb, yb), (0, 255, 255), 2, cv2.LINE_AA)
+                for x_s, y_s in pts_sq:
+                    cv2.circle(square, (x_s, y_s), 3, (0, 140, 255), -1, lineType=cv2.LINE_AA)
+
+                if handedness and handedness.classification:
+                    label = handedness.classification[0].label
+                    lx, ly = pts_sq[0]
+                    cv2.putText(square, label, (lx + 8, ly - 8),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 200, 0), 2, cv2.LINE_AA)
+
+                if SHOW_BBOX:
+                    x1, y1, x2, y2 = bbox_from_points(pts_sq, pad=8,
+                                                      clamp_w=WINDOW_SIZE, clamp_h=WINDOW_SIZE)
+                    cv2.rectangle(square, (x1, y1), (x2, y2), (90, 220, 90), 2)
+
+        # FPS & overlay
+        frames += 1
+        now = time.time()
+        if now - last >= 1.0:
+            fps_est = frames / (now - last)
+            frames, last = 0, now
+
+        cv2.putText(square, f"{mode_text} | src {w}x{h} | ~{fps_est:.1f} fps | hands: {n_hands} | model={MODEL_COMPLEXITY} | bbox={'on' if SHOW_BBOX else 'off'}",
+                    (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
+
+        cv2.imshow("LIVE carre - MediaPipe Hands (GStreamer GI)", square)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            break
+        elif key == ord('c'):
+            SQUARE_MODE = "crop" if SQUARE_MODE == "letterbox" else "letterbox"
+        elif key == ord('b'):
+            SHOW_BBOX = not SHOW_BBOX
+        elif key == ord('m'):
+            MODEL_COMPLEXITY = (MODEL_COMPLEXITY + 1) % 3
+            hands.close()
+            hands = make_hands(MODEL_COMPLEXITY)
+
+    # Cleanup
+    hands.close()
+    pipeline.set_state(Gst.State.NULL)
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    # Boucle d’événements GLib requise par GStreamer pour certains éléments
+    # Ici on tourne en mode "pull" simple ; pas besoin d’un main loop séparé.
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
