@@ -9,7 +9,7 @@ yellow_output_position = config_traj.yellow_output_position
 
 ## Get position functions
 def bloc_pos(bloc):
-    couleur, x, y = bloc
+    couleur,bloc_type, x, y, angle = bloc
     return (float(x), float(y), 0.0)
 
 def output_pos_for_color(color):
@@ -22,7 +22,7 @@ def output_pos_for_color(color):
 
 ## Cost calculation functions
 def cost_do_bloc_from(pos, bloc):
-    c, x, y = bloc
+    c, bloc_type, x, y, angle = bloc
     p_bloc = (float(x), float(y), 0.0)
     p_out  = output_pos_for_color(c)
     return distance_between_3_points(pos, p_bloc, p_out)
@@ -30,7 +30,7 @@ def cost_do_bloc_from(pos, bloc):
 ## Distance calculation functions
 def distance_from_output(bloc):
     """Calcule la distance entre un bloc et sa position de sortie."""
-    couleur, x, y = bloc
+    couleur, bloc_type, x, y, angle = bloc
     z = 0  # Tous les blocs sont au niveau z=0
     if couleur == 'red':
         output_pos = red_output_position
