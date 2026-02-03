@@ -2,92 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import root  # <--- Ajout nécessaire pour le mode Joint
+from Cinematique_delta3bras import rotZ, GetAngleMoteur1, GetBrasComplet
+
 
 # ==========================================
-# 1. TA CINÉMATIQUE (Intouchée)
-# ==========================================
-
-# --- Paramètres du robot ---
-f = 0.1   # Rayon base moteur
-e = 0.1   # Rayon effecteur
-r_parralelogramme = 0.05 
-Lc = 0.3  # Longueur bras supérieur (proximal)
-Lb = 0.5  # Longueur bras inférieur (distal)
-
-def rotZ(p, phi):
-    """Rotation d'un point p autour de l'axe Z."""
-    R = np.array([
-        [np.cos(phi), -np.sin(phi), 0],
-        [np.sin(phi),  np.cos(phi), 0],
-        [0, 0, 1]
-    ])
-    return R @ p
-
-def GetAngleMoteur1(x_eff, y_eff, z_eff):
-    """ Calcule l'angle valide dans [0, 90]. """
-    y_E = y_eff + e
-    z_E = z_eff
-    
-    A = 2 * (f - y_E)
-    B = -2 * z_E
-    C = f**2 - y_E**2 - z_E**2 + Lb**2 - Lc**2
-
-    if abs(B) < 1e-6:
-        if abs(A) < 1e-6: return None, None, None
-        y_sol = C / A
-        delta_z = Lc**2 - (y_sol - f)**2
-        if delta_z < 0: return None, None, None
-        solutions = [(y_sol, -np.sqrt(delta_z)), (y_sol, np.sqrt(delta_z))]
-    else:
-        a_q = 1 + (A/B)**2
-        b_q = -2*f - 2*(A*C)/(B**2)
-        c_q = f**2 + (C/B)**2 - Lc**2
-        delta = b_q**2 - 4*a_q*c_q
-        if delta < 0: return None, None, None
-        y1 = (-b_q - np.sqrt(delta)) / (2*a_q)
-        y2 = (-b_q + np.sqrt(delta)) / (2*a_q)
-        solutions = [(y1, (C - A*y1) / B), (y2, (C - A*y2) / B)]
-
-    valid_solution = None
-    for y_B, z_B in solutions:
-        theta_candidate = np.arctan2(y_B - f, -z_B)
-        deg = np.degrees(theta_candidate)
-        if -0.1 <= deg <= 90.1:
-            if valid_solution is None or z_B < valid_solution[2]:
-                valid_solution = (theta_candidate, y_B, z_B)
-
-    if valid_solution:
-        return valid_solution # theta, y_B, z_B
-    else:
-        return None, None, None
-
-def GetBrasComplet(x_eff_glob, y_eff_glob, z_eff_glob, phi):
-    Eff_glob = np.array([x_eff_glob, y_eff_glob, z_eff_glob])
-    Eff_loc = rotZ(Eff_glob, -phi)
-    
-    theta, y_B, z_B = GetAngleMoteur1(Eff_loc[0], Eff_loc[1], Eff_loc[2])
-    
-    if theta is None: return None
-
-    M_loc = np.array([0, f, 0])
-    B_loc = np.array([0, y_B, z_B])
-    
-    BG_loc = B_loc + [r_parralelogramme, 0, 0]
-    BD_loc = B_loc - [r_parralelogramme, 0, 0]
-    
-    E_loc = np.array([Eff_loc[0], Eff_loc[1] + e, Eff_loc[2]])
-    EG_loc = E_loc + [r_parralelogramme, 0, 0]
-    ED_loc = E_loc - [r_parralelogramme, 0, 0]
-
-    return {
-        "M":  rotZ(M_loc, phi), "B":  rotZ(B_loc, phi),
-        "BG": rotZ(BG_loc, phi), "BD": rotZ(BD_loc, phi),
-        "EG": rotZ(EG_loc, phi), "ED": rotZ(ED_loc, phi),
-        "Eff": Eff_glob
-    }
-
-# ==========================================
-# 2. LOGIQUE D'INTERPOLATION (Modifiée)
+# 1. LOGIQUE D'INTERPOLATION 
 # ==========================================
 
 def get_all_thetas(pos):
@@ -150,7 +69,7 @@ def interpolate_joint(p_start, p_end, steps):
     return traj
 
 # ==========================================
-# 3. SIMULATION (Mise à jour pour gérer L/J)
+# 2. SIMULATION (Mise à jour pour gérer L/J)
 # ==========================================
 
 def run_simulation_realtime(points_data, steps_per_move=30):
@@ -216,8 +135,11 @@ def run_simulation_realtime(points_data, steps_per_move=30):
     plt.ioff()
     plt.show()
 
+
+###Test simulation###
+
 # ==========================================
-# 4. EXÉCUTION
+# 3. EXÉCUTION
 # ==========================================
 
 # Format: [X, Y, Z, 'Mode']

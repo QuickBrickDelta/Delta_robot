@@ -1,0 +1,5 @@
+from MouvementRobot import run_simulation_realtime
+import numpy
+from Trajectoire import plannif_trajectoire, congif_traj, shortest_path_algorithms,other_fct_traj
+
+plannif_trajectoire()
