@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 # --- Paramètres du robot ---
-f = 0.1   # Rayon base moteur
-e = 0.1   # Rayon effecteur
-r_parralelogramme = 0.05 
-Lc = 0.3  # Longueur bras supérieur (proximal)
-Lb = 0.5  # Longueur bras inférieur (distal)
+f = 10  # Rayon base moteur
+e = 6   # Rayon effecteur
+r_parralelogramme = 5 
+Lc = 15  # Longueur bras supérieur (proximal)
+Lb = 32 # Longueur bras inférieur (distal)
 
 def rotZ(p, phi):
     """Rotation d'un point p autour de l'axe Z."""
@@ -34,12 +35,12 @@ def GetAngleMoteur1(x_eff, y_eff, z_eff):
     if abs(B) < 1e-6:
         # Cas Z=0 (rare)
         if abs(A) < 1e-6: 
-            print("Position non atteignable")
+            #print("Position non atteignable")
             return None, None, None
         y_sol = C / A
         delta_z = Lc**2 - (y_sol - f)**2
         if delta_z < 0: 
-            print("Position non atteignable")
+           # print("Position non atteignable")
             return None, None, None
         solutions = [(y_sol, -np.sqrt(delta_z)), (y_sol, np.sqrt(delta_z))]
     else:
@@ -110,31 +111,31 @@ def GetBrasComplet(x_eff_glob, y_eff_glob, z_eff_glob, phi):
         "Eff": Eff_glob
     }
 
-# --- TEST ---
-# Position excentrée (X=0.2)
-target = [0.1, 0.0, -0.5] 
+# # --- TEST ---
+# # Position excentrée (X=0.2)
+# target = [0.1, 0.0, -0.5] 
 
-# Pour tester l'erreur, tu peux essayer une cible impossible, ex : [0.8, 0, -0.6]
-# target = [0.8, 0.0, -0.6] 
+# # Pour tester l'erreur, tu peux essayer une cible impossible, ex : [0.8, 0, -0.6]
+# # target = [0.8, 0.0, -0.6] 
 
-fig = plt.figure(figsize=(10, 8))
-ax = fig.add_subplot(111, projection='3d')
+# fig = plt.figure(figsize=(10, 8))
+# ax = fig.add_subplot(111, projection='3d')
 
-angles_phi = [0, np.radians(120), np.radians(240)]
-colors = ['red', 'green', 'blue']
+# angles_phi = [0, np.radians(120), np.radians(240)]
+# colors = ['red', 'green', 'blue']
 
-for i, phi in enumerate(angles_phi):
-    res = GetBrasComplet(*target, phi)
-    if res:
-        c = colors[i]
-        ax.plot([res["M"][0], res["B"][0]], [res["M"][1], res["B"][1]], [res["M"][2], res["B"][2]], color=c, lw=4)
-        ax.plot([res["BG"][0], res["EG"][0]], [res["BG"][1], res["EG"][1]], [res["BG"][2], res["EG"][2]], color='orange')
-        ax.plot([res["BD"][0], res["ED"][0]], [res["BD"][1], res["ED"][1]], [res["BD"][2], res["ED"][2]], color='teal')
-        ax.plot([res["BG"][0], res["BD"][0]], [res["BG"][1], res["BD"][1]], [res["BG"][2], res["BD"][2]], color='black')
-        ax.plot([res["EG"][0], res["ED"][0]], [res["EG"][1], res["ED"][1]], [res["EG"][2], res["ED"][2]], color='purple')
-        ax.scatter(*res["M"], color='black', s=40)
+# for i, phi in enumerate(angles_phi):
+#     res = GetBrasComplet(*target, phi)
+#     if res:
+#         c = colors[i]
+#         ax.plot([res["M"][0], res["B"][0]], [res["M"][1], res["B"][1]], [res["M"][2], res["B"][2]], color=c, lw=4)
+#         ax.plot([res["BG"][0], res["EG"][0]], [res["BG"][1], res["EG"][1]], [res["BG"][2], res["EG"][2]], color='orange')
+#         ax.plot([res["BD"][0], res["ED"][0]], [res["BD"][1], res["ED"][1]], [res["BD"][2], res["ED"][2]], color='teal')
+#         ax.plot([res["BG"][0], res["BD"][0]], [res["BG"][1], res["BD"][1]], [res["BG"][2], res["BD"][2]], color='black')
+#         ax.plot([res["EG"][0], res["ED"][0]], [res["EG"][1], res["ED"][1]], [res["EG"][2], res["ED"][2]], color='purple')
+#         ax.scatter(*res["M"], color='black', s=40)
 
-ax.scatter(*target, color='magenta', s=150)
-ax.set_zlim(-0.8, 0.1)
-ax.set_title("Robot Delta - [0°, 90°] ou 'Position non atteignable'")
-plt.show()
+# ax.scatter(*target, color='magenta', s=150)
+# ax.set_zlim(-0.8, 0.1)
+# ax.set_title("Robot Delta - [0°, 90°] ou 'Position non atteignable'")
+# plt.show()

@@ -77,8 +77,8 @@ def run_simulation_realtime(points_data, steps_per_move=30):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
     
-    lim = 0.4
-    z_min, z_max = -0.8, 0.1
+    lim = 40.0
+    z_min, z_max = -80.0, 10.0
     colors = ['red', 'green', 'blue']
     angles_phi = [0, np.radians(120), np.radians(240)]
     
@@ -108,7 +108,7 @@ def run_simulation_realtime(points_data, steps_per_move=30):
             ax.set_title(f"Mode: {'JOINT' if mode=='J' else 'LINEAIRE'}")
             
             # Base
-            base_pts = [rotZ(np.array([0, 0.1, 0]), a) for a in angles_phi]
+            base_pts = [rotZ(np.array([0, 10.0, 0]), a) for a in angles_phi]
             base_pts.append(base_pts[0])
             ax.plot(np.array(base_pts)[:,0], np.array(base_pts)[:,1], np.array(base_pts)[:,2], 'k-')
 
@@ -144,11 +144,13 @@ def run_simulation_realtime(points_data, steps_per_move=30):
 
 # Format: [X, Y, Z, 'Mode']
 points_passage = [
-    [0.0, 0.0, -0.65, 'L'],   # Départ
-    [0.2, 0.0, -0.60, 'L'],   # Mouvement Linéaire
-    [0.0, 0.2, -0.55, 'J'],   # Mouvement Joint (Courbe)
-    [-0.2, -0.1, -0.70, 'L'], 
-    [0.0, 0.0, -0.65, 'J']    
+    [0.0, 0.0, -30.0, 'L'],     # 1. Home : Centre, hauteur de sécurité
+    [8.0, 0.0, -30.0, 'L'],    # 2. Approche X+ : On se met au dessus de l'objet
+    [8.0, 0.0, -33.0, 'J'],    # 3. Descente : On descend attraper l'objet (Courbe fluide)
+    [8.0, 0.0, -30.0, 'L'],    # 4. Remontée : On remonte avec l'objet
+    [-8.0, 8.0, -30.0, 'L'],    # 5. Traversée : On va vers la zone de dépôt
+    [-8.0, 8.0, -33.0, 'J'],    # 6. Descente : On dépose l'objet
+    [0.0, 0.0, -32.0, 'J']      # 7. Retour Home
 ]
 
-run_simulation_realtime(points_passage, steps_per_move=40)
+#run_simulation_realtime(points_passage, steps_per_move=40)
