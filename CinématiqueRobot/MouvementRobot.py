@@ -15,7 +15,7 @@ def get_all_thetas(pos):
     thetas = []
     for phi in phis:
         p_rot = rotZ(np.array(pos), -phi)
-        res = GetAngleMoteur1(p_rot[0], p_rot[1], p_rot[2])
+        res = GetAngleMoteur1(p_rot[0], p_rot[1], p_rot[2], phi)
         if res[0] is None: return None # Position impossible
         thetas.append(res[0])
     return np.array(thetas)
@@ -153,4 +153,4 @@ points_passage = [
     [0.0, 0.0, -32.0, 'J']      # 7. Retour Home
 ]
 
-#run_simulation_realtime(points_passage, steps_per_move=40)
+# run_simulation_realtime(points_passage, steps_per_move=40)

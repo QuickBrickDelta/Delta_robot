@@ -18,7 +18,7 @@ def rotZ(p, phi):
     ])
     return R @ p
 
-def GetAngleMoteur1(x_eff, y_eff, z_eff):
+def GetAngleMoteur1(x_eff, y_eff, z_eff, phi):
     """
     Calcule l'angle valide dans [0, 90].
     Affiche "Position non atteignable" si aucune solution réelle ou physique n'existe.
@@ -75,7 +75,14 @@ def GetAngleMoteur1(x_eff, y_eff, z_eff):
 
     if valid_solution:
         theta_phys, y_B, z_B = valid_solution
-        print(f"Angle moteur : {np.degrees(theta_phys):.2f}°")
+        if phi == 0:
+            moteur = 1
+        elif phi == np.radians(120):
+            moteur = 2
+        else:
+            moteur = 3
+
+        print(f"Angle moteur {moteur} : {np.degrees(theta_phys):.2f}°")
         return theta_phys, y_B, z_B
     else:
         # Solutions mathématiques existent mais sont hors limites (angles négatifs ou > 90)
@@ -86,7 +93,7 @@ def GetBrasComplet(x_eff_glob, y_eff_glob, z_eff_glob, phi):
     Eff_glob = np.array([x_eff_glob, y_eff_glob, z_eff_glob])
     Eff_loc = rotZ(Eff_glob, -phi)
     
-    theta, y_B, z_B = GetAngleMoteur1(Eff_loc[0], Eff_loc[1], Eff_loc[2])
+    theta, y_B, z_B = GetAngleMoteur1(Eff_loc[0], Eff_loc[1], Eff_loc[2], phi)
     
     if theta is None: return None
 
