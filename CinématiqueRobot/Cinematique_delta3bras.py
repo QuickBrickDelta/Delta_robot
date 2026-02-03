@@ -112,7 +112,7 @@ def GetBrasComplet(x_eff_glob, y_eff_glob, z_eff_glob, phi):
 
 # --- TEST ---
 # Position excentrée (X=0.2)
-target = [0.0, 0.0, -0.79999] 
+target = [0.1, 0.0, -0.5] 
 
 # Pour tester l'erreur, tu peux essayer une cible impossible, ex : [0.8, 0, -0.6]
 # target = [0.8, 0.0, -0.6] 
