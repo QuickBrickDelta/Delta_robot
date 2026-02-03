@@ -16,7 +16,7 @@ from other_fct_traj import output_pos_for_color
 def plot_blocks_2D(blocs):
     """Affiche les blocs sur un graphique 2D."""
     for bloc in blocs:
-        couleur, x, y = bloc
+        couleur, bloc_type, x, y, angle = bloc
         plt.scatter(x, y, c=couleur, s=100)  # s est la taille du point
         plt.text(x, y, f'({x},{y})', fontsize=9, ha='right')
     plt.xlim(0, 100)
@@ -33,7 +33,7 @@ def plot_blocks_3D(blocs, home_position):
     ax = fig.add_subplot(111, projection='3d')
     for bloc in blocs:
         z = 0  # Tous les blocs sont au niveau z=0
-        couleur, x, y = bloc
+        couleur, bloc_type, x, y, angle = bloc
         ax.scatter(x, y, z, c=couleur, s=100)
     # Afficher la position de départ du robot
     ax.scatter(home_position[0], home_position[1], home_position[2], c='black', s=150, marker='^')
@@ -71,7 +71,7 @@ def plot_route_2D(order, start_pos):
     # Trajet segment par segment (avec flèches)
     cur = start_pos
     for i, b in enumerate(order, 1):
-        c, x, y = b
+        c, bloc_type, x, y, angle = b
         p_bloc = (float(x), float(y), 0.0)
         p_out  = output_pos_for_color(c)
 
@@ -213,10 +213,10 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
         raise ValueError("full_path doit contenir au moins 2 points")
 
     # --- 1) Frames interpolées ---
-    frames = []  # (x, y, z, grip, mtype, carried_color)
+    frames = []  # (x, y, z, angle, grip, mtype, carried_color)
     for i in range(len(full_path) - 1):
-        carried1, mtype1, speed1, x1, y1, z1, grip1 = full_path[i]
-        carried2, mtype2, speed2, x2, y2, z2, grip2 = full_path[i + 1]
+        carried_color1, carried_type1, mtype1, speed1, x1, y1, z1, angle1, grip1 = full_path[i]
+        carried_color2, carried_type2, mtype2, speed2, x2, y2, z2, angle2, grip2 = full_path[i + 1]
 
         p1 = np.array([float(x1), float(y1), float(z1)], dtype=float)
         p2 = np.array([float(x2), float(y2), float(z2)], dtype=float)
@@ -229,7 +229,7 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
         for s in range(steps):
             t = (s + 1) / steps
             p = (1 - t) * p1 + t * p2
-            frames.append((p[0], p[1], p[2], bool(grip2), mtype2, carried2))
+            frames.append((p[0], p[1], p[2], bool(grip2), mtype2, carried_color2))
 
     # --- 2) Figure 3D ---
     fig = plt.figure()
@@ -245,7 +245,7 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
 
     # Blocs
     if blocs is not None:
-        for couleur, x, y in blocs:
+        for couleur, bloc_type, x, y, angle in blocs:
             ax.scatter(float(x), float(y), 0.0, c=couleur, s=60)
 
     # Home
