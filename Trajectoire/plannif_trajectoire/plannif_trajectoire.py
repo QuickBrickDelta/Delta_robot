@@ -41,7 +41,7 @@ def plan_full_trajectory(blocs):
     path = []
     speed_joint_move = speed_joint_move_global
     speed_approach_move = speed_approach_move_global
-    distance_approach = -5.0
+    distance_approach = 5.0
 
     # Trier les blocs selon un algorithme de planification
     # Branch and Bound, TSP exact, ou Cheapest Insertion selon le nombre de blocs
@@ -57,7 +57,7 @@ def plan_full_trajectory(blocs):
                  home_position[0], home_position[1], home_position[2], 0.0, False))
     for bloc in blocs_sorted:
         couleur, bloc_type, x, y, angle = bloc
-        p_bloc = (float(x), float(y), 0.0)
+        p_bloc = (float(x), float(y), -30.0)
         p_out  = output_pos_for_color(couleur)
 
         # Aller au-dessus du bloc (pince ouverte)

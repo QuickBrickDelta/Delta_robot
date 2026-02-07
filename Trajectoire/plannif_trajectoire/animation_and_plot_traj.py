@@ -19,8 +19,8 @@ def plot_blocks_2D(blocs):
         couleur, bloc_type, x, y, angle = bloc
         plt.scatter(x, y, c=couleur, s=100)  # s est la taille du point
         plt.text(x, y, f'({x},{y})', fontsize=9, ha='right')
-    plt.xlim(0, 100)
-    plt.ylim(0, 100)
+    plt.xlim(-10, 10)
+    plt.ylim(-10, 10)
     plt.xlabel('Position X')
     plt.ylabel('Position Y')
     plt.title('Positions des blocs')
@@ -32,7 +32,7 @@ def plot_blocks_3D(blocs, home_position):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     for bloc in blocs:
-        z = 0  # Tous les blocs sont au niveau z=0
+        z = -30  # Tous les blocs sont au niveau z=-30
         couleur, bloc_type, x, y, angle = bloc
         ax.scatter(x, y, z, c=couleur, s=100)
     # Afficher la position de départ du robot
@@ -50,9 +50,9 @@ def plot_blocks_3D(blocs, home_position):
         ax.text(pos[0], pos[1], pos[2], f' {color} output', fontsize=10, color=color)
     
     # Définir les limites et les labels
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
-    ax.set_zlim(0, 100)
+    ax.set_xlim(-10, 10)
+    ax.set_ylim(-10, 10)
+    ax.set_zlim(-40, 10)
     ax.set_xlabel('Position X')
     ax.set_ylabel('Position Y')
     ax.set_zlabel('Position Z')
@@ -72,7 +72,7 @@ def plot_route_2D(order, start_pos):
     cur = start_pos
     for i, b in enumerate(order, 1):
         c, bloc_type, x, y, angle = b
-        p_bloc = (float(x), float(y), 0.0)
+        p_bloc = (float(x), float(y), -30.0)
         p_out  = output_pos_for_color(c)
 
         # cur -> bloc
@@ -89,8 +89,8 @@ def plot_route_2D(order, start_pos):
 
         cur = p_out  # prochaine position = sortie
 
-    plt.xlim(0, 100)
-    plt.ylim(0, 100)
+    plt.xlim(-10, 10)
+    plt.ylim(-10, 10)
     plt.grid(True)
     plt.title("Trajectoire (projection 2D) – bloc → output inclus")
     plt.legend()
@@ -128,8 +128,8 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
 
     # --- 2) Setup figure ---
     fig, ax = plt.subplots()
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
+    ax.set_xlim(-10, 10)
+    ax.set_ylim(-10, 10)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_title("Animation trajectoire (2D)")
@@ -235,9 +235,9 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
-    ax.set_zlim(0, 100)
+    ax.set_xlim(-10, 10)
+    ax.set_ylim(-10, 10)
+    ax.set_zlim(-40, 10)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
@@ -246,7 +246,7 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     # Blocs
     if blocs is not None:
         for couleur, bloc_type, x, y, angle in blocs:
-            ax.scatter(float(x), float(y), 0.0, c=couleur, s=60)
+            ax.scatter(float(x), float(y), -30.0, c=couleur, s=60)
 
     # Home
     if home_position is not None:

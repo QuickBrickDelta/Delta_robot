@@ -35,8 +35,8 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
 
     # --- 2) Setup figure ---
     fig, ax = plt.subplots()
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
+    ax.set_xlim(-10, 10)
+    ax.set_ylim(-10, 10)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_title("Animation trajectoire (2D)")
@@ -142,9 +142,9 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
-    ax.set_zlim(0, 100)
+    ax.set_xlim(-10, 10)
+    ax.set_ylim(-10, 10)
+    ax.set_zlim(-40, 10)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
