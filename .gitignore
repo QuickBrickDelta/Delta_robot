@@ -13,3 +13,7 @@ venv/
 # plots directory
 .plots_algo_path/
 plots_algo_path/
+
+# calib_flash
+.calib_flash/
+calib_flash/
