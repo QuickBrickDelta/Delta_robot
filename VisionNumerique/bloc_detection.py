@@ -31,12 +31,12 @@ SHOW_VIS = True            # affichage des contours / boxes
 
 # Pipeline 1 : FOV maximal (plein capteur 16:9) -> downscale pour OpenCV
 pipeline = (
-    "libcamerasrc ! "
-    "video/x-raw,format=NV12,width=4608,height=2592,framerate=5/1 ! "
-    "videoscale ! video/x-raw,width=1920,height=1080 ! "
-    "queue max-size-buffers=1 leaky=downstream ! "
-    "videoconvert ! video/x-raw,format=BGR ! "
-    "appsink drop=true max-buffers=1 sync=false"
+    'libcamerasrc af-mode=manual lens-position=3.4 ! '
+    'video/x-raw,format=NV12,width=4608,height=2592,framerate=5/1 ! '
+    'videoscale ! video/x-raw,width=1920,height=1080 ! '
+    'queue max-size-buffers=1 leaky=downstream ! '
+    'videoconvert ! video/x-raw,format=BGR ! '
+    'appsink drop=true max-buffers=1 sync=false'
 )
 
 # ---------- Paramètres couleur (HSV) ----------
