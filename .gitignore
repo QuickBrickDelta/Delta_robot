@@ -17,3 +17,15 @@ plots_algo_path/
 # calib_flash
 .calib_flash/
 calib_flash/
+
+# Python virtual environments
+venv/
+*.venv/
+UI/.qtcreator/Python_3_11_6venv/
+__pycache__/
+*.pyc
+
+# VSCode/Qt Creator stuff
+.vscode/
+*.user
+
