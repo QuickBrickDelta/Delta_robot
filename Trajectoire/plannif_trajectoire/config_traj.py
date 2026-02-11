@@ -28,10 +28,6 @@ yellow_output_position = (0.0, -offset_output, z_table)
 
 # Fixed Z values within [z_table, z_home] (no randomness)
 blocs = np.array([
-    ("red",    "2x4",   -10.0,   2.0, -30.0),
-    ("blue",   "2x2",  8.0,   0.0, -30.0),
-    ("green",  "2x4",   6.0,  8.0, -30.0),
-    ("yellow", "2x2", -9.0, -7.0, -30.0),
     ("red",    "2x4",  4.0,  -5.0, -30.0),
     ("yellow", "2x8", -9.0,  8.0, -30.0),
     ("green",  "1x4",   -5.0,  6.0, -30.0),

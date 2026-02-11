@@ -94,7 +94,7 @@ def run_simulation_realtime(points_data, steps_per_move=30):
         # Lecture du mode ('L' par défaut si absent)
         mode = target_pt[3] if len(target_pt) > 3 else 'L'
         
-        print(f"Vers {pos_xyz} [{mode}]")
+        #print(f"Vers {pos_xyz} [{mode}]")
         
         # Choix de l'interpolation
         if mode == 'J':

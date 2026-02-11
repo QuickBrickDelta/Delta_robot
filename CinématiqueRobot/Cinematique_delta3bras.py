@@ -53,7 +53,7 @@ def GetAngleMoteur1(x_eff, y_eff, z_eff, phi):
         
         # Pas de solution réelle (trop loin)
         if delta < 0: 
-            print("Position non atteignable")
+            #print("Position non atteignable")
             return None, None, None
         
         y1 = (-b_q - np.sqrt(delta)) / (2*a_q)
@@ -82,11 +82,11 @@ def GetAngleMoteur1(x_eff, y_eff, z_eff, phi):
         else:
             moteur = 3
 
-        print(f"Angle moteur {moteur} : {np.degrees(theta_phys):.2f}°")
+        #print(f"Angle moteur {moteur} : {np.degrees(theta_phys):.2f}°")
         return theta_phys, y_B, z_B
     else:
         # Solutions mathématiques existent mais sont hors limites (angles négatifs ou > 90)
-        print("Position non atteignable")
+        #print("Position non atteignable")
         return None, None, None
 
 def GetBrasComplet(x_eff_glob, y_eff_glob, z_eff_glob, phi):
