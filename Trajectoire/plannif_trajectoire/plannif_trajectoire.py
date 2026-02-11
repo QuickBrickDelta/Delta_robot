@@ -41,7 +41,7 @@ def plan_full_trajectory(blocs):
     path = []
     speed_joint_move = speed_joint_move_global
     speed_approach_move = speed_approach_move_global
-    distance_approach = 5.0
+    distance_approach = 0.0
 
     # Trier les blocs selon un algorithme de planification
     # Branch and Bound, TSP exact, ou Cheapest Insertion selon le nombre de blocs
