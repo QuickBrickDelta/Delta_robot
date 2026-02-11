@@ -39,6 +39,29 @@ pipeline = (
     'appsink drop=true max-buffers=1 sync=false'
 )
 
+# Calibration positions
+H_PATH = "homography_plane.npz"
+
+def load_homography(path=H_PATH):
+    if not os.path.exists(path):
+        return None
+    data = np.load(path, allow_pickle=True)
+    H = data["H"]
+    imgW = int(data["imgW"])
+    imgH = int(data["imgH"])
+    cam_center_world = data["cam_center_world"]  # shape (2,)
+    return H, imgW, imgH, cam_center_world
+
+def pix_to_world_cm(pt_uv, H):
+    """pt_uv = (u,v) pixel → (X,Y) world in cm using planar homography."""
+    u, v = float(pt_uv[0]), float(pt_uv[1])
+    ph = H @ np.array([u, v, 1.0], dtype=np.float64)
+    if abs(ph[2]) < 1e-9:
+        return None
+    xw = ph[0] / ph[2]
+    yw = ph[1] / ph[2]
+    return (float(xw), float(yw))
+
 # ---------- Paramètres couleur (HSV) ----------
 # NOTE:
 #  - Plages de départ à calibrer selon ton éclairage.
@@ -357,6 +380,16 @@ def main():
     if not cap.isOpened():
         raise SystemExit("Erreur : impossible d'ouvrir la caméra via GStreamer.")
 
+    loaded = load_homography(H_PATH)
+    if loaded is None:
+        raise SystemExit(
+            "Homography absente. Lance d'abord: python3 calibrate_homography.py"
+        )
+
+    H_cm, IMGW, IMGH, CAM_CENTER_WORLD = loaded
+    CAM_CENTER_WORLD = CAM_CENTER_WORLD.reshape(2)
+    print("Homography loaded. Camera-center world offset:", CAM_CENTER_WORLD)
+
     win = "LIVE carre (detect strict)"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(win, WINDOW_SIZE, WINDOW_SIZE)
@@ -428,12 +461,22 @@ def main():
                     "orange": (0, 165, 255),
                     "purple": (255, 0, 255),
                     "white": (220, 220, 220),
-                    #"black": (30, 30, 30),
                 }.get(col, (255, 255, 255))
 
+                # --- NEW: Pixel -> World (cm) ---
+                xy_world = pix_to_world_cm((cx, cy), H_cm)
+                if xy_world is None:
+                    Xcm, Ycm = float('nan'), float('nan')
+                else:
+                    Xcm = xy_world[0] - CAM_CENTER_WORLD[0]
+                    Ycm = xy_world[1] - CAM_CENTER_WORLD[1]
+
+                # Draw the box + point
                 cv2.drawContours(square, [box_disp], 0, color_bgr, 2)
                 cv2.circle(square, (px, py), 5, color_bgr, -1)
-                label = f"{col} | ({int(cx)},{int(cy)}) | {ang:+.1f}°"
+
+                # Label in centimeters
+                label = f"{col} | X={Xcm:+.1f}cm Y={Ycm:+.1f}cm | {ang:+.1f}°"
                 cv2.putText(square, label, (px + 8, py - 8),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_bgr, 2, cv2.LINE_AA)
 
