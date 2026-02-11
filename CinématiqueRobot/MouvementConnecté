@@ -50,3 +50,6 @@ if __name__ == "__main__":
         run_simulation_realtime(Motor_command)
     except Exception as e:
         print(f"Erreur lors du lancement de la simulation: {e}")
+
+
+# ceci est un test
