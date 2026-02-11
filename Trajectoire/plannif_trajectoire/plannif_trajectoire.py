@@ -69,16 +69,16 @@ def plan_full_trajectory(blocs):
                      p_bloc[0], p_bloc[1], p_bloc[2], angle, False))
         
         # Attendre un peu
-        path.append((None, None, "wait1", 0.0,
-                     p_bloc[0], p_bloc[1], p_bloc[2], angle, False))
+        # path.append((None, None, "wait1", 0.0,
+        #              p_bloc[0], p_bloc[1], p_bloc[2], angle, False))
         
         # fermer la pince
         path.append((couleur, bloc_type, "closeGripper", 0.0,
                      p_bloc[0], p_bloc[1], p_bloc[2], angle, True))
         
         # Attendre un peu
-        path.append((couleur, bloc_type, "wait2", 0.0,
-                     p_bloc[0], p_bloc[1], p_bloc[2], angle, True))
+        #path.append((couleur, bloc_type, "wait2", 0.0,
+        #             p_bloc[0], p_bloc[1], p_bloc[2], angle, True))
         
         # Remonter AVEC le bloc (pince fermée + bloc_carried = couleur)
         path.append((couleur, bloc_type, "linear", speed_approach_move,
@@ -88,16 +88,16 @@ def plan_full_trajectory(blocs):
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, True))
 
         # Attendre un peu
-        path.append((couleur, bloc_type, "wait3", 0.0,
-                     p_out[0], p_out[1], p_out[2] + distance_approach, 0, True))
+        # path.append((couleur, bloc_type, "wait3", 0.0,
+        #              p_out[0], p_out[1], p_out[2] + distance_approach, 0, True))
         
         # Ouvrir la pince (toujours au-dessus de la sortie)
         path.append((None, None, "openGripper", 0.0,
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
         
         # Attendre un peu
-        path.append((None, None, "wait4", 0.0,
-                     p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
+        # path.append((None, None, "wait4", 0.0,
+        #              p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
     # Retour à la maison
     path.append((None, None, "joint", speed_joint_move,
                  home_position[0], home_position[1], home_position[2], 0, False))
