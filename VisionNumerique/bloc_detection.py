@@ -91,11 +91,11 @@ COLOR_RANGES: Dict[str, List[Tuple[np.ndarray, np.ndarray]]] = {
 
 
 # Filtres de taille / forme (relaxés)
-MIN_AREA_PX = 800            # ↓ de 1200 -> 800
-COLOR_STD_THRESH = 10.0      # ↑ de 6.0 -> 10.0 (plus tolérant)
-DOMINANT_FRAC_THRESH = 0.55  # ↓ de 0.65 -> 0.55
-RECT_ANGLE_TOL_DEG = 22.5    # ↑ de 15.0 -> 22.5
-RECT_AREA_RATIO_MIN = 0.80   # ↓ de 0.86 -> 0.80
+MIN_AREA_PX = 3600            # ↓ de 1200 -> 800
+COLOR_STD_THRESH = 15.0      # ↑ de 6.0 -> 10.0 (plus tolérant)
+DOMINANT_FRAC_THRESH = 0.80  # ↓ de 0.65 -> 0.55
+RECT_ANGLE_TOL_DEG = 5.0    # ↑ de 15.0 -> 22.5
+RECT_AREA_RATIO_MIN = 0.92   # ↓ de 0.86 -> 0.80
 
 # Optionnel: contrainte de ratio L/H (désactivée par défaut)
 ASPECT_RATIO_RANGE = None    # ex: (0.7, 4.0) pour types de briques

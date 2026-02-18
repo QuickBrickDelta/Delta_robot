@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Stable block output
-- Reads frames from camera
-- Runs your strict detector with your provided thresholds
-- Keeps last 10 frames and checks stability:
-    * same number of blocks
-    * same set of colors
-    * position/angle consistency
-- Removes outliers (median-based) and averages the remaining values
-- Prints a tuple-like numpy array of (color, "2x4", Xcm, Ycm, angle_deg)
+Stable block output (API style)
+- main(): boucle infinie qui appelle une fonction
+- print_stable_blocks_once(ctx): bloque jusqu'à un set stable, puis imprime le tuple
+
+Tuple imprimé: np.array(dtype=object) de (color, "2x4", Xcm, Ycm, angle_deg)
 """
 
 import time
@@ -37,16 +33,16 @@ DET_ASPECT = None  # OFF
 # ----------------------------
 # Stability parameters
 # ----------------------------
-FRAME_TARGET = 5            # Require 10 consistent frames
-POS_TOLERANCE_CM = 1.0       # median trimming tolerance for X,Y
-ANGLE_TOLERANCE_DEG = 8.0    # median trimming tolerance for angle
-OUTPUT_BRICK_TYPE = "2x4"    # for now all are 2x4 as requested
+FRAME_TARGET = 5             # nombre de frames stables requis (tu peux remettre 10)
+POS_TOLERANCE_CM = 1.0       # trimming autour de la médiane pour X,Y
+ANGLE_TOLERANCE_DEG = 8.0    # trimming autour de la médiane pour angle
+OUTPUT_BRICK_TYPE = "2x4"    # pour l'instant, toutes les briques sont "2x4"
 
 # ----------------------------
 # Helpers
 # ----------------------------
 def reject_outliers(values, tolerance):
-    """Return subset within ±tolerance of the median."""
+    """Retourne les valeurs dans ±tolerance autour de la médiane."""
     if not values:
         return []
     med = statistics.median(values)
@@ -54,9 +50,9 @@ def reject_outliers(values, tolerance):
 
 def pack_tuple(blocks):
     """
-    blocks: list of dict with keys:
+    blocks: list de dict avec:
         color, X, Y, angle
-    Returns numpy array dtype=object:
+    -> numpy array dtype=object:
         (color, "2x4", X, Y, angle)
     """
     rows = []
@@ -66,139 +62,155 @@ def pack_tuple(blocks):
     return np.array(rows, dtype=object)
 
 # ----------------------------
-# Main
+# Contexte partagé (caméra + homographie)
 # ----------------------------
-def main():
-    # Load homography
-    loaded = load_homography()
-    if loaded is None:
-        raise SystemExit("Homography missing. Run calibrate_homography.py first.")
-    H, IMGW, IMGH, CAM_CENTER_WORLD = loaded
-    CAM_CENTER_WORLD = CAM_CENTER_WORLD.reshape(2)
+class Context:
+    def __init__(self):
+        loaded = load_homography()
+        if loaded is None:
+            raise SystemExit("Homography missing. Run calibrate_homography.py first.")
+        H, IMGW, IMGH, CAM_CENTER_WORLD = loaded
+        self.H = H
+        self.CAM_CENTER_WORLD = CAM_CENTER_WORLD.reshape(2)
 
-    # Open camera
-    cap = open_cap()
-    if not cap.isOpened():
-        raise SystemExit("Camera could not be opened via GStreamer/libcamera.")
+        cap = open_cap()
+        if not cap.isOpened():
+            raise SystemExit("Camera could not be opened via GStreamer/libcamera.")
+        self.cap = cap
 
-    print("Looking for 10 stable frames... (same colors & consistent positions/angles)")
-
-    # buffer of last frames; each item = list[dict(color,X,Y,angle)]
-    ring = []
-
-    try:
-        while True:
-            ok, frame = cap.read()
-            if not ok or frame is None:
-                time.sleep(0.01)
-                continue
-
-            # --- Run detection with your exact thresholds ---
-            dets = detect_colored_blocks(
-                frame,
-                COLOR_RANGES,
-                min_area_px=DET_MIN_AREA_PX,
-                color_std_thresh=DET_COLOR_STD_THRESH,
-                dominant_frac_thresh=DET_DOMINANT_FRAC,
-                rect_angle_tol_deg=DET_RECT_ANGLE_TOL_DEG,
-                rect_area_ratio_min=DET_RECT_AREA_RATIO_MIN,
-                aspect_ratio_range=DET_ASPECT
-            )
-
-            # Convert to world (cm)
-            frame_blocks = []
-            for d in dets:
-                (cx, cy) = d["center"]
-                ang = float(d["angle_deg"])
-
-                xy = pix_to_world_cm((cx, cy), H)
-                if xy is None:
-                    continue
-                Xcm = float(xy[0] - CAM_CENTER_WORLD[0])
-                Ycm = float(xy[1] - CAM_CENTER_WORLD[1])
-
-                frame_blocks.append({
-                    "color": d["color"],
-                    "X": Xcm,
-                    "Y": Ycm,
-                    "angle": ang
-                })
-
-            # push into ring buffer (keep last 10)
-            ring.append(frame_blocks)
-            if len(ring) > FRAME_TARGET:
-                ring.pop(0)
-
-            # need 10 frames
-            if len(ring) < FRAME_TARGET:
-                continue
-
-            # ---- Stability check: same multiset of colors across the 10 frames ----
-            sigs = [tuple(sorted(b["color"] for b in fr)) for fr in ring]
-            if not all(sig == sigs[0] for sig in sigs):
-                # not stable in count/colors
-                continue
-
-            colors_sorted = list(sigs[0])  # stable set of colors in sorted order
-
-            # ---- For each color, aggregate X, Y, angle across the 10 frames ----
-            final_blocks = []
-            for color in colors_sorted:
-                X_vals, Y_vals, A_vals = [], [], []
-                for fr in ring:
-                    # NOTE: if multiple of same color appear (rare), take nearest to median later;
-                    # here we assume 0/1 per color in your scenario. If duplicates are possible, we can
-                    # do matching by nearest neighbor—tell me and I’ll add it.
-                    for b in fr:
-                        if b["color"] == color:
-                            X_vals.append(b["X"])
-                            Y_vals.append(b["Y"])
-                            A_vals.append(b["angle"])
-                            break
-
-                # Reject outliers based on median
-                X_clean = reject_outliers(X_vals, POS_TOLERANCE_CM)
-                Y_clean = reject_outliers(Y_vals, POS_TOLERANCE_CM)
-                A_clean = reject_outliers(A_vals, ANGLE_TOLERANCE_DEG)
-
-                # If angles wrap (e.g., +175 vs -185), we could normalize; for now we expect
-                # your detector to be near a mode (e.g., ~15°). If needed, I can add circular stats.
-                if not X_clean or not Y_clean or not A_clean:
-                    # too unstable → skip this color
-                    continue
-
-                X_mean = statistics.mean(X_clean)
-                Y_mean = statistics.mean(Y_clean)
-                A_mean = statistics.mean(A_clean)
-
-                final_blocks.append({
-                    "color": color,
-                    "X": X_mean,
-                    "Y": Y_mean,
-                    "angle": A_mean
-                })
-
-            if not final_blocks:
-                continue
-
-            # ---- Print the final tuple and reset buffer for the next snapshot ----
-            blocs = pack_tuple(final_blocks)
-            print("\n=== STABLE BLOCKS (5-frame average, outliers removed) ===")
-            print(blocs)
-            print("===========================================================\n")
-
-            # reset to detect the next stable scene
-            ring.clear()
-            time.sleep(0.1)
-
-    except KeyboardInterrupt:
-        pass
-    finally:
+    def close(self):
         try:
-            cap.release()
+            self.cap.release()
         except Exception:
             pass
 
+# ----------------------------
+# Fonction unique: bloque jusqu'à set stable, imprime le tuple
+# ----------------------------
+def print_stable_blocks_once(ctx: Context):
+    """
+    Bloque jusqu'à obtenir FRAME_TARGET frames stables (même multiset de couleurs),
+    effectue un rejet des valeurs aberrantes, calcule la moyenne, imprime le tuple,
+    puis retourne (pour que le main relance un nouveau cycle).
+    """
+    ring = []  # buffer des dernières frames (list[list[dict]])
+
+    while True:
+        ok, frame = ctx.cap.read()
+        if not ok or frame is None:
+            time.sleep(0.01)
+            continue
+
+        # --- Détection stricte avec tes seuils ---
+        dets = detect_colored_blocks(
+            frame,
+            COLOR_RANGES,
+            min_area_px=DET_MIN_AREA_PX,
+            color_std_thresh=DET_COLOR_STD_THRESH,
+            dominant_frac_thresh=DET_DOMINANT_FRAC,
+            rect_angle_tol_deg=DET_RECT_ANGLE_TOL_DEG,
+            rect_area_ratio_min=DET_RECT_AREA_RATIO_MIN,
+            aspect_ratio_range=DET_ASPECT
+        )
+
+        # Convertit en coordonnées monde (cm)
+        frame_blocks = []
+        for d in dets:
+            (cx, cy) = d["center"]
+            ang = float(d["angle_deg"])
+
+            xy = pix_to_world_cm((cx, cy), ctx.H)
+            if xy is None:
+                continue
+            Xcm = float(xy[0] - ctx.CAM_CENTER_WORLD[0])
+            Ycm = float(xy[1] - ctx.CAM_CENTER_WORLD[1])
+
+            frame_blocks.append({
+                "color": d["color"],
+                "X": Xcm,
+                "Y": Ycm,
+                "angle": ang
+            })
+
+        # buffer (on garde les FRAME_TARGET dernières)
+        ring.append(frame_blocks)
+        if len(ring) > FRAME_TARGET:
+            ring.pop(0)
+
+        # besoin d'au moins FRAME_TARGET frames
+        if len(ring) < FRAME_TARGET:
+            continue
+
+        # stabilité: même multiset de couleurs sur les FRAME_TARGET frames
+        sigs = [tuple(sorted(b["color"] for b in fr)) for fr in ring]
+        if not all(sig == sigs[0] for sig in sigs):
+            # pas stable en compte/couleurs
+            continue
+
+        colors_sorted = list(sigs[0])  # ensemble stable de couleurs
+
+        # agrégation des X, Y, angle par couleur
+        final_blocks = []
+        for color in colors_sorted:
+            X_vals, Y_vals, A_vals = [], [], []
+            for fr in ring:
+                # Hypothèse actuelle: au plus un bloc par couleur.
+                # S'il peut y avoir des doublons, on ajoutera un appariement (Hungarian).
+                for b in fr:
+                    if b["color"] == color:
+                        X_vals.append(b["X"])
+                        Y_vals.append(b["Y"])
+                        A_vals.append(b["angle"])
+                        break
+
+            # rejet d'outliers autour de la médiane
+            X_clean = reject_outliers(X_vals, POS_TOLERANCE_CM)
+            Y_clean = reject_outliers(Y_vals, POS_TOLERANCE_CM)
+            A_clean = reject_outliers(A_vals, ANGLE_TOLERANCE_DEG)
+
+            if not X_clean or not Y_clean or not A_clean:
+                # trop instable -> ignore la couleur
+                continue
+
+            X_mean = statistics.mean(X_clean)
+            Y_mean = statistics.mean(Y_clean)
+            A_mean = statistics.mean(A_clean)
+
+            final_blocks.append({
+                "color": color,
+                "X": X_mean,
+                "Y": Y_mean,
+                "angle": A_mean
+            })
+
+        if not final_blocks:
+            # rien de stable pour l'instant
+            continue
+
+        # construire et imprimer le tuple
+        blocs = pack_tuple(final_blocks)
+        print("\n=== STABLE BLOCKS ({}-frame average, outliers removed) ===".format(FRAME_TARGET))
+        print(blocs)
+        print("===========================================================\n")
+
+        # on retourne vers le main (qui relancera un nouveau cycle)
+        return
+
+# ----------------------------
+# Main: appelle la fonction en boucle
+# ----------------------------
+def main():
+    ctx = Context()
+    print(f"Ready. Will print a tuple every time a stable set of {FRAME_TARGET} frames is reached.")
+    try:
+        while True:
+            print_stable_blocks_once(ctx)
+            # petite pause pour éviter spam si la scène reste strictement identique
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        ctx.close()
 
 if __name__ == "__main__":
     main()
