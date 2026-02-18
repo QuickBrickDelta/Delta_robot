@@ -67,19 +67,28 @@ def pix_to_world_cm(pt_uv, H):
 #  - Plages de départ à calibrer selon ton éclairage.
 #  - HSV OpenCV: H:[0..179], S:[0..255], V:[0..255].
 COLOR_RANGES: Dict[str, List[Tuple[np.ndarray, np.ndarray]]] = {
-    # rouge = 2 intervalles (wrap Hue autour de 0/180)
-    "red":   [
-        (np.array([ 0, 120,  70]), np.array([ 10, 255, 255])),
-        (np.array([170, 120,  70]), np.array([179, 255, 255])),
+    # Vert (mesure H≈90)
+    "green": [
+        (np.array([70,  50,  40]), np.array([110, 255, 255])),
     ],
-    "green": [ (np.array([35,  70,  70]), np.array([85, 255, 255])) ],
-    "blue":  [ (np.array([95,  70,  70]), np.array([130,255, 255])) ],
-    "yellow":[ (np.array([20, 120, 120]), np.array([35, 255, 255])) ],
-    "orange":[ (np.array([10, 120, 120]), np.array([20, 255, 255])) ],
-    "purple":[ (np.array([130, 70,  70]), np.array([155,255, 255])) ],
-    "white": [ (np.array([ 0,   0, 200]), np.array([179, 50,  255])) ],
-    #"black": [ (np.array([ 0,   0,   0]), np.array([179, 255,  60])) ],
+
+    # Bleu (mesure H≈109)
+    "blue": [
+        (np.array([90,  60,  50]), np.array([135, 255, 255])),
+    ],
+
+    # Jaune (mesure H≈19 → proche orange ; marge pour éclairage)
+    "yellow": [
+        (np.array([15, 100,  90]), np.array([35,  255, 255])),
+    ],
+
+    # Rouge (wrap autour de 0° → deux intervalles)
+    "red": [
+        (np.array([  0, 110,  80]), np.array([  6, 255, 255])),  # bas
+        (np.array([170, 110,  80]), np.array([179, 255, 255])),  # haut
+    ],
 }
+
 
 # Filtres de taille / forme (relaxés)
 MIN_AREA_PX = 800            # ↓ de 1200 -> 800
