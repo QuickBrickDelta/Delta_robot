@@ -152,24 +152,40 @@ def time_one(algo_name, blocs, start_pos, repeats=10, warmup=1, timeout_sec=None
 
 
 
-def generate_random_bloc_list(num_blocs, area_size=100, grid=5):
+def generate_random_bloc_list(num_blocs, area_size=30, grid=5):
     """
-    Génère num_blocs blocs aléatoires.
+    Génère num_blocs blocs aléatoires dans un triangle équilatéral.
     - Pas deux blocs à la même position
     - x et y multiples de 'grid'
+    - Triangle équilatéral de 30cm de côté, centré à (0,0)
     """
     blocs = []
     colors = ["red", "blue", "green", "yellow"]
-
     used_positions = set()
 
-    max_coord = area_size // grid   # ex: 100//5 = 20
+    # Sommets du triangle équilatéral (30 cm de côté)
+    # Centré à l'origine
+    h = area_size * np.sqrt(3) / 2  # hauteur
+    v1 = np.array([0.0, h / 3 * 2])           # sommet du haut
+    v2 = np.array([-area_size / 2, -h / 3])   # sommet bas-gauche
+    v3 = np.array([area_size / 2, -h / 3])    # sommet bas-droit
 
     while len(blocs) < num_blocs:
         color = random.choice(colors)
 
-        x = random.randint(0, max_coord) * grid
-        y = random.randint(0, max_coord) * grid
+        # Générer un point aléatoire dans le triangle (coordonnées barycentriques)
+        u = random.random()
+        v = random.random()
+        if u + v > 1.0:
+            u = 1.0 - u
+            v = 1.0 - v
+        
+        # Point dans le triangle
+        point = v1 + u * (v2 - v1) + v * (v3 - v1)
+        
+        # Discrétiser sur la grille
+        x = round(point[0] / grid) * grid
+        y = round(point[1] / grid) * grid
 
         if (x, y) in used_positions:
             continue   # déjà occupé

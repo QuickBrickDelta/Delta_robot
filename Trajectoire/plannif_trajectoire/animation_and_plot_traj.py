@@ -49,6 +49,11 @@ def plot_blocks_3D(blocs, home_position):
         ax.scatter(pos[0], pos[1], pos[2], c=color, s=150, marker='s')
         ax.text(pos[0], pos[1], pos[2], f' {color} output', fontsize=10, color=color)
     
+    # Dessiner le triangle à z=-30 (niveau de la table)
+    vertices = get_triangle_vertices(side_length=30)
+    triangle = np.vstack([vertices, vertices[0]])
+    ax.plot(triangle[:, 0], triangle[:, 1], [-30]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
+    
     # Définir les limites et les labels
     ax.set_xlim(-10, 10)
     ax.set_ylim(-10, 10)
@@ -57,13 +62,35 @@ def plot_blocks_3D(blocs, home_position):
     ax.set_ylabel('Position Y')
     ax.set_zlabel('Position Z')
     ax.set_title('Positions des blocs en 3D')
+    ax.legend()
     plt.show()
+
+## Triangle helper function
+def get_triangle_vertices(side_length=30):
+    """Retourne les vertices du triangle équilatéral.
+    Un coin est aligné avec l'axe X positif."""
+    r = side_length / np.sqrt(3)
+    v1 = np.array([r, 0])
+    v2 = np.array([-r/2, r*np.sqrt(3)/2])
+    v3 = np.array([-r/2, -r*np.sqrt(3)/2])
+    return np.array([v1, v2, v3])
+
+## Triangle plotting function
+def plot_triangle(side_length=30):
+    """Dessine un triangle équilatéral noir centré à l'origine.
+    Un coin est aligné avec l'axe X positif."""
+    vertices = get_triangle_vertices(side_length)
+    triangle = np.vstack([vertices, vertices[0]])  # Fermer le triangle
+    plt.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
 ## Trajectory plotting function
 def plot_route_2D(order, start_pos):
     x0, y0, _ = start_pos
 
     plt.figure()
+
+    # Dessiner le triangle de travail
+    plot_triangle(side_length=30)
 
     # Point home
     plt.scatter(x0, y0, c='black', s=120, marker='^', label='Home')
@@ -89,8 +116,9 @@ def plot_route_2D(order, start_pos):
 
         cur = p_out  # prochaine position = sortie
 
-    plt.xlim(-10, 10)
-    plt.ylim(-10, 10)
+    plt.xlim(-15, 20)
+    plt.ylim(-18, 18)
+    plt.gca().set_aspect('equal', adjustable='box')
     plt.grid(True)
     plt.title("Trajectoire (projection 2D) – bloc → output inclus")
     plt.legend()
@@ -128,12 +156,18 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
 
     # --- 2) Setup figure ---
     fig, ax = plt.subplots()
-    ax.set_xlim(-10, 10)
-    ax.set_ylim(-10, 10)
+    ax.set_xlim(-15, 20)
+    ax.set_ylim(-18, 18)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_title("Animation trajectoire (2D)")
     ax.grid(True)
+    ax.set_aspect('equal', adjustable='box')
+    
+    # Dessiner le triangle
+    vertices = get_triangle_vertices(side_length=30)
+    triangle = np.vstack([vertices, vertices[0]])
+    ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
     # Blocs
     if blocs is not None:
@@ -156,6 +190,7 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
         ax.scatter(pos[0], pos[1], c=color, s=120, marker='s')
         ax.text(pos[0], pos[1], f" {color}", fontsize=9)
 
+    ax.legend()
     robot_point = ax.scatter([], [], s=140, marker='o')
     status_text = ax.text(0.02, 0.98, "", transform=ax.transAxes, va="top")
 
@@ -242,6 +277,11 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
     ax.set_title("Animation trajectoire (3D)")
+    
+    # Dessiner le triangle à z=-30
+    vertices = get_triangle_vertices(side_length=30)
+    triangle = np.vstack([vertices, vertices[0]])
+    ax.plot(triangle[:, 0], triangle[:, 1], [-30]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
 
     # Blocs
     if blocs is not None:
@@ -264,6 +304,7 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
         ax.scatter(pos[0], pos[1], pos[2], c=color, s=120, marker='s')
         ax.text(pos[0], pos[1], pos[2], f" {color} out", fontsize=9, color=color)
 
+    ax.legend()
     robot = ax.scatter([], [], [], s=140, marker='o')
 
     if show_trace:

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # --- Paramètres globaux ---
 MAX_BLOCS_OPTIMAL = 7
-speed_joint_move_global = 100.0  # cm/s
+speed_joint_move_global = 70.0  # cm/s
 speed_approach_move_global = 15.0  # cm/s
 
 # --- Coordonnées du Robot (Centimètres) ---
