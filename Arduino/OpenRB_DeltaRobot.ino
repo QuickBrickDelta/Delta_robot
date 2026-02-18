@@ -35,6 +35,7 @@ float lastTheta1 = 0.0f;
 float lastTheta2 = 0.0f;
 float lastTheta3 = 0.0f;
 bool  lastPince  = false;
+bool  newCommand = false;
 
 // ================================
 // Initialisation
@@ -79,8 +80,11 @@ void loop() {
   // 1) Lire les lignes arrivant depuis le PC (USB)
   readSerialLines();
 
-  // 2) Appliquer en continu la dernière commande reçue
-  applyLastCommand();
+  // 2) Appliquer uniquement si une nouvelle commande a été reçue
+  if (newCommand) {
+    applyLastCommand();
+    newCommand = false;
+  }
 
   // Fréquence de contrôle ~200 Hz
   delay(5);
@@ -146,6 +150,7 @@ void parseCommandLine(const char* line) {
   lastTheta2 = vals[1];
   lastTheta3 = vals[2];
   lastPince  = (vals[3] >= 0.5f);
+  newCommand = true;
 
   // Debug
   DEBUG_SERIAL.print("Cmd: ");
