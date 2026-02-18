@@ -50,16 +50,20 @@ def reject_outliers(values, tolerance):
 
 def pack_tuple(blocks):
     """
-    blocks: list de dict avec:
-        color, X, Y, angle
-    -> numpy array dtype=object:
-        (color, "2x4", X, Y, angle)
+    blocks: list de dict avec: color, X, Y, angle
+    -> retourne une LISTE de TUPLES Python (pas un np.array)
+       [(color, "2x4", X, Y, angle), ...]
     """
     rows = []
     for b in blocks:
-        rows.append((b["color"], OUTPUT_BRICK_TYPE,
-                     round(b["X"], 3), round(b["Y"], 3), round(b["angle"], 3)))
-    return np.array(rows, dtype=object)
+        rows.append((
+            b["color"],
+            OUTPUT_BRICK_TYPE,
+            round(b["X"], 3),
+            round(b["Y"], 3),
+            round(b["angle"], 3),
+        ))
+    return rows  # <- LISTE de TUPLES, pas de np.array ici
 
 # ----------------------------
 # Contexte partagé (caméra + homographie)
@@ -87,21 +91,19 @@ class Context:
 # ----------------------------
 # Fonction unique: bloque jusqu'à set stable, imprime le tuple
 # ----------------------------
-def print_stable_blocks_once(ctx: Context):
+def print_stable_blocks_once(ctx: "Context"):
     """
-    Bloque jusqu'à obtenir FRAME_TARGET frames stables (même multiset de couleurs),
-    effectue un rejet des valeurs aberrantes, calcule la moyenne, imprime le tuple,
-    puis retourne (pour que le main relance un nouveau cycle).
+    Bloque jusqu'à obtenir FRAME_TARGET frames stables, nettoie les outliers,
+    calcule la moyenne, IMPRIME puis RETOURNE une LISTE de TUPLES:
+        [(color, "2x4", Xcm, Ycm, angle_deg), ...]
     """
-    ring = []  # buffer des dernières frames (list[list[dict]])
-
+    ring = []
     while True:
         ok, frame = ctx.cap.read()
         if not ok or frame is None:
             time.sleep(0.01)
             continue
 
-        # --- Détection stricte avec tes seuils ---
         dets = detect_colored_blocks(
             frame,
             COLOR_RANGES,
@@ -110,21 +112,18 @@ def print_stable_blocks_once(ctx: Context):
             dominant_frac_thresh=DET_DOMINANT_FRAC,
             rect_angle_tol_deg=DET_RECT_ANGLE_TOL_DEG,
             rect_area_ratio_min=DET_RECT_AREA_RATIO_MIN,
-            aspect_ratio_range=DET_ASPECT
+            aspect_ratio_range=DET_ASPECT,
         )
 
-        # Convertit en coordonnées monde (cm)
         frame_blocks = []
         for d in dets:
             (cx, cy) = d["center"]
             ang = float(d["angle_deg"])
-
             xy = pix_to_world_cm((cx, cy), ctx.H)
             if xy is None:
                 continue
             Xcm = float(xy[0] - ctx.CAM_CENTER_WORLD[0])
             Ycm = float(xy[1] - ctx.CAM_CENTER_WORLD[1])
-
             frame_blocks.append({
                 "color": d["color"],
                 "X": Xcm,
@@ -132,30 +131,22 @@ def print_stable_blocks_once(ctx: Context):
                 "angle": ang
             })
 
-        # buffer (on garde les FRAME_TARGET dernières)
         ring.append(frame_blocks)
         if len(ring) > FRAME_TARGET:
             ring.pop(0)
-
-        # besoin d'au moins FRAME_TARGET frames
         if len(ring) < FRAME_TARGET:
             continue
 
-        # stabilité: même multiset de couleurs sur les FRAME_TARGET frames
         sigs = [tuple(sorted(b["color"] for b in fr)) for fr in ring]
         if not all(sig == sigs[0] for sig in sigs):
-            # pas stable en compte/couleurs
             continue
 
-        colors_sorted = list(sigs[0])  # ensemble stable de couleurs
+        colors_sorted = list(sigs[0])
 
-        # agrégation des X, Y, angle par couleur
         final_blocks = []
         for color in colors_sorted:
             X_vals, Y_vals, A_vals = [], [], []
             for fr in ring:
-                # Hypothèse actuelle: au plus un bloc par couleur.
-                # S'il peut y avoir des doublons, on ajoutera un appariement (Hungarian).
                 for b in fr:
                     if b["color"] == color:
                         X_vals.append(b["X"])
@@ -163,13 +154,15 @@ def print_stable_blocks_once(ctx: Context):
                         A_vals.append(b["angle"])
                         break
 
-            # rejet d'outliers autour de la médiane
+            def reject_outliers(values, tol):
+                if not values: return []
+                med = statistics.median(values)
+                return [v for v in values if abs(v - med) <= tol]
+
             X_clean = reject_outliers(X_vals, POS_TOLERANCE_CM)
             Y_clean = reject_outliers(Y_vals, POS_TOLERANCE_CM)
             A_clean = reject_outliers(A_vals, ANGLE_TOLERANCE_DEG)
-
             if not X_clean or not Y_clean or not A_clean:
-                # trop instable -> ignore la couleur
                 continue
 
             X_mean = statistics.mean(X_clean)
@@ -184,17 +177,16 @@ def print_stable_blocks_once(ctx: Context):
             })
 
         if not final_blocks:
-            # rien de stable pour l'instant
             continue
 
-        # construire et imprimer le tuple
+        # Ici 'blocs' est une LISTE de TUPLES
         blocs = pack_tuple(final_blocks)
+
         print("\n=== STABLE BLOCKS ({}-frame average, outliers removed) ===".format(FRAME_TARGET))
-        print(blocs)
+        print(blocs)  # affichera: [('red','2x4', x, y, a), ('blue','2x4', x, y, a), ...]
         print("===========================================================\n")
 
-        # on retourne vers le main (qui relancera un nouveau cycle)
-        return
+        return blocs
 
 # ----------------------------
 # Main: appelle la fonction en boucle
