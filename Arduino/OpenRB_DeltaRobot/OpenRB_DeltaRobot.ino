@@ -20,6 +20,15 @@ const uint8_t ID_PINCE = 4;   // ou 0/255 si la pince n'est pas un Dynamixel
 // Adapte à ton modèle (voir datasheet).
 const float TICKS_PER_REV = 4095.0f;
 
+// ================================
+// Vitesse des moteurs (Profile Velocity)
+// ================================
+// 0 = vitesse max (DANGEREUX pour les premiers tests !)
+// 30  = très lent  (idéal pour débuter)
+// 100 = modéré
+// 300 = rapide
+const uint32_t PROFILE_VELOCITY = 30;
+
 Dynamixel2Arduino dxl(DXL_SERIAL);
 
 // ================================
@@ -64,12 +73,20 @@ void setup() {
   dxl.setOperatingMode(ID_M3, OP_POSITION);
   dxl.setOperatingMode(ID_PINCE, OP_POSITION); // si la pince est aussi un Dynamixel
 
+  // Limiter la vitesse de déplacement (Profile Velocity)
+  // Adresse 112 = Profile Velocity dans la table de contrôle Dynamixel
+  dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_M1, PROFILE_VELOCITY);
+  dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_M2, PROFILE_VELOCITY);
+  dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_M3, PROFILE_VELOCITY);
+  dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_PINCE, PROFILE_VELOCITY);
+
   dxl.torqueOn(ID_M1);
   dxl.torqueOn(ID_M2);
   dxl.torqueOn(ID_M3);
   dxl.torqueOn(ID_PINCE);
 
-  DEBUG_SERIAL.println("OpenRB Delta Robot ready (theta1,theta2,theta3,pince) over USB.");
+  DEBUG_SERIAL.print("OpenRB Delta Robot ready | Profile Velocity = ");
+  DEBUG_SERIAL.println(PROFILE_VELOCITY);
 }
 
 // ================================
