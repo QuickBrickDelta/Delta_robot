@@ -12,14 +12,15 @@ const uint8_t ID_M3    = 3;
 const uint8_t ID_PINCE = 4;
 
 // ================================
-// CALIBRATION — Offsets moteurs
+// CALIBRATION — Auto au démarrage
 // ================================
-// Ticks lus avec les bras tout droit vers le bas (theta = 0 rad)
+// Au boot, le robot doit être en position REPOS (bras tout droit vers le bas)
+// L'Arduino lit les positions actuelles comme offsets.
 // theta=0 -> bras vertical vers le bas
 // theta=PI/2 -> bras horizontal
-const int32_t REPOS_M1 = 2113;
-const int32_t REPOS_M2 = 46;
-const int32_t REPOS_M3 = 3174;
+int32_t REPOS_M1 = 0;
+int32_t REPOS_M2 = 0;
+int32_t REPOS_M3 = 0;
 
 // Ticks par radian (4095 ticks / tour complet)
 const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
@@ -40,7 +41,7 @@ const size_t LINE_BUF_SIZE = 64;
 char   lineBuf[LINE_BUF_SIZE];
 size_t linePos = 0;
 
-float lastTheta1 = 0.0f;  // Commence à 0 (repos, bras en bas)
+float lastTheta1 = 0.0f;
 float lastTheta2 = 0.0f;
 float lastTheta3 = 0.0f;
 bool  lastPince  = false;
@@ -50,10 +51,7 @@ uint32_t cmdCount = 0;
 // ================================
 // Conversion angle -> ticks
 // ================================
-// Formule : tick = REPOS - theta * TICKS_PER_RAD
-// theta=0 (bras en bas)   -> tick = REPOS ✓
-// theta>0 (bras remonte)  -> tick diminue ✓
-// Vérifié contre les mesures physiques avec <25 ticks d'erreur
+// tick = REPOS - theta * TICKS_PER_RAD
 
 int32_t thetaToTicks(float theta_rad, int32_t repos_offset) {
   return repos_offset - (int32_t)(theta_rad * TICKS_PER_RAD);
@@ -70,7 +68,22 @@ void setup() {
   dxl.begin(57600);
   dxl.setPortProtocolVersion(2.0);
 
-  // Configuration des moteurs — Extended Position pour supporter les ticks négatifs (M2)
+  // 1) Lire les positions actuelles AVANT d'activer le torque
+  //    → Le robot doit être en position repos (bras en bas)
+  REPOS_M1 = dxl.getPresentPosition(ID_M1);
+  REPOS_M2 = dxl.getPresentPosition(ID_M2);
+  REPOS_M3 = dxl.getPresentPosition(ID_M3);
+
+  DEBUG_SERIAL.println("=== OpenRB Delta Robot ===");
+  DEBUG_SERIAL.println(">> AUTO-CALIBRATION <<");
+  DEBUG_SERIAL.print("Repos lu: M1=");
+  DEBUG_SERIAL.print(REPOS_M1);
+  DEBUG_SERIAL.print(" M2=");
+  DEBUG_SERIAL.print(REPOS_M2);
+  DEBUG_SERIAL.print(" M3=");
+  DEBUG_SERIAL.println(REPOS_M3);
+
+  // 2) Configurer les moteurs
   uint8_t ids[] = {ID_M1, ID_M2, ID_M3, ID_PINCE};
   for (int i = 0; i < 4; i++) {
     dxl.torqueOff(ids[i]);
@@ -79,17 +92,9 @@ void setup() {
     dxl.torqueOn(ids[i]);
   }
 
-  DEBUG_SERIAL.println("=== OpenRB Delta Robot ===");
   DEBUG_SERIAL.print("Velocity=");
-  DEBUG_SERIAL.print(PROFILE_VELOCITY);
-  DEBUG_SERIAL.print(" Repos=[");
-  DEBUG_SERIAL.print(REPOS_M1);
-  DEBUG_SERIAL.print(",");
-  DEBUG_SERIAL.print(REPOS_M2);
-  DEBUG_SERIAL.print(",");
-  DEBUG_SERIAL.print(REPOS_M3);
-  DEBUG_SERIAL.println("]");
-  DEBUG_SERIAL.println("Pret. Format: theta1,theta2,theta3,pince");
+  DEBUG_SERIAL.println(PROFILE_VELOCITY);
+  DEBUG_SERIAL.println("Pret. Place le robot bras en bas avant de demarrer !");
 }
 
 // ================================
