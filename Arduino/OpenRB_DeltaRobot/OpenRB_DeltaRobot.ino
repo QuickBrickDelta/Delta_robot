@@ -1,4 +1,5 @@
 #include <Dynamixel2Arduino.h>
+#include <Servo.h>
 
 // ================================
 // Configuration
@@ -9,30 +10,33 @@
 const uint8_t ID_M1    = 1;
 const uint8_t ID_M2    = 2;
 const uint8_t ID_M3    = 3;
-const uint8_t ID_PINCE = 4;
 
 // ================================
 // CALIBRATION — Auto au démarrage
 // ================================
-// Au boot, le robot doit être en position REPOS (bras tout droit vers le bas)
+// Au boot, le robot doit être en position z_table (0, 0, -40)
 // L'Arduino lit les positions actuelles comme offsets.
-// theta=0 -> bras vertical vers le bas
-// theta=PI/2 -> bras horizontal
+// THETA_CALIB = angle des moteurs à la position z_table
 int32_t REPOS_M1 = 0;
 int32_t REPOS_M2 = 0;
 int32_t REPOS_M3 = 0;
+
+// Angle moteurs à la position de calibration z_table (0, 0, -40)
+const float THETA_CALIB = 0.7268f; // rad (~41.6°)
 
 // Ticks par radian (4095 ticks / tour complet)
 const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
 
 // ================================
-// Vitesse et pince
+// Vitesse et pince (servo PWM)
 // ================================
 const uint32_t PROFILE_VELOCITY = 50;  // 30=lent, 100=modéré
-const int32_t PINCE_OUVERTE = 1500;
-const int32_t PINCE_FERMEE  = 3000;
+const int SERVO_PINCE_PIN = 1;   // Pin PWM du servo pince
+const int PINCE_OUVERTE   = 45;  // Angle ouvert (degrés)
+const int PINCE_FERMEE    = 90;  // Angle fermé (degrés)
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
+Servo pinceServo;
 
 // ================================
 // Variables
@@ -45,16 +49,18 @@ float lastTheta1 = 0.0f;
 float lastTheta2 = 0.0f;
 float lastTheta3 = 0.0f;
 bool  lastPince  = false;
+bool  prevPinceState = false;  // Pour détecter les changements
 bool  newCommand = false;
 uint32_t cmdCount = 0;
 
 // ================================
 // Conversion angle -> ticks
 // ================================
-// tick = REPOS - theta * TICKS_PER_RAD
+// tick = REPOS - (theta - THETA_CALIB) * TICKS_PER_RAD
+// Au boot (theta == THETA_CALIB) → delta = 0 → position = REPOS ✓
 
 int32_t thetaToTicks(float theta_rad, int32_t repos_offset) {
-  return repos_offset - (int32_t)(theta_rad * TICKS_PER_RAD);
+  return repos_offset - (int32_t)((theta_rad - THETA_CALIB) * TICKS_PER_RAD);
 }
 
 // ================================
@@ -69,7 +75,7 @@ void setup() {
   dxl.setPortProtocolVersion(2.0);
 
   // 1) Lire les positions actuelles AVANT d'activer le torque
-  //    → Le robot doit être en position repos (bras en bas)
+  //    → Le robot doit être en position z_table (0, 0, -40)
   REPOS_M1 = dxl.getPresentPosition(ID_M1);
   REPOS_M2 = dxl.getPresentPosition(ID_M2);
   REPOS_M3 = dxl.getPresentPosition(ID_M3);
@@ -83,18 +89,22 @@ void setup() {
   DEBUG_SERIAL.print(" M3=");
   DEBUG_SERIAL.println(REPOS_M3);
 
-  // 2) Configurer les moteurs
-  uint8_t ids[] = {ID_M1, ID_M2, ID_M3, ID_PINCE};
-  for (int i = 0; i < 4; i++) {
+  // 2) Configurer les moteurs Dynamixel (3 bras)
+  uint8_t ids[] = {ID_M1, ID_M2, ID_M3};
+  for (int i = 0; i < 3; i++) {
     dxl.torqueOff(ids[i]);
     dxl.setOperatingMode(ids[i], OP_EXTENDED_POSITION);
     dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ids[i], PROFILE_VELOCITY);
     dxl.torqueOn(ids[i]);
   }
 
+  // 3) Configurer le servo pince (PWM)
+  pinceServo.attach(SERVO_PINCE_PIN);
+  pinceServo.write(PINCE_OUVERTE);
+
   DEBUG_SERIAL.print("Velocity=");
   DEBUG_SERIAL.println(PROFILE_VELOCITY);
-  DEBUG_SERIAL.println("Pret. Place le robot bras en bas avant de demarrer !");
+  DEBUG_SERIAL.println("Pret. Place le robot a z_table (0,0,-40) avant de demarrer !");
 }
 
 // ================================
@@ -158,7 +168,10 @@ void parseCommandLine(const char* line) {
   lastTheta1 = vals[0];
   lastTheta2 = vals[1];
   lastTheta3 = vals[2];
-  lastPince  = (vals[3] >= 0.5f);
+  bool newPince = (vals[3] >= 0.5f);
+  lastPince = newPince;
+  prevPinceState = newPince;
+
   newCommand = true;
   cmdCount++;
 
@@ -172,21 +185,18 @@ void parseCommandLine(const char* line) {
     DEBUG_SERIAL.print(thetaToTicks(lastTheta2, REPOS_M2));
     DEBUG_SERIAL.print(",");
     DEBUG_SERIAL.print(thetaToTicks(lastTheta3, REPOS_M3));
-    DEBUG_SERIAL.println("]");
+    DEBUG_SERIAL.print("] P=");
+    DEBUG_SERIAL.println(lastPince ? "FERME" : "OUVERT");
   }
 }
 
-// ================================
-// Application de la commande
-// ================================
 void applyLastCommand() {
+  // 1) Moteurs Dynamixel
   dxl.setGoalPosition(ID_M1, thetaToTicks(lastTheta1, REPOS_M1));
   dxl.setGoalPosition(ID_M2, thetaToTicks(lastTheta2, REPOS_M2));
   dxl.setGoalPosition(ID_M3, thetaToTicks(lastTheta3, REPOS_M3));
 
-  if (lastPince) {
-    dxl.setGoalPosition(ID_PINCE, PINCE_FERMEE);
-  } else {
-    dxl.setGoalPosition(ID_PINCE, PINCE_OUVERTE);
-  }
+  // 2) Servo pince — APRES les Dynamixel pour ne pas être perturbé
+  //    Rafraîchir à chaque frame pour maintenir le signal PWM
+  pinceServo.write(lastPince ? PINCE_FERMEE : PINCE_OUVERTE);
 }
