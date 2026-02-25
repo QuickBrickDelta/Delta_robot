@@ -1,153 +1,156 @@
 #include <Dynamixel2Arduino.h>
+#include <Servo.h>
 
 // ================================
-// Configuration matérielle
+// Configuration
 // ================================
-
-// Adapter ces définitions à ta carte OpenRB si besoin.
-// - DEBUG_SERIAL : lien USB-C vers le PC (là où arrivent les lignes Python)
-// - DXL_SERIAL   : bus Dynamixel (ports 3-pin)
 #define DEBUG_SERIAL Serial
 #define DXL_SERIAL   Serial1
 
-// IDs des moteurs (à adapter à TON robot)
 const uint8_t ID_M1    = 1;
 const uint8_t ID_M2    = 2;
 const uint8_t ID_M3    = 3;
-const uint8_t ID_PINCE = 4;   // ou 0/255 si la pince n'est pas un Dynamixel
-
-// Exemple pour Dynamixel 12 bits (4095 ticks par tour).
-// Adapte à ton modèle (voir datasheet).
-const float TICKS_PER_REV = 4095.0f;
 
 // ================================
-// Vitesse des moteurs (Profile Velocity)
+// CALIBRATION — Auto au démarrage
 // ================================
-// 0 = vitesse max (DANGEREUX pour les premiers tests !)
-// 30  = très lent  (idéal pour débuter)
-// 100 = modéré
-// 300 = rapide
-const uint32_t PROFILE_VELOCITY = 30;
+// Au boot, le robot doit être en position z_table (0, 0, -40)
+// L'Arduino lit les positions actuelles comme offsets.
+// THETA_CALIB = angle des moteurs à la position z_table
+int32_t REPOS_M1 = 0;
+int32_t REPOS_M2 = 0;
+int32_t REPOS_M3 = 0;
+
+// Angle moteurs à la position de calibration z_table (0, 0, -40)
+const float THETA_CALIB = 0.7268f; // rad (~41.6°)
+
+// Ticks par radian (4095 ticks / tour complet)
+const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
+
+// ================================
+// Vitesse et pince (servo PWM)
+// ================================
+const uint32_t PROFILE_VELOCITY = 50;  // 30=lent, 100=modéré
+const int SERVO_PINCE_PIN = 1;   // Pin PWM du servo pince
+const int PINCE_OUVERTE   = 45;  // Angle ouvert (degrés)
+const int PINCE_FERMEE    = 90;  // Angle fermé (degrés)
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
+Servo pinceServo;
 
 // ================================
-// Buffer & état courant
+// Variables
 // ================================
-
 const size_t LINE_BUF_SIZE = 64;
 char   lineBuf[LINE_BUF_SIZE];
 size_t linePos = 0;
 
-// Dernière commande reçue
 float lastTheta1 = 0.0f;
 float lastTheta2 = 0.0f;
 float lastTheta3 = 0.0f;
 bool  lastPince  = false;
+bool  prevPinceState = false;  // Pour détecter les changements
 bool  newCommand = false;
+uint32_t cmdCount = 0;
 
 // ================================
-// Initialisation
+// Conversion angle -> ticks
 // ================================
+// tick = REPOS - (theta - THETA_CALIB) * TICKS_PER_RAD
+// Au boot (theta == THETA_CALIB) → delta = 0 → position = REPOS ✓
 
+int32_t thetaToTicks(float theta_rad, int32_t repos_offset) {
+  return repos_offset - (int32_t)((theta_rad - THETA_CALIB) * TICKS_PER_RAD);
+}
+
+// ================================
+// Setup
+// ================================
 void setup() {
-  // USB vers PC (reçoit les lignes envoyées par PieToArduino.py)
   DEBUG_SERIAL.begin(115200);
-  while (!DEBUG_SERIAL) {
-    ; // attendre l'ouverture du port
-  }
+  while (!DEBUG_SERIAL) { ; }
 
-  // Bus Dynamixel
   DXL_SERIAL.begin(57600);
   dxl.begin(57600);
   dxl.setPortProtocolVersion(2.0);
 
-  // Met tous les moteurs en mode Position
-  dxl.torqueOff(ID_M1);
-  dxl.torqueOff(ID_M2);
-  dxl.torqueOff(ID_M3);
-  dxl.torqueOff(ID_PINCE);
+  // 1) Lire les positions actuelles AVANT d'activer le torque
+  //    → Le robot doit être en position z_table (0, 0, -40)
+  REPOS_M1 = dxl.getPresentPosition(ID_M1);
+  REPOS_M2 = dxl.getPresentPosition(ID_M2);
+  REPOS_M3 = dxl.getPresentPosition(ID_M3);
 
-  dxl.setOperatingMode(ID_M1, OP_POSITION);
-  dxl.setOperatingMode(ID_M2, OP_POSITION);
-  dxl.setOperatingMode(ID_M3, OP_POSITION);
-  dxl.setOperatingMode(ID_PINCE, OP_POSITION); // si la pince est aussi un Dynamixel
+  DEBUG_SERIAL.println("=== OpenRB Delta Robot ===");
+  DEBUG_SERIAL.println(">> AUTO-CALIBRATION <<");
+  DEBUG_SERIAL.print("Repos lu: M1=");
+  DEBUG_SERIAL.print(REPOS_M1);
+  DEBUG_SERIAL.print(" M2=");
+  DEBUG_SERIAL.print(REPOS_M2);
+  DEBUG_SERIAL.print(" M3=");
+  DEBUG_SERIAL.println(REPOS_M3);
 
-  // Limiter la vitesse de déplacement (Profile Velocity)
-  // Adresse 112 = Profile Velocity dans la table de contrôle Dynamixel
-  dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_M1, PROFILE_VELOCITY);
-  dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_M2, PROFILE_VELOCITY);
-  dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_M3, PROFILE_VELOCITY);
-  dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ID_PINCE, PROFILE_VELOCITY);
+  // 2) Configurer les moteurs Dynamixel (3 bras)
+  uint8_t ids[] = {ID_M1, ID_M2, ID_M3};
+  for (int i = 0; i < 3; i++) {
+    dxl.torqueOff(ids[i]);
+    dxl.setOperatingMode(ids[i], OP_EXTENDED_POSITION);
+    dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ids[i], PROFILE_VELOCITY);
+    dxl.torqueOn(ids[i]);
+  }
 
-  dxl.torqueOn(ID_M1);
-  dxl.torqueOn(ID_M2);
-  dxl.torqueOn(ID_M3);
-  dxl.torqueOn(ID_PINCE);
+  // 3) Configurer le servo pince (PWM)
+  pinceServo.attach(SERVO_PINCE_PIN);
+  pinceServo.write(PINCE_OUVERTE);
 
-  DEBUG_SERIAL.print("OpenRB Delta Robot ready | Profile Velocity = ");
+  DEBUG_SERIAL.print("Velocity=");
   DEBUG_SERIAL.println(PROFILE_VELOCITY);
+  DEBUG_SERIAL.println("Pret. Place le robot a z_table (0,0,-40) avant de demarrer !");
 }
 
 // ================================
-// Boucle principale
+// Loop — pas de delay pour max vitesse
 // ================================
-
 void loop() {
-  // 1) Lire les lignes arrivant depuis le PC (USB)
   readSerialLines();
 
-  // 2) Appliquer uniquement si une nouvelle commande a été reçue
   if (newCommand) {
     applyLastCommand();
     newCommand = false;
   }
-
-  // Fréquence de contrôle ~200 Hz
-  delay(5);
 }
 
 // ================================
-// Lecture série & parsing
+// Lecture série
 // ================================
-
-// Accumule les caractères reçus sur DEBUG_SERIAL
-// et appelle parseCommandLine() à chaque fin de ligne '\n'.
 void readSerialLines() {
   while (DEBUG_SERIAL.available() > 0) {
     char c = DEBUG_SERIAL.read();
-
-    if (c == '\r') {
-      // On ignore les retours chariot éventuels
-      continue;
-    }
+    if (c == '\r') continue;
 
     if (c == '\n') {
-      // Fin de ligne : traiter le buffer courant
       lineBuf[linePos] = '\0';
       parseCommandLine(lineBuf);
-      linePos = 0;  // reset pour la prochaine ligne
+      linePos = 0;
     } else {
       if (linePos < LINE_BUF_SIZE - 1) {
         lineBuf[linePos++] = c;
       } else {
-        // Ligne trop longue : on reset pour éviter les débordements
         linePos = 0;
       }
     }
   }
 }
 
-// Parse une ligne du type : "theta1,theta2,theta3,pince"
-// où les thetas sont envoyés par Python en RADIANS,
-// et pince vaut 0 (ouvert) ou 1 (fermé).
+// ================================
+// Parsing CSV
+// ================================
 void parseCommandLine(const char* line) {
   char buf[LINE_BUF_SIZE];
   strncpy(buf, line, LINE_BUF_SIZE);
   buf[LINE_BUF_SIZE - 1] = '\0';
 
   float vals[4];
-  int   count = 0;
+  int count = 0;
 
   char* token = strtok(buf, ",");
   while (token != NULL && count < 4) {
@@ -157,50 +160,43 @@ void parseCommandLine(const char* line) {
   }
 
   if (count < 4) {
-    DEBUG_SERIAL.print("Ligne invalide (attendu 4 valeurs) : ");
+    DEBUG_SERIAL.print("ERR: ");
     DEBUG_SERIAL.println(line);
     return;
   }
 
-  // Angles en radians reçus depuis Python
   lastTheta1 = vals[0];
   lastTheta2 = vals[1];
   lastTheta3 = vals[2];
-  lastPince  = (vals[3] >= 0.5f);
+  bool newPince = (vals[3] >= 0.5f);
+  lastPince = newPince;
+  prevPinceState = newPince;
+
   newCommand = true;
+  cmdCount++;
 
-  // Debug
-  DEBUG_SERIAL.print("Cmd: ");
-  DEBUG_SERIAL.print(lastTheta1); DEBUG_SERIAL.print(", ");
-  DEBUG_SERIAL.print(lastTheta2); DEBUG_SERIAL.print(", ");
-  DEBUG_SERIAL.print(lastTheta3); DEBUG_SERIAL.print(", pince=");
-  DEBUG_SERIAL.println(lastPince ? "1" : "0");
-}
-
-// ================================
-// Application de la commande
-// ================================
-
-void applyLastCommand() {
-  // Conversion radians -> degrés
-  float theta1_deg = lastTheta1 * 180.0f / PI;
-  float theta2_deg = lastTheta2 * 180.0f / PI;
-  float theta3_deg = lastTheta3 * 180.0f / PI;
-
-  // Conversion degrés -> ticks (0..TICKS_PER_REV)
-  int32_t pos1 = (int32_t)(theta1_deg / 360.0f * TICKS_PER_REV);
-  int32_t pos2 = (int32_t)(theta2_deg / 360.0f * TICKS_PER_REV);
-  int32_t pos3 = (int32_t)(theta3_deg / 360.0f * TICKS_PER_REV);
-
-  dxl.setGoalPosition(ID_M1, pos1);
-  dxl.setGoalPosition(ID_M2, pos2);
-  dxl.setGoalPosition(ID_M3, pos3);
-
-  // Pince : exemple simple avec deux positions (adapter aux limites réelles)
-  if (lastPince) {
-    dxl.setGoalPosition(ID_PINCE, 3000);  // Fermé
-  } else {
-    dxl.setGoalPosition(ID_PINCE, 1500);  // Ouvert
+  // Debug léger : 1 message sur 30
+  if (cmdCount % 30 == 0) {
+    DEBUG_SERIAL.print("#");
+    DEBUG_SERIAL.print(cmdCount);
+    DEBUG_SERIAL.print(" [");
+    DEBUG_SERIAL.print(thetaToTicks(lastTheta1, REPOS_M1));
+    DEBUG_SERIAL.print(",");
+    DEBUG_SERIAL.print(thetaToTicks(lastTheta2, REPOS_M2));
+    DEBUG_SERIAL.print(",");
+    DEBUG_SERIAL.print(thetaToTicks(lastTheta3, REPOS_M3));
+    DEBUG_SERIAL.print("] P=");
+    DEBUG_SERIAL.println(lastPince ? "FERME" : "OUVERT");
   }
 }
 
+void applyLastCommand() {
+  // 1) Moteurs Dynamixel
+  dxl.setGoalPosition(ID_M1, thetaToTicks(lastTheta1, REPOS_M1));
+  dxl.setGoalPosition(ID_M2, thetaToTicks(lastTheta2, REPOS_M2));
+  dxl.setGoalPosition(ID_M3, thetaToTicks(lastTheta3, REPOS_M3));
+
+  // 2) Servo pince — APRES les Dynamixel pour ne pas être perturbé
+  //    Rafraîchir à chaque frame pour maintenir le signal PWM
+  pinceServo.write(lastPince ? PINCE_FERMEE : PINCE_OUVERTE);
+}
