@@ -52,12 +52,12 @@ def plot_blocks_3D(blocs, home_position):
     # Dessiner le triangle à z=-38.5 (niveau de la table)
     vertices = get_triangle_vertices(side_length=30)
     triangle = np.vstack([vertices, vertices[0]])
-    ax.plot(triangle[:, 0], triangle[:, 1], [-38.5]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
+    ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
     
     # Définir les limites et les labels
     ax.set_xlim(-10, 10)
     ax.set_ylim(-10, 10)
-    ax.set_zlim(-38.5, 10)
+    ax.set_zlim(config_traj.z_table, 10)
     ax.set_xlabel('Position X')
     ax.set_ylabel('Position Y')
     ax.set_zlabel('Position Z')
@@ -99,7 +99,7 @@ def plot_route_2D(order, start_pos):
     cur = start_pos
     for i, b in enumerate(order, 1):
         c, bloc_type, x, y, angle = b
-        p_bloc = (float(x), float(y), -38.5)  # Z fixe pour les blocs
+        p_bloc = (float(x), float(y), config_traj.z_table)  # Z fixe pour les blocs
         p_out  = output_pos_for_color(c)
 
         # cur -> bloc
@@ -272,7 +272,7 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
 
     ax.set_xlim(-10, 10)
     ax.set_ylim(-10, 10)
-    ax.set_zlim(-38.5, 10)
+    ax.set_zlim(config_traj.z_table, 10)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
@@ -281,12 +281,12 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     # Dessiner le triangle à z=-38.5 (niveau de la table)
     vertices = get_triangle_vertices(side_length=30)
     triangle = np.vstack([vertices, vertices[0]])
-    ax.plot(triangle[:, 0], triangle[:, 1], [-38.5]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
+    ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
 
     # Blocs
     if blocs is not None:
         for couleur, bloc_type, x, y, angle in blocs:
-            ax.scatter(float(x), float(y), -38.5, c=couleur, s=60)
+            ax.scatter(float(x), float(y), config_traj.z_table, c=couleur, s=60)
 
     # Home
     if home_position is not None:

@@ -57,7 +57,7 @@ def plan_full_trajectory(blocs):
                  home_position[0], home_position[1], home_position[2], 0.0, False))
     for bloc in blocs_sorted:
         couleur, bloc_type, x, y, angle = bloc
-        p_bloc = (float(x), float(y), -40.0)
+        p_bloc = (float(x), float(y), config_traj.z_table)  # Z fixe pour les blocs
         p_out  = output_pos_for_color(couleur)
 
         # Aller au-dessus du bloc (pince ouverte)
