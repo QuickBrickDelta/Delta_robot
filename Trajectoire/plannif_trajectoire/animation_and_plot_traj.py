@@ -32,7 +32,7 @@ def plot_blocks_3D(blocs, home_position):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     for bloc in blocs:
-        z = -30  # Tous les blocs sont au niveau z=-30
+        z = -40  # Tous les blocs sont au niveau z=-40
         couleur, bloc_type, x, y, angle = bloc
         ax.scatter(x, y, z, c=couleur, s=100)
     # Afficher la position de départ du robot
@@ -49,10 +49,10 @@ def plot_blocks_3D(blocs, home_position):
         ax.scatter(pos[0], pos[1], pos[2], c=color, s=150, marker='s')
         ax.text(pos[0], pos[1], pos[2], f' {color} output', fontsize=10, color=color)
     
-    # Dessiner le triangle à z=-30 (niveau de la table)
+    # Dessiner le triangle à z=-40 (niveau de la table)
     vertices = get_triangle_vertices(side_length=30)
     triangle = np.vstack([vertices, vertices[0]])
-    ax.plot(triangle[:, 0], triangle[:, 1], [-30]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
+    ax.plot(triangle[:, 0], triangle[:, 1], [-40]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
     
     # Définir les limites et les labels
     ax.set_xlim(-10, 10)
@@ -99,7 +99,7 @@ def plot_route_2D(order, start_pos):
     cur = start_pos
     for i, b in enumerate(order, 1):
         c, bloc_type, x, y, angle = b
-        p_bloc = (float(x), float(y), -30.0)
+        p_bloc = (float(x), float(y), -40.0)
         p_out  = output_pos_for_color(c)
 
         # cur -> bloc
@@ -278,15 +278,15 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     ax.set_zlabel("Z")
     ax.set_title("Animation trajectoire (3D)")
     
-    # Dessiner le triangle à z=-30
+    # Dessiner le triangle à z=-40
     vertices = get_triangle_vertices(side_length=30)
     triangle = np.vstack([vertices, vertices[0]])
-    ax.plot(triangle[:, 0], triangle[:, 1], [-30]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
+    ax.plot(triangle[:, 0], triangle[:, 1], [-40]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
 
     # Blocs
     if blocs is not None:
         for couleur, bloc_type, x, y, angle in blocs:
-            ax.scatter(float(x), float(y), -30.0, c=couleur, s=60)
+            ax.scatter(float(x), float(y), -40.0, c=couleur, s=60)
 
     # Home
     if home_position is not None:
