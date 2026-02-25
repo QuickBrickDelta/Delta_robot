@@ -1,0 +1,150 @@
+import sys
+import os
+import numpy
+
+# Configuration des chemins pour les imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+traj_dir = os.path.join(project_root, "Trajectoire", "plannif_trajectoire")
+
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+if traj_dir not in sys.path:
+    sys.path.append(traj_dir)
+
+# Imports locaux
+try:
+    # Simulation + cinématique directe (XYZ -> angles)
+    from MouvementRobot import (
+        run_simulation_realtime,
+        get_all_thetas,
+        interpolate_linear,
+        interpolate_joint,
+    )
+except ImportError:
+    from CinématiqueRobot.MouvementRobot import (
+        run_simulation_realtime,
+        get_all_thetas,
+        interpolate_linear,
+        interpolate_joint,
+    )
+
+# Imports des modules de Trajectoire
+import plannif_trajectoire
+import config_traj
+
+
+# ===============================
+#  Génération des commandes
+# ===============================
+
+# Trajectoire haut niveau (positions XYZ + info pince)
+blocs = config_traj.blocs
+Trajectory = plannif_trajectoire.plan_full_trajectory(blocs)
+
+# Commandes pour la simulation (XYZ + mode L/J/G)
+Motor_command_xyz = []
+pince_states = []
+
+# Commandes bas niveau pour la communication :
+# liste dense de [angle1, angle2, angle3, pince_fermee] après interpolation
+Motor_command_angles = []
+
+# Nombre de commandes de pause pour laisser la pince s'ouvrir/fermer
+# 15 steps × 50ms = 0.75s de délai
+GRIPPER_HOLD_STEPS = 15
+
+# ===============================
+# 1) Construire les waypoints XYZ + mode + pince
+# ===============================
+for step in Trajectory:
+    # step structure:
+    # (bloc_carried, bloc_type, movement_type, speed,
+    #  x, y, z, angle, pince_fermee)
+    move_type = step[2]
+    x, y, z = float(step[4]), float(step[5]), float(step[6])
+    pince_fermee = bool(step[8])
+
+    code_mouv = None
+    if move_type in ["home", "joint"]:
+        code_mouv = "J"
+    elif move_type == "linear":
+        code_mouv = "L"
+    elif move_type in ["closeGripper", "openGripper"]:
+        code_mouv = "G"  # Gripper action — maintenir position + changer pince
+
+    if code_mouv:
+        Motor_command_xyz.append([x, y, z, code_mouv])
+        pince_states.append(pince_fermee)
+
+
+# ===============================
+# 2) Générer la trajectoire en ANGLES + pince (interpolation)
+# ===============================
+if Motor_command_xyz:
+    # Nombre de pas d'interpolation par segment de mouvement
+    steps_per_move = 30
+
+    current_pos = Motor_command_xyz[0][:3]
+
+    for i in range(1, len(Motor_command_xyz)):
+        target_pt = Motor_command_xyz[i]
+        pos_xyz = target_pt[:3]
+        mode = target_pt[3]
+        pince_seg = pince_states[i]
+
+        if mode == "G":
+            # Action pince : maintenir la position actuelle + changer l'état pince
+            thetas = get_all_thetas(current_pos)
+            if thetas is not None:
+                theta1, theta2, theta3 = [float(t) for t in thetas]
+                for _ in range(GRIPPER_HOLD_STEPS):
+                    Motor_command_angles.append([theta1, theta2, theta3, pince_seg])
+            continue
+
+        # Sauter les mouvements de distance zéro
+        dist = numpy.linalg.norm(numpy.array(pos_xyz) - numpy.array(current_pos))
+        if dist < 0.01:
+            current_pos = pos_xyz
+            continue
+
+        # Choix de l'interpolation (joint avec fallback linéaire)
+        if mode == "J":
+            # Vérifier si les deux extrémités sont atteignables avant joint
+            start_ok = get_all_thetas(current_pos) is not None
+            end_ok = get_all_thetas(pos_xyz) is not None
+            if start_ok and end_ok:
+                traj_points = interpolate_joint(current_pos, pos_xyz, steps_per_move)
+            else:
+                # Fallback linéaire si joint échoue
+                traj_points = interpolate_linear(current_pos, pos_xyz, steps_per_move)
+        else:
+            traj_points = interpolate_linear(current_pos, pos_xyz, steps_per_move)
+
+        for pos in traj_points:
+            thetas = get_all_thetas(pos)
+            if thetas is None:
+                continue
+
+            theta1, theta2, theta3 = [float(t) for t in thetas]
+            Motor_command_angles.append([theta1, theta2, theta3, pince_seg])
+
+        current_pos = pos_xyz
+
+    # Debug : afficher les transitions de pince
+    print(f"Total commandes: {len(Motor_command_angles)}")
+    prev_p = None
+    for idx, cmd in enumerate(Motor_command_angles):
+        p = cmd[3]
+        if p != prev_p:
+            print(f"  Cmd #{idx}: pince={'FERME' if p else 'OUVERT'}")
+            prev_p = p
+
+
+# Lancer la simulation si exécuté directement
+if __name__ == "__main__":
+    try:
+        run_simulation_realtime(Motor_command_xyz)
+    except Exception as e:
+        print(f"Erreur lors du lancement de la simulation: {e}")
