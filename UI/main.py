@@ -1,16 +1,21 @@
-# This Python file uses the following encoding: utf-8
 import sys
-from pathlib import Path
+import os
+from PyQt6 import QtWidgets, uic
 
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtQml import QQmlApplicationEngine
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super().__init__()
+        base_dir = os.path.dirname(__file__)
+        ui_path = os.path.join(base_dir, "untitled.ui")
+        uic.loadUi(ui_path, self)
 
+        # Connect buttons
+        self.pushButton.clicked.connect(self.start_action)
 
-if __name__ == "__main__":
-    app = QGuiApplication(sys.argv)
-    engine = QQmlApplicationEngine()
-    qml_file = Path(__file__).resolve().parent / "main.qml"
-    engine.load(qml_file)
-    if not engine.rootObjects():
-        sys.exit(-1)
-    sys.exit(app.exec())
+    def start_action(self):
+        print("Start button clicked!")
+
+app = QtWidgets.QApplication(sys.argv)
+window = MainWindow()
+window.show()
+app.exec()
