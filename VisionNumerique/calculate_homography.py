@@ -2,6 +2,10 @@
 import cv2
 import numpy as np
 
+## Calibration de la caméra pour obtenir l'homographie entre les pixels et les coordonnées du plan de travail (en cm).
+## On clique sur les 4 coins d'un rectangle de dimensions réelles connues (ex: cellulaire posée à plat),
+#    et on sauvegarde l'homographie dans un fichier .npz pour l'utiliser dans le projet de détection d'objets.
+
 # --- Use the SAME pipeline as your detector ---
 pipeline = (
     'libcamerasrc af-mode=manual lens-position=3.4 ! '
