@@ -52,8 +52,8 @@ pince_states = []
 Motor_command_angles = []
 
 # Nombre de commandes de pause pour laisser la pince s'ouvrir/fermer
-# 15 steps × 50ms = 0.75s de délai
-GRIPPER_HOLD_STEPS = 15
+# 20 steps × 50ms = 1.0s de délai
+GRIPPER_HOLD_STEPS = 20
 
 # ===============================
 # 1) Construire les waypoints XYZ + mode + pince
