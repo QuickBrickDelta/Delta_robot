@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
+#"Commandes: [o] Capture LEDs OFF | [l] Capture LEDs ON | [c] Créer Filtre | [f] On/Off Filtre")
 import os
 import time
 import signal
