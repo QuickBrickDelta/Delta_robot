@@ -5,11 +5,11 @@
 // Configuration
 // ================================
 #define DEBUG_SERIAL Serial
-#define DXL_SERIAL   Serial1
+#define DXL_SERIAL Serial1
 
-const uint8_t ID_M1    = 1;
-const uint8_t ID_M2    = 2;
-const uint8_t ID_M3    = 3;
+const uint8_t ID_M1 = 1;
+const uint8_t ID_M2 = 2;
+const uint8_t ID_M3 = 3;
 
 // ================================
 // CALIBRATION — Auto au démarrage
@@ -22,7 +22,7 @@ int32_t REPOS_M2 = 0;
 int32_t REPOS_M3 = 0;
 
 // Angle moteurs à la position de calibration z_table (0, 0, -40)
-const float THETA_CALIB = 0.7268f; // rad (~41.6°)
+const float THETA_CALIB = 0.8684f; // rad (~41.6°)
 
 // Ticks par radian (4095 ticks / tour complet)
 const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
@@ -30,11 +30,11 @@ const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
 // ================================
 // Vitesse et pince (servo PWM)
 // ================================
-const uint32_t PROFILE_VELOCITY     = 120;  // Plus rapide (ancien: 50)
-const uint32_t PROFILE_ACCELERATION = 40;   // Lissage accélération/décélération
-const int SERVO_PINCE_PIN = 1;   // Pin PWM du servo pince
-const int PINCE_OUVERTE   = 45;  // Angle ouvert (degrés)
-const int PINCE_FERMEE    = 90;  // Angle fermé (degrés)
+const uint32_t PROFILE_VELOCITY = 120;    // Plus rapide (ancien: 50)
+const uint32_t PROFILE_ACCELERATION = 40; // Lissage accélération/décélération
+const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince (~3)
+const int PULSE_OUVERTE = 1000;           // Pulse ouvert (microsecondes)
+const int PULSE_FERMEE = 2000;            // Pulse fermé (microsecondes)
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
@@ -43,15 +43,15 @@ Servo pinceServo;
 // Variables
 // ================================
 const size_t LINE_BUF_SIZE = 64;
-char   lineBuf[LINE_BUF_SIZE];
+char lineBuf[LINE_BUF_SIZE];
 size_t linePos = 0;
 
 float lastTheta1 = 0.0f;
 float lastTheta2 = 0.0f;
 float lastTheta3 = 0.0f;
-bool  lastPince  = false;
-bool  currentPinceState = false;  // État réel actuel de la pince
-bool  newCommand = false;
+bool lastPince = false;
+bool currentPinceState = false; // État réel actuel de la pince
+bool newCommand = false;
 uint32_t cmdCount = 0;
 
 // ================================
@@ -69,7 +69,9 @@ int32_t thetaToTicks(float theta_rad, int32_t repos_offset) {
 // ================================
 void setup() {
   DEBUG_SERIAL.begin(115200);
-  while (!DEBUG_SERIAL) { ; }
+  while (!DEBUG_SERIAL) {
+    ;
+  }
 
   DXL_SERIAL.begin(57600);
   dxl.begin(57600);
@@ -95,18 +97,21 @@ void setup() {
   for (int i = 0; i < 3; i++) {
     dxl.torqueOff(ids[i]);
     dxl.setOperatingMode(ids[i], OP_EXTENDED_POSITION);
-    dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ids[i], PROFILE_VELOCITY);
-    dxl.writeControlTableItem(ControlTableItem::PROFILE_ACCELERATION, ids[i], PROFILE_ACCELERATION);
+    dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ids[i],
+                              PROFILE_VELOCITY);
+    dxl.writeControlTableItem(ControlTableItem::PROFILE_ACCELERATION, ids[i],
+                              PROFILE_ACCELERATION);
     dxl.torqueOn(ids[i]);
   }
 
-  // 3) Configurer le servo pince (PWM)
-  pinceServo.attach(SERVO_PINCE_PIN);
-  pinceServo.write(PINCE_OUVERTE);
+  // 3) Configurer le servo pince (PWM microseconds)
+  pinceServo.attach(SERVO_PINCE_PIN, 500, 2500);
+  pinceServo.writeMicroseconds(PULSE_OUVERTE);
 
   DEBUG_SERIAL.print("Velocity=");
   DEBUG_SERIAL.println(PROFILE_VELOCITY);
-  DEBUG_SERIAL.println("Pret. Place le robot a z_table (0,0,-40) avant de demarrer !");
+  DEBUG_SERIAL.println(
+      "Pret. Place le robot a z_table (0,0,-40) avant de demarrer !");
 }
 
 // ================================
@@ -127,7 +132,8 @@ void loop() {
 void readSerialLines() {
   while (DEBUG_SERIAL.available() > 0) {
     char c = DEBUG_SERIAL.read();
-    if (c == '\r') continue;
+    if (c == '\r')
+      continue;
 
     if (c == '\n') {
       lineBuf[linePos] = '\0';
@@ -146,7 +152,7 @@ void readSerialLines() {
 // ================================
 // Parsing CSV
 // ================================
-void parseCommandLine(const char* line) {
+void parseCommandLine(const char *line) {
   char buf[LINE_BUF_SIZE];
   strncpy(buf, line, LINE_BUF_SIZE);
   buf[LINE_BUF_SIZE - 1] = '\0';
@@ -154,7 +160,7 @@ void parseCommandLine(const char* line) {
   float vals[4];
   int count = 0;
 
-  char* token = strtok(buf, ",");
+  char *token = strtok(buf, ",");
   while (token != NULL && count < 4) {
     vals[count] = atof(token);
     count++;
@@ -199,7 +205,8 @@ void applyLastCommand() {
   // 2) Servo pince — actionner UNIQUEMENT sur changement d'état
   if (lastPince != currentPinceState) {
     currentPinceState = lastPince;
-    pinceServo.write(currentPinceState ? PINCE_FERMEE : PINCE_OUVERTE);
+    pinceServo.writeMicroseconds(currentPinceState ? PULSE_FERMEE
+                                                   : PULSE_OUVERTE);
     DEBUG_SERIAL.print(">> PINCE ");
     DEBUG_SERIAL.println(currentPinceState ? "FERMEE" : "OUVERTE");
   }
