@@ -20,6 +20,7 @@ import time
 import signal
 from pathlib import Path
 from typing import Tuple, Dict, List
+import json
 
 import cv2
 import numpy as np
@@ -65,32 +66,33 @@ def pix_to_world_cm(pt_uv, H):
     yw = ph[1] / ph[2]
     return (float(xw), float(yw))
 
-# ---------- Paramètres couleur (HSV) ----------
-# NOTE:
-#  - Plages de départ à calibrer selon ton éclairage.
-#  - HSV OpenCV: H:[0..179], S:[0..255], V:[0..255].
-COLOR_RANGES: Dict[str, List[Tuple[np.ndarray, np.ndarray]]] = {
-    # Vert (mesure H≈90)
-    "green": [
-        (np.array([70,  50,  40]), np.array([110, 255, 255])),
-    ],
+# ---------- Chargement des paramètres couleur (HSV) ----------
 
-    # Bleu (mesure H≈109)
-    "blue": [
-        (np.array([90,  60,  50]), np.array([135, 255, 255])),
-    ],
+_THIS_DIR = Path(__file__).resolve().parent
+HSV_JSON_PATH = _THIS_DIR / "hsv_ranges.json"
 
-    # Jaune (mesure H≈19 → proche orange ; marge pour éclairage)
-    "yellow": [
-        (np.array([15, 100,  90]), np.array([35,  255, 255])),
-    ],
+if not HSV_JSON_PATH.exists():
+    raise FileNotFoundError(f"ERREUR CRITIQUE : Le fichier de calibration '{HSV_JSON_PATH}' est introuvable. "
+                            "Génère-le d'abord avec calibrate_hsv_ranges.py")
 
-    # Rouge (wrap autour de 0° → deux intervalles)
-    "red": [
-        (np.array([  0, 110,  80]), np.array([  6, 255, 255])),  # bas
-        (np.array([170, 110,  80]), np.array([179, 255, 255])),  # haut
-    ],
-}
+def load_color_ranges(json_path: Path):
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    ranges_out = {}
+    for color_name, info in data.get("colors", {}).items():
+        color_list = []
+        for r in info.get("ranges", []):
+            # Conversion des listes JSON [H, S, V] en tableaux numpy pour OpenCV
+            lo = np.array(r[0], dtype=np.uint8)
+            hi = np.array(r[1], dtype=np.uint8)
+            color_list.append((lo, hi))
+        ranges_out[color_name] = color_list
+    return ranges_out
+
+# Chargement effectif
+COLOR_RANGES = load_color_ranges(HSV_JSON_PATH)
+print(f"Calibration chargée avec succès : {list(COLOR_RANGES.keys())}")
 
 
 # Filtres de taille / forme (relaxés)
@@ -303,18 +305,22 @@ def detect_colored_blocks(bgr: np.ndarray,
 
     blurred = cv2.GaussianBlur(bgr, (5, 5), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+    h, w = bgr.shape[:2]
 
     kernel = np.ones((5, 5), np.uint8)
+    kernel_open = np.ones((3, 3), np.uint8)
 
-    for color_name, ranges in color_ranges.items():
-        # masque couleur fusionné
-        mask = None
-        for (lo, hi) in ranges:
-            mm = cv2.inRange(hsv, lo, hi)
-            mask = mm if mask is None else cv2.bitwise_or(mask, mm)
-
-        # nettoyage
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+    for color_name, ranges in COLOR_RANGES.items():
+        # Création d'un masque vide
+        mask = np.zeros((h, w), dtype=np.uint8)
+        
+        # On combine toutes les plages définies pour cette couleur (ex: les 2 plages du rouge)
+        for (lower, upper) in ranges:
+            term_mask = cv2.inRange(hsv, lower, upper)
+            mask = cv2.bitwise_or(mask, term_mask)
+        
+        # Appliquer le reste des filtres (morphologie) sur le masque combiné
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
         cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
