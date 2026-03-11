@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 
 
 # --- Paramètres du robot ---
-f = 10  # Rayon base moteur
-e = 6   # Rayon effecteur
+f = 5.5  # Rayon base moteur
+e = 4   # Rayon effecteur
 r_parralelogramme = 5 
-Lc = 15  # Longueur bras supérieur (proximal)
-Lb = 32 # Longueur bras inférieur (distal)
+Lc = 15  # Longueur bras supérieur
+Lb = 32.5 # Longueur bras inférieur 
 
 def rotZ(p, phi):
     """Rotation d'un point p autour de l'axe Z."""

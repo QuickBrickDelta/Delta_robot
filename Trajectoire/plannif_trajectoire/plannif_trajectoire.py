@@ -37,14 +37,13 @@ from shortest_path_algorithms import plan_bnb_basic, plan_exact_tsp, plan_cheape
 
 ## full trajectoire function
 def plan_full_trajectory(blocs):
-    # path: [(bloc_carried, movement_type, speed, x, y, z, rot_pince, pince_fermee), ...]
+    # path: [(bloc_carried, bloc_type, movement_type, speed, x, y, z, angle, pince_fermee), ...]
     path = []
-    speed_joint_move = speed_joint_move_global
-    speed_approach_move = speed_approach_move_global
+    speed_joint = speed_joint_move_global
+    speed_approach = speed_approach_move_global
     distance_approach = 10.0
 
     # Trier les blocs selon un algorithme de planification
-    # Branch and Bound, TSP exact, ou Cheapest Insertion selon le nombre de blocs
     if len(blocs) < 11:
         blocs_sorted, total_distance = plan_bnb_basic(blocs, home_position)
     elif len(blocs) < 14:
@@ -52,54 +51,41 @@ def plan_full_trajectory(blocs):
     else:
         blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
 
-    # Début à la maison (rien dans la pince)
-    path.append((None, None, "home",  speed_joint_move,
+    # 1) Départ au home
+    path.append((None, None, "home", speed_joint,
                  home_position[0], home_position[1], home_position[2], 0.0, False))
+
     for bloc in blocs_sorted:
         couleur, bloc_type, x, y, angle = bloc
-        p_bloc = (float(x), float(y), config_traj.z_table)  # Z fixe pour les blocs
+        p_bloc = (float(x), float(y), config_traj.z_table)
         p_out  = output_pos_for_color(couleur)
 
-        # Aller au-dessus du bloc (pince ouverte)
-        path.append((None, None, "joint", speed_joint_move,
+        # 2) Aller au-dessus du bloc (pince ouverte)
+        path.append((None, None, "joint", speed_joint,
                      p_bloc[0], p_bloc[1], p_bloc[2] + distance_approach, angle, False))
 
-        # Descendre sur le bloc (pince ouverte)
-        path.append((None, None, "linear", speed_approach_move,
+        # 3) Descendre sur le bloc
+        path.append((None, None, "joint", speed_approach,
                      p_bloc[0], p_bloc[1], p_bloc[2], angle, False))
-        
-        # Attendre un peu
-        # path.append((None, None, "wait1", 0.0,
-        #              p_bloc[0], p_bloc[1], p_bloc[2], angle, False))
-        
-        # fermer la pince
+
+        # 4) Fermer la pince
         path.append((couleur, bloc_type, "closeGripper", 0.0,
                      p_bloc[0], p_bloc[1], p_bloc[2], angle, True))
-        
-        # Attendre un peu
-        #path.append((couleur, bloc_type, "wait2", 0.0,
-        #             p_bloc[0], p_bloc[1], p_bloc[2], angle, True))
-        
-        # Remonter AVEC le bloc (pince fermée + bloc_carried = couleur)
-        path.append((couleur, bloc_type, "linear", speed_approach_move,
+
+        # 5) Remonter avec le bloc
+        path.append((couleur, bloc_type, "joint", speed_approach,
                      p_bloc[0], p_bloc[1], p_bloc[2] + distance_approach, angle, True))
-        # Aller au-dessus de la sortie (toujours avec le bloc)
-        path.append((couleur, bloc_type, "joint", speed_joint_move,
+
+        # 6) Aller au-dessus du bac de sortie
+        path.append((couleur, bloc_type, "joint", speed_joint,
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, True))
 
-        # Attendre un peu
-        # path.append((couleur, bloc_type, "wait3", 0.0,
-        #              p_out[0], p_out[1], p_out[2] + distance_approach, 0, True))
-        
-        # Ouvrir la pince (toujours au-dessus de la sortie)
+        # 7) Ouvrir la pince (drop)
         path.append((None, None, "openGripper", 0.0,
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
-        
-        # Attendre un peu
-        # path.append((None, None, "wait4", 0.0,
-        #              p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
-    # Retour à la maison
-    path.append((None, None, "joint", speed_joint_move,
+
+    # 8) Retour au home
+    path.append((None, None, "joint", speed_joint,
                  home_position[0], home_position[1], home_position[2], 0, False))
 
     return path
