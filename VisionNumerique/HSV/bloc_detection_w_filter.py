@@ -160,7 +160,7 @@ def main():
     
     img_off, img_on, filt = None, None, None
     show_filtered = False
-    strength = 0.5 
+    strength = 0.15 
 
     print("--- COMMANDES ---")
     print("[o] Capture OFF | [l] Capture ON | [c] Calcul Filtre")

@@ -60,14 +60,15 @@ last_roi: dict | None = None
 
 KEY_TO_COLOR = {
     ord("1"): "red",
-    ord("2"): "green",
+    ord("2"): "green_dark",
     ord("3"): "blue",
     ord("4"): "yellow",
     ord("5"): "orange",
     ord("6"): "purple",
     ord("7"): "white",
     ord("8"): "black",
-    ord("9"): "custom",
+    ord("9"): "brown",
+    ord("0"): "green_light",
 }
 
 
