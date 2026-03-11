@@ -26,7 +26,7 @@ SQUARE_MODE = "letterbox"
 
 # Paramètres de détection (tes valeurs relaxées pour le vert)
 MIN_AREA_PX = 2000
-COLOR_STD_THRESH = 40.0
+COLOR_STD_THRESH = 50.0
 DOMINANT_FRAC_THRESH = 0.15
 RECT_ANGLE_TOL_DEG = 20.0
 RECT_AREA_RATIO_MIN = 0.70
@@ -127,6 +127,7 @@ def detect_blocks(bgr, color_ranges):
         for lo, hi in ranges:
             mask = cv2.bitwise_or(mask, cv2.inRange(hsv, lo, hi))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8)) # Bouche les petits trous
         cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for c in cnts:
             if cv2.contourArea(c) < MIN_AREA_PX: continue
@@ -174,7 +175,17 @@ def main():
         detections = detect_blocks(proc_frame, COLOR_RANGES)
         
         sq, scale, x0, y0 = to_square(proc_frame, WINDOW_SIZE)
-        cmap = {"red":(0,0,255), "green":(0,255,0), "blue":(255,0,0), "yellow":(0,255,255), "orange":(0,165,255), "purple":(255,0,255)}
+        cmap = {
+            "red": (0, 0, 255),
+            "green_dark": (0, 100, 0),    # Vert foncé
+            "green_light": (144, 238, 144), # Vert clair
+            "brown": (19, 69, 139),       # Marron (SaddleBrown)
+            "orange": (0, 165, 255),      # Orange
+            "black": (30, 30, 30),        # Gris très foncé/Noir
+            "white": (240, 240, 240),     # Blanc cassé
+            "yellow": (0, 255, 255),
+            "blue": (255, 0, 0)
+        }
 
         for det in detections:
             bgr = cmap.get(det["color"], (255,255,255))
