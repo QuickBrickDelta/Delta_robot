@@ -39,20 +39,19 @@ import os
 import sys
 import time
 import signal
+from pathlib import Path
 from typing import Tuple, Dict, List
 
 import cv2
 import numpy as np
 import json
 
-# -- S'assurer que les fichiers voisins (lab_colors.json, .npz, etc.) sont trouvés
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-os.chdir(SCRIPT_DIR)
-
-LAB_CONFIG_PATH = "lab_colors.json"
+_THIS_DIR = Path(__file__).resolve().parent
+LAB_CONFIG_PATH = _THIS_DIR / "lab_colors.json"
 
 def load_lab_config(path=LAB_CONFIG_PATH):
-    if not os.path.exists(path):
+    path = Path(path)
+    if not path.exists():
         return None
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -106,12 +105,13 @@ pipeline = (
 )
 
 # Calibration positions
-H_PATH = "homography_plane.npz"
+H_PATH = _THIS_DIR.parent / "calibration" / "homography_plane.npz"
 
 def load_homography(path=H_PATH):
-    if not os.path.exists(path):
+    path = Path(path)
+    if not path.exists():
         return None
-    data = np.load(path, allow_pickle=True)
+    data = np.load(str(path), allow_pickle=True)
     H = data["H"]
     imgW = int(data["imgW"])
     imgH = int(data["imgH"])
@@ -469,9 +469,9 @@ def main():
     global COLOR_TARGETS_LAB
     global PREHSV_ENABLED, DEBUG_MASK, DEBUG_COLOR
 
-    print("[DBG] __file__ =", os.path.abspath(__file__))
-    print("[DBG] CWD      =", os.getcwd())
-    print("[DBG] LAB_CONFIG_PATH =", os.path.abspath(LAB_CONFIG_PATH))
+    print("[DBG] __file__ =", str(Path(__file__).resolve()))
+    print("[DBG] CWD      =", str(Path.cwd()))
+    print("[DBG] LAB_CONFIG_PATH =", str(Path(LAB_CONFIG_PATH).resolve()))
 
     _prepare_lab_targets()
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import cv2
 import numpy as np
+from pathlib import Path
 
 ## Calibration de la caméra pour obtenir l'homographie entre les pixels et les coordonnées du plan de travail (en cm).
 ## On clique sur les 4 coins d'un rectangle de dimensions réelles connues (ex: cellulaire posée à plat),
@@ -16,7 +17,7 @@ pipeline = (
     'appsink drop=true max-buffers=1 sync=false'
 )
 
-SAVE_PATH = "homography_plane.npz"
+SAVE_PATH = Path(__file__).resolve().parent / "homography_plane.npz"
 
 # Click 4 points: TL, TR, BR, BL
 clicked = []
@@ -96,7 +97,7 @@ def main():
             ph /= ph[2, :]
             cam_center_world = ph[:2, 0].astype(np.float32)  # (Xc, Yc) in cm
 
-            np.savez(SAVE_PATH, H=H, imgW=W_img, imgH=H_img, cam_center_world=cam_center_world)
+            np.savez(str(SAVE_PATH), H=H, imgW=W_img, imgH=H_img, cam_center_world=cam_center_world)
             print(f"\nHomography saved to {SAVE_PATH}")
             print(f"Image size: {W_img}x{H_img}, camera-center (world cm): {cam_center_world}")
             break

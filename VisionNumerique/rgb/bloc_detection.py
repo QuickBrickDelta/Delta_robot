@@ -18,6 +18,7 @@ Dépendances:
 import os
 import time
 import signal
+from pathlib import Path
 from typing import Tuple, Dict, List
 
 import cv2
@@ -40,12 +41,14 @@ pipeline = (
 )
 
 # Calibration positions
-H_PATH = "homography_plane.npz"
+_THIS_DIR = Path(__file__).resolve().parent
+H_PATH = _THIS_DIR.parent / "calibration" / "homography_plane.npz"
 
 def load_homography(path=H_PATH):
-    if not os.path.exists(path):
+    path = Path(path)
+    if not path.exists():
         return None
-    data = np.load(path, allow_pickle=True)
+    data = np.load(str(path), allow_pickle=True)
     H = data["H"]
     imgW = int(data["imgW"])
     imgH = int(data["imgH"])

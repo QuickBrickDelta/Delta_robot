@@ -18,6 +18,7 @@ import time
 import cv2
 import numpy as np
 from datetime import datetime
+from pathlib import Path
 
 # ---------- Caméra ----------
 WIDTH = 1920
@@ -56,6 +57,7 @@ KEY_TO_COLOR = {
 # Paramètres d'estimation
 K_THR = 2.5  # thr_ab = K_THR * sqrt(std_a^2 + std_b^2)
 L_RANGE_SIGMA = 2.0
+OUT_DIR = Path(__file__).resolve().parent
 
 def open_camera():
     cap = cv2.VideoCapture(PIPELINE, cv2.CAP_GSTREAMER)
@@ -195,9 +197,9 @@ def main():
 
         if k == ord('s'):
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            png_name = f"calib_{ts}.png"
-            cv2.imwrite(png_name, last_frame)
-            print("PNG sauvegardé:", png_name)
+            png_path = OUT_DIR / f"calib_{ts}.png"
+            cv2.imwrite(str(png_path), last_frame)
+            print("PNG sauvegardé:", png_path)
 
         elif k == ord('r'):
             last_roi_stats = None
@@ -221,12 +223,16 @@ def main():
                     "L_range": [float(Lrng[0]), float(Lrng[1])]
                 }
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            json_name = f"lab_colors_{ts}.json"
-            with open("lab_colors.json", "w", encoding="utf-8") as f:
+            json_name = OUT_DIR / f"lab_colors_{ts}.json"
+            lab_colors_path = OUT_DIR / "lab_colors.json"
+            legacy_lab_colors_path = OUT_DIR.parent / "lab_colors.json"
+            with open(lab_colors_path, "w", encoding="utf-8") as f:
+                json.dump(out, f, indent=2)
+            with open(legacy_lab_colors_path, "w", encoding="utf-8") as f:
                 json.dump(out, f, indent=2)
             with open(json_name, "w", encoding="utf-8") as f:
                 json.dump(out, f, indent=2)
-            print("Export JSON -> lab_colors.json (et archive:", json_name, ")")
+            print("Export JSON ->", lab_colors_path, "et", legacy_lab_colors_path, "(archive:", json_name, ")")
             for kcolor, spec in out.items():
                 print(f"  {kcolor}: lab={tuple(round(v,2) for v in spec['lab'])}  thr_ab={spec['thr_ab']:.2f}  L*={spec['L_range']}")
 
