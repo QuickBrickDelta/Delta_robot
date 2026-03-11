@@ -30,7 +30,8 @@ const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
 // ================================
 // Vitesse et pince (servo PWM)
 // ================================
-const uint32_t PROFILE_VELOCITY = 50;  // 30=lent, 100=modéré
+const uint32_t PROFILE_VELOCITY     = 120;  // Plus rapide (ancien: 50)
+const uint32_t PROFILE_ACCELERATION = 40;   // Lissage accélération/décélération
 const int SERVO_PINCE_PIN = 1;   // Pin PWM du servo pince
 const int PINCE_OUVERTE   = 45;  // Angle ouvert (degrés)
 const int PINCE_FERMEE    = 90;  // Angle fermé (degrés)
@@ -49,7 +50,7 @@ float lastTheta1 = 0.0f;
 float lastTheta2 = 0.0f;
 float lastTheta3 = 0.0f;
 bool  lastPince  = false;
-bool  prevPinceState = false;  // Pour détecter les changements
+bool  currentPinceState = false;  // État réel actuel de la pince
 bool  newCommand = false;
 uint32_t cmdCount = 0;
 
@@ -95,6 +96,7 @@ void setup() {
     dxl.torqueOff(ids[i]);
     dxl.setOperatingMode(ids[i], OP_EXTENDED_POSITION);
     dxl.writeControlTableItem(ControlTableItem::PROFILE_VELOCITY, ids[i], PROFILE_VELOCITY);
+    dxl.writeControlTableItem(ControlTableItem::PROFILE_ACCELERATION, ids[i], PROFILE_ACCELERATION);
     dxl.torqueOn(ids[i]);
   }
 
@@ -168,9 +170,7 @@ void parseCommandLine(const char* line) {
   lastTheta1 = vals[0];
   lastTheta2 = vals[1];
   lastTheta3 = vals[2];
-  bool newPince = (vals[3] >= 0.5f);
-  lastPince = newPince;
-  prevPinceState = newPince;
+  lastPince = (vals[3] >= 0.5f);
 
   newCommand = true;
   cmdCount++;
@@ -191,12 +191,16 @@ void parseCommandLine(const char* line) {
 }
 
 void applyLastCommand() {
-  // 1) Moteurs Dynamixel
+  // 1) Moteurs Dynamixel — toujours appliqués
   dxl.setGoalPosition(ID_M1, thetaToTicks(lastTheta1, REPOS_M1));
   dxl.setGoalPosition(ID_M2, thetaToTicks(lastTheta2, REPOS_M2));
   dxl.setGoalPosition(ID_M3, thetaToTicks(lastTheta3, REPOS_M3));
 
-  // 2) Servo pince — APRES les Dynamixel pour ne pas être perturbé
-  //    Rafraîchir à chaque frame pour maintenir le signal PWM
-  pinceServo.write(lastPince ? PINCE_FERMEE : PINCE_OUVERTE);
+  // 2) Servo pince — actionner UNIQUEMENT sur changement d'état
+  if (lastPince != currentPinceState) {
+    currentPinceState = lastPince;
+    pinceServo.write(currentPinceState ? PINCE_FERMEE : PINCE_OUVERTE);
+    DEBUG_SERIAL.print(">> PINCE ");
+    DEBUG_SERIAL.println(currentPinceState ? "FERMEE" : "OUVERTE");
+  }
 }
