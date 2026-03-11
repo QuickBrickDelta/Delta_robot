@@ -186,51 +186,22 @@ def _angle_between(v1, v2):
 
 def _is_rectangle_approx(cnt: np.ndarray,
                          angle_tol_deg: float = 20.0,
-                         area_ratio_min: float = 0.80) -> bool:
-    """
-    Vérifie si le contour est proche d'un rectangle en utilisant le CONVEX HULL:
-      - on prend le convex hull du contour
-      - approx 4 sommets sur le hull
-      - angles ~ 90° (tolérance)
-      - area(approx) / area(minAreaRect(approx)) élevé
-    """
-    if len(cnt) < 4:
-        return False
-
+                         area_ratio_min: float = 0.70) -> bool:
+    if len(cnt) < 4: return False
+    
+    # Calcul de la solidité (Aire / Aire du Convex Hull)
+    area = cv2.contourArea(cnt)
     hull = cv2.convexHull(cnt)
-    if len(hull) < 4:
-        return False
-
-    peri = cv2.arcLength(hull, True)
-    approx = cv2.approxPolyDP(hull, 0.03 * peri, True)
-    if len(approx) != 4:
-        return False
-
-    if not cv2.isContourConvex(approx):
-        return False
-
-    # Angles proches de 90°
-    pts = approx.reshape(-1, 2).astype(np.float32)
-    for i in range(4):
-        p0 = pts[i]
-        p1 = pts[(i + 1) % 4]
-        p2 = pts[(i + 2) % 4]
-        v1 = p0 - p1
-        v2 = p2 - p1
-        v1 /= (np.linalg.norm(v1) + 1e-8)
-        v2 /= (np.linalg.norm(v2) + 1e-8)
-        ang = np.degrees(np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0)))
-        if abs(ang - 90.0) > angle_tol_deg:
-            return False
-
-    # Ratio d'aire basé sur l'approximation (plus stable)
-    rect = cv2.minAreaRect(approx)
+    hull_area = cv2.contourArea(hull)
+    solidity = area / float(hull_area + 1e-6)
+    
+    # Calcul du ratio d'aire avec le rectangle orienté
+    rect = cv2.minAreaRect(cnt)
     rect_area = max(rect[1][0] * rect[1][1], 1e-6)
-    approx_area = cv2.contourArea(approx)
-    if approx_area / rect_area < area_ratio_min:
-        return False
-
-    return True
+    rect_ratio = area / rect_area
+    
+    # Pour un bloc, on veut une solidité > 0.9 et un bon ratio d'aire
+    return solidity > 0.90 and rect_ratio > area_ratio_min
 
 def _region_uniformity_lab(bgr: np.ndarray, cnt: np.ndarray) -> Tuple[float, float]:
     """
