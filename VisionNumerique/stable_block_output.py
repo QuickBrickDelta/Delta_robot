@@ -12,7 +12,7 @@ import time
 import statistics
 import numpy as np
 
-from bloc_detection import (
+from rgb.bloc_detection import (
     detect_colored_blocks,
     COLOR_RANGES,
     pix_to_world_cm,
