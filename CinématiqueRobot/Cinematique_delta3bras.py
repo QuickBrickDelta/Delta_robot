@@ -68,7 +68,7 @@ def GetAngleMoteur1(x_eff, y_eff, z_eff, phi):
         deg = np.degrees(theta_candidate)
         
         # On accepte une petite tolérance (-0.1) pour inclure 0 pile
-        if -0.1 <= deg <= 90.1:
+        if -0.1 <= deg <= 165.1:
             # Si deux solutions valides, on garde celle avec le Z le plus bas
             if valid_solution is None or z_B < valid_solution[2]:
                 valid_solution = (theta_candidate, y_B, z_B)
