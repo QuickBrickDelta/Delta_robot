@@ -23,7 +23,11 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.mplot3d import Axes3D
 
 import cv2
-import mediapipe as mp
+try:
+    import mediapipe as mp
+    HAS_MEDIAPIPE = True
+except ImportError:
+    HAS_MEDIAPIPE = False
 
 # Imports robot pour la simulation
 try:
@@ -88,15 +92,18 @@ class CameraThread(QThread):
             self.status_signal.emit("Caméra introuvable")
             return
 
-        mp_hands = mp.solutions.hands
-        mp_drawing = mp.solutions.drawing_utils
-        hands = mp_hands.Hands(
-            static_image_mode=False,
-            max_num_hands=1,
-            model_complexity=0,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        )
+        if HAS_MEDIAPIPE:
+            mp_hands = mp.solutions.hands
+            mp_drawing = mp.solutions.drawing_utils
+            hands = mp_hands.Hands(
+                static_image_mode=False,
+                max_num_hands=1,
+                model_complexity=0,
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5
+            )
+        else:
+            hands = None
 
         while self._run_flag:
             ret, frame = cap.read()
@@ -106,15 +113,16 @@ class CameraThread(QThread):
             # Inverser l'image pour un effet miroir plus naturel
             frame = cv2.flip(frame, 1)
 
-            # Conversion pour Mediapipe (RGB)
+            # Conversion pour Qt/Mediapipe (RGB)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            result = hands.process(rgb)
-
-            # Dessin des points de repère de la main
-            if result.multi_hand_landmarks:
-                for hand_landmarks in result.multi_hand_landmarks:
-                    mp_drawing.draw_landmarks(
-                        rgb, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            
+            if hands:
+                result = hands.process(rgb)
+                # Dessin des points de repère de la main
+                if result.multi_hand_landmarks:
+                    for hand_landmarks in result.multi_hand_landmarks:
+                        mp_drawing.draw_landmarks(
+                            rgb, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             
             # Convertir pour PyQt
             h, w, ch = rgb.shape
@@ -125,7 +133,8 @@ class CameraThread(QThread):
             p = qt_image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
             self.change_pixmap_signal.emit(p)
 
-        hands.close()
+        if hands:
+            hands.close()
         cap.release()
 
     def stop(self):
