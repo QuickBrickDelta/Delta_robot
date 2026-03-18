@@ -1,9 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import root  # <--- Ajout nécessaire pour le mode Joint
 from Cinematique_delta3bras import rotZ, GetAngleMoteur1, GetBrasComplet
-
+import matplotlib
+matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
 
 # ==========================================
 # 1. LOGIQUE D'INTERPOLATION 
@@ -106,9 +107,17 @@ def run_simulation_realtime(points_data, steps_per_move=30):
             ax.cla()
             ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim); ax.set_zlim(z_min, z_max)
             ax.set_title(f"Mode: {'JOINT' if mode=='J' else 'LINEAIRE'}")
-            # raph aime les cocks
-            # genre vrm vrm
-            # genre vrmmmmmmmmm
+
+            # --- Repère : axes X, Y, Z avec flèches et labels ---
+            arrow_len = 10.0
+            ax.quiver(0, 0, 0, arrow_len, 0, 0, color='red',   arrow_length_ratio=0.15, linewidth=2)
+            ax.quiver(0, 0, 0, 0, arrow_len, 0, color='green', arrow_length_ratio=0.15, linewidth=2)
+            ax.quiver(0, 0, 0, 0, 0, arrow_len, color='blue',  arrow_length_ratio=0.15, linewidth=2)
+            ax.text(arrow_len * 1.15, 0, 0, 'X', color='red',   fontsize=12, fontweight='bold')
+            ax.text(0, arrow_len * 1.15, 0, 'Y', color='green', fontsize=12, fontweight='bold')
+            ax.text(0, 0, arrow_len * 1.15, 'Z', color='blue',  fontsize=12, fontweight='bold')
+            ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
+            
             # Base
             base_pts = [rotZ(np.array([0, 10.0, 0]), a) for a in angles_phi]
             base_pts.append(base_pts[0])
