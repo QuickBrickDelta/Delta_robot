@@ -26,10 +26,15 @@ def GetAngleMoteur1(x_eff, y_eff, z_eff, phi):
     y_E = y_eff + e
     z_E = z_eff
     
-    # Paramètres de l'intersection cercle-cercle
+    # Projection 3D: la longueur de la barre dans le plan 2D est raccourcie en fonction du décalage X
+    Lb_eff2 = Lb**2 - x_eff**2
+    if Lb_eff2 < 0:
+        return None, None, None  # Le décalage X est physiquement impossible (plus long que le bras)
+        
+    # Paramètres de l'intersection cercle-cercle (2D)
     A = 2 * (f - y_E)
     B = -2 * z_E
-    C = f**2 - y_E**2 - z_E**2 + Lb**2 - Lc**2
+    C = f**2 - y_E**2 - z_E**2 + Lb_eff2 - Lc**2
 
     # --- 1. Résolution mathématique (Intersection des cercles) ---
     if abs(B) < 1e-6:
