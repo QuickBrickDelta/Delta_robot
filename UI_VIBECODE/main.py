@@ -200,9 +200,6 @@ class CameraThread(QThread):
                             Ycm = raw_Ycm - self.calibr_offset_y
                             
                             # --- SÉCURITÉ : CLAMP MÉCANIQUE ---
-                            # On limite physiquement la portée maximale de ramassage.
-                            # Le robot peut déposer à r=25, mais on restreint le ramassage à r=22 max
-                            # pour éviter que les moteurs forcent sur des détections éloignées ou mal calibrées.
                             R_MAX = 22.0
                             r_current = (Xcm**2 + Ycm**2)**0.5
                             if r_current > R_MAX:
@@ -212,12 +209,13 @@ class CameraThread(QThread):
                                 
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
                             
-                            # Normaliser la couleur pour le planificateur de trajectoire
-                            # ex: "green_dark" -> "green"
-                            base_color = col.split('_')[0] if '_' in col else col
-                            
-                            # Ajouter le bloc détecté à la liste partagée (format final MouvementConnecte)
-                            current_blocks.append([base_color, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
+                            # Le bloc JAUNE sert UNIQUEMENT de calibration — on ne le ramasse PAS
+                            if col == "yellow":
+                                label += " [CALIB]"
+                            else:
+                                # Normaliser la couleur pour le planificateur de trajectoire
+                                base_color = col.split('_')[0] if '_' in col else col
+                                current_blocks.append([base_color, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
                             
                     cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
