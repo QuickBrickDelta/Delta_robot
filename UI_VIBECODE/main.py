@@ -587,6 +587,18 @@ class VibeCodeUI(QMainWindow):
         QApplication.processEvents() # MàJ de l'UI
         self.rebuild_trajectory()
 
+        # PAUSE la détection lourde pendant le mouvement pour libérer le CPU
+        self.camera_thread.pause_detection = True
+
+        self.status_label.setText("STATUT : PRÊT DANS 2s...")
+        QApplication.processEvents()
+
+        # Délai de 2 secondes pour laisser le temps au système de finir tous les calculs
+        # avant d'envoyer la première commande aux moteurs
+        QTimer.singleShot(2000, self._launch_robot_movement)
+
+    def _launch_robot_movement(self):
+        """Appelé après le délai de 2s — lance le mouvement physique + animation"""
         self.status_label.setText("STATUT : EN MOUVEMENT")
         
         # Redémarrer l'animation de 0
@@ -595,9 +607,6 @@ class VibeCodeUI(QMainWindow):
             self.is_animating = True
             # Vitesse réaliste : 50ms par point interpolé (même timing que le robot)
             self.anim_timer.start(50) 
-
-        # PAUSE la détection lourde pendant le mouvement pour libérer le CPU
-        self.camera_thread.pause_detection = True
 
         # Lancer PieToArduino en parallèle
         self.worker = WorkerThread()
