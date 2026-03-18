@@ -12,20 +12,20 @@ import time
 import statistics
 import numpy as np
 
-from VisionNumerique.HSV.bloc_detection import (
+from HSV.bloc_detection import (
     COLOR_RANGES,
     pix_to_world_cm,
     open_cap,
     load_homography,
 )
-from VisionNumerique.HSV import bloc_detection_w_filter as bdwf
+from HSV import bloc_detection_w_filter as bdwf
 
 # ----------------------------
 # Detector thresholds (yours)
 # ----------------------------
 DET_MIN_AREA_PX = 2000
 DET_COLOR_STD_THRESH = 50.0
-DET_DOMINANT_FRAC_THRESH = 0.15
+DET_DOMINANT_FRAC = 0.15
 DET_RECT_ANGLE_TOL_DEG = 20.0
 DET_RECT_AREA_RATIO_MIN = 0.70
 DET_ASPECT = None  # OFF
