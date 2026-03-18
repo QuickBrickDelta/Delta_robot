@@ -89,6 +89,11 @@ class CameraThread(QThread):
         super().__init__()
         self._run_flag = True
         self.latest_blocks = []
+
+        # Pour l'auto-calibration avec le bloc jaune
+        self.calibr_offset_x = 0.0
+        self.calibr_offset_y = 0.0
+        self.calibr_offset_y = 0.0
         
         # Charger z_table pour les coordonnées physiques des blocs
         self.z_table = -38.0
@@ -154,6 +159,17 @@ class CameraThread(QThread):
                 # Il utilise ses propres variables globales pour les seuils
                 detections = detect_blocks(frame, COLOR_RANGES, h_data=None)
                 
+                # RECHERCHE DU BLOC JAUNE POUR AUTO-CALIBRATION
+                for det in detections:
+                    if det["color"] == "yellow":
+                        cx, cy = det["center"]
+                        if self.H_cam is not None:
+                            xy_world = pix_to_world_cm((cx, cy), self.H_cam)
+                            if xy_world:
+                                self.calibr_offset_x = float(xy_world[0] - self.cam_center[0])
+                                self.calibr_offset_y = float(xy_world[1] - self.cam_center[1])
+                        break # Un seul bloc jaune suffit
+                
                 current_blocks = []
                 for det in detections:
                     box = np.array(det["box"], dtype=np.int32)
@@ -176,8 +192,12 @@ class CameraThread(QThread):
                     if self.H_cam is not None:
                         xy_world = pix_to_world_cm((cx, cy), self.H_cam)
                         if xy_world:
-                            Xcm = float(xy_world[0] - self.cam_center[0])
-                            Ycm = float(xy_world[1] - self.cam_center[1])
+                            raw_Xcm = float(xy_world[0] - self.cam_center[0])
+                            raw_Ycm = float(xy_world[1] - self.cam_center[1])
+                            
+                            # C'est ICI qu'on applique la calibration dynamique du jaune :
+                            Xcm = raw_Xcm - self.calibr_offset_x
+                            Ycm = raw_Ycm - self.calibr_offset_y
                             
                             # --- SÉCURITÉ : CLAMP MÉCANIQUE ---
                             # On limite physiquement la portée maximale de ramassage.
