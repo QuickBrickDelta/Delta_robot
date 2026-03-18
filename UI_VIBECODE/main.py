@@ -163,6 +163,7 @@ class CameraThread(QThread):
                     # Couleurs en RGB pour dessiner sur l'image Qt
                     color_rgb = {
                         "red": (255, 0, 0), "green": (0, 255, 0),
+                        "green_dark": (0, 150, 0), "green_light": (144, 238, 144),
                         "blue": (0, 0, 255), "yellow": (255, 255, 0),
                         "orange": (255, 165, 0), "purple": (255, 0, 255),
                         "white": (220, 220, 220),
@@ -179,9 +180,12 @@ class CameraThread(QThread):
                             Ycm = float(xy_world[1] - self.cam_center[1])
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
                             
+                            # Normaliser la couleur pour le planificateur de trajectoire
+                            # ex: "green_dark" -> "green"
+                            base_color = col.split('_')[0] if '_' in col else col
+                            
                             # Ajouter le bloc détecté à la liste partagée (format final MouvementConnecte)
-                            # On choisit "2x4" ou "2x2" arbitrairement, "2x4" est le classique
-                            current_blocks.append([col, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
+                            current_blocks.append([base_color, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
                             
                     cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
