@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# HSV mean=(113.36,159.97,181.22) std=(4.08,26.00,39.57) rect=(892, 810, 995, 861) n=5253
 """
 python_live_square_detect.py
 Affichage live d'un flux GStreamer à 5 FPS en carré + détection stricte de blocs colorés (vue de dessous).
