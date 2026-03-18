@@ -89,10 +89,10 @@ class CameraThread(QThread):
         super().__init__()
         self._run_flag = True
         self.latest_blocks = []
+        self.pause_detection = False  # Désactive la vision pendant le mouvement du robot
 
         # Pour l'auto-calibration avec le bloc jaune
         self.calibr_offset_x = 0.0
-        self.calibr_offset_y = 0.0
         self.calibr_offset_y = 0.0
         
         # Charger z_table pour les coordonnées physiques des blocs
@@ -145,8 +145,8 @@ class CameraThread(QThread):
             # Conversion pour Qt/Mediapipe (RGB)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # 1. Overlay Computer Vision (Blocs)
-            if HAS_VISION:
+            # 1. Overlay Computer Vision (Blocs) — SEULEMENT si le robot ne bouge pas
+            if HAS_VISION and not self.pause_detection:
                 if not hasattr(self, 'H_cam'):
                     loaded = load_homography()
                     if loaded:
@@ -596,6 +596,9 @@ class VibeCodeUI(QMainWindow):
             # Vitesse réaliste : 50ms par point interpolé (même timing que le robot)
             self.anim_timer.start(50) 
 
+        # PAUSE la détection lourde pendant le mouvement pour libérer le CPU
+        self.camera_thread.pause_detection = True
+
         # Lancer PieToArduino en parallèle
         self.worker = WorkerThread()
         self.worker.output_signal.connect(self.log_output)
@@ -610,6 +613,8 @@ class VibeCodeUI(QMainWindow):
         self.status_label.setStyleSheet("color: #A6E3A1; font-size: 18px; font-weight: bold; border: none;")
         self.btn_start.setDisabled(False)
         self.anim_timer.stop()
+        # RÉACTIVE la détection vision maintenant que le robot est arrêté
+        self.camera_thread.pause_detection = False
 
     def closeEvent(self, event):
         # Kill OpenCV Camera thread
