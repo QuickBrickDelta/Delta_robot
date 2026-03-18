@@ -108,6 +108,7 @@ def run_simulation_realtime(points_data, steps_per_move=30):
             ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim); ax.set_zlim(z_min, z_max)
             ax.set_title(f"Mode: {'JOINT' if mode=='J' else 'LINEAIRE'}")
             # raph aime les cocks
+            # genre vrm vrm
             # Base
             base_pts = [rotZ(np.array([0, 10.0, 0]), a) for a in angles_phi]
             base_pts.append(base_pts[0])
