@@ -35,10 +35,25 @@ try:
     from Cinematique_delta3bras import rotZ, GetBrasComplet
     from MouvementRobot import interpolate_linear, interpolate_joint
 except ImportError as e:
-    print(f"Erreur d'importation des modules du robot: {e}")
-    Motor_command_xyz = []
-    interpolate_linear = None
-    interpolate_joint = None
+    print(f"Erreur d'importation des modules robot : {e}. Assurez-vous d'exécuter depuis la racine du projet.")
+    sys.exit(1)
+    Motor_command_xyz = [] # Keep this line from original code
+    interpolate_linear = None # Keep this line from original code
+    interpolate_joint = None # Keep this line from original code
+
+# Import module Vision
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from VisionNumerique.HSV.bloc_detection import (
+        COLOR_RANGES, load_homography, pix_to_world_cm,
+        MIN_AREA_PX, COLOR_STD_THRESH, DOMINANT_FRAC_THRESH,
+        RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN
+    )
+    from VisionNumerique.HSV.bloc_detection_w_filter import detect_blocks
+    HAS_VISION = True
+except ImportError as e:
+    print(f"Module VisionNumerique non trouvé : la vision des blocs sera désactivée. Erreur: {e}")
+    HAS_VISION = False
 
 class WorkerThread(QThread):
     """ Thread pour lancer PieToArduino en arrière-plan sans geler l'UI """
@@ -116,6 +131,48 @@ class CameraThread(QThread):
             # Conversion pour Qt/Mediapipe (RGB)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
+            # 1. Overlay Computer Vision (Blocs)
+            if HAS_VISION:
+                if not hasattr(self, 'H_cam'):
+                    loaded = load_homography()
+                    if loaded:
+                        self.H_cam, _, _, self.cam_center = loaded
+                        self.cam_center = self.cam_center.reshape(2)
+                    else:
+                        self.H_cam = None
+
+                # Appel du NOUVEAU détecteur ("_w_filter")
+                # Il utilise ses propres variables globales pour les seuils
+                detections = detect_blocks(frame, COLOR_RANGES, h_data=None)
+                
+                for det in detections:
+                    box = np.array(det["box"], dtype=np.int32)
+                    cx, cy = det["center"]
+                    col = det["color"]
+                    
+                    # Couleurs en RGB pour dessiner sur l'image Qt
+                    color_rgb = {
+                        "red": (255, 0, 0), "green": (0, 255, 0),
+                        "blue": (0, 0, 255), "yellow": (255, 255, 0),
+                        "orange": (255, 165, 0), "purple": (255, 0, 255),
+                        "white": (220, 220, 220),
+                    }.get(col, (255, 255, 255))
+
+                    cv2.drawContours(rgb, [box], 0, color_rgb, 2)
+                    cv2.circle(rgb, (int(cx), int(cy)), 5, color_rgb, -1)
+                    
+                    label = f"{col}"
+                    if self.H_cam is not None:
+                        xy_world = pix_to_world_cm((cx, cy), self.H_cam)
+                        if xy_world:
+                            Xcm = float(xy_world[0] - self.cam_center[0])
+                            Ycm = float(xy_world[1] - self.cam_center[1])
+                            label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
+                            
+                    cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
+
+            # 2. Overlay Mediapipe (Mains)
             if hands:
                 result = hands.process(rgb)
                 # Dessin des points de repère de la main
