@@ -218,12 +218,19 @@ def main():
     print("[o] Capture OFF | [l] Capture ON | [c] Calcul Filtre")
     print("[f] Toggle Filtre | [+/-] Force | [1/!] Area | [2/\"] Std | [3/#] Frac")
 
+
+    prev_detections = []
     while True:
         ok, frame = cap.read()
         if not ok: break
 
         proc_frame = apply_flash_filter(frame, filt, strength) if (show_filtered and filt) else frame
-        detections = detect_blocks(proc_frame, COLOR_RANGES, H_DATA)
+        new_detections = detect_blocks(proc_frame, COLOR_RANGES, H_DATA)
+        if not new_detections and prev_detections:
+            detections = prev_detections
+        else:
+            detections = new_detections
+            prev_detections = new_detections
         
         sq, scale, x0, y0 = to_square(proc_frame, WINDOW_SIZE)
         cmap = {
