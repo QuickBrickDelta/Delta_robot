@@ -16,19 +16,25 @@ if cinematique_dir not in sys.path:
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFrame)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QPalette, QColor
+from PyQt6.QtGui import QFont, QPalette, QColor, QImage, QPixmap
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.mplot3d import Axes3D
 
+import cv2
+import mediapipe as mp
+
 # Imports robot pour la simulation
 try:
     from MouvementConnecte import Motor_command_xyz
     from Cinematique_delta3bras import rotZ, GetBrasComplet
+    from MouvementRobot import interpolate_linear, interpolate_joint
 except ImportError as e:
     print(f"Erreur d'importation des modules du robot: {e}")
     Motor_command_xyz = []
+    interpolate_linear = None
+    interpolate_joint = None
 
 class WorkerThread(QThread):
     """ Thread pour lancer PieToArduino en arrière-plan sans geler l'UI """
@@ -40,16 +46,91 @@ class WorkerThread(QThread):
         script_path = os.path.join(project_root, "Communication", "PieToArduino.py")
         try:
             # Exécution silencieuse (les prints vont dans la console)
-            process = subprocess.Popen([sys.executable, script_path], 
+            self.process = subprocess.Popen([sys.executable, script_path], 
                                        stdout=subprocess.PIPE, 
                                        stderr=subprocess.STDOUT,
                                        text=True)
-            for line in process.stdout:
+            for line in self.process.stdout:
                 self.output_signal.emit(line.strip())
-            process.wait()
+            self.process.wait()
         except Exception as e:
             self.output_signal.emit(f"Erreur: {e}")
         self.finished_signal.emit()
+
+    def stop(self):
+        if hasattr(self, 'process') and self.process.poll() is None:
+            self.process.terminate()
+
+class CameraThread(QThread):
+    """ Thread pour capturer la caméra OpenCV + Mediapipe et envoyer les images à l'UI """
+    change_pixmap_signal = pyqtSignal(QImage)
+    status_signal = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+        self._run_flag = True
+
+    def run(self):
+        if os.name == 'nt':
+            # Environnement local Windows: Webcam standard
+            cap = cv2.VideoCapture(0)
+        else:
+            # Environnement Raspberry Pi: Pipeline GStreamer (libcamera)
+            pipeline = (
+                "libcamerasrc ! "
+                "video/x-raw,format=NV12,width=1280,height=720,framerate=15/1 ! "
+                "videoconvert ! video/x-raw,format=BGR ! "
+                "appsink drop=true max-buffers=1 sync=false"
+            )
+            cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+
+        if not cap.isOpened():
+            self.status_signal.emit("Caméra introuvable")
+            return
+
+        mp_hands = mp.solutions.hands
+        mp_drawing = mp.solutions.drawing_utils
+        hands = mp_hands.Hands(
+            static_image_mode=False,
+            max_num_hands=1,
+            model_complexity=0,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        )
+
+        while self._run_flag:
+            ret, frame = cap.read()
+            if not ret:
+                continue
+
+            # Inverser l'image pour un effet miroir plus naturel
+            frame = cv2.flip(frame, 1)
+
+            # Conversion pour Mediapipe (RGB)
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            result = hands.process(rgb)
+
+            # Dessin des points de repère de la main
+            if result.multi_hand_landmarks:
+                for hand_landmarks in result.multi_hand_landmarks:
+                    mp_drawing.draw_landmarks(
+                        rgb, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            
+            # Convertir pour PyQt
+            h, w, ch = rgb.shape
+            bytes_per_line = ch * w
+            qt_image = QImage(rgb.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
+            
+            # Redimensionner l'image pour l'UI
+            p = qt_image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+            self.change_pixmap_signal.emit(p)
+
+        hands.close()
+        cap.release()
+
+    def stop(self):
+        self._run_flag = False
+        self.wait()
 
 class VibeCodeUI(QMainWindow):
     def __init__(self):
@@ -144,7 +225,13 @@ class VibeCodeUI(QMainWindow):
 
         main_layout.addWidget(control_panel)
 
-        # ====== DROITE : Matplotlib 3D ======
+        # ====== DROITE : Matplotlib 3D + Caméra ======
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(10)
+
+        # -- Haut : Plot 3D
         plot_frame = QFrame()
         plot_frame.setStyleSheet("""
             QFrame {
@@ -154,25 +241,68 @@ class VibeCodeUI(QMainWindow):
             }
         """)
         plot_layout = QVBoxLayout(plot_frame)
-        plot_layout.setContentsMargins(10, 10, 10, 10)
+        plot_layout.setContentsMargins(5, 5, 5, 5)
 
         self.fig = plt.figure(facecolor='#11111B')
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.ax.set_facecolor('#11111B')
-        
-        # Désactiver les axes pour un look plus "vibe"
         self.ax.set_axis_off()
         
         plot_layout.addWidget(self.canvas)
-        main_layout.addWidget(plot_frame)
+        right_layout.addWidget(plot_frame, stretch=2) # Le plot prend 2/3 de l'espace
+
+        # -- Bas : Caméra
+        cam_frame = QFrame()
+        cam_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1E1E2E;
+                border-radius: 15px;
+                border: 2px solid #A6E3A1;
+            }
+        """)
+        cam_layout = QVBoxLayout(cam_frame)
+        cam_layout.setContentsMargins(5, 5, 5, 5)
+        
+        self.cam_label = QLabel("INITIALISATION DE LA CAMÉRA...")
+        self.cam_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.cam_label.setStyleSheet("color: #A6ADC8; font-size: 16px; font-weight: bold; border: none;")
+        cam_layout.addWidget(self.cam_label)
+        
+        right_layout.addWidget(cam_frame, stretch=1) # La caméra prend 1/3 de l'espace
+
+        main_layout.addWidget(right_panel)
+
+        # Démarrage direct du Thread de Caméra
+        self.camera_thread = CameraThread()
+        self.camera_thread.change_pixmap_signal.connect(self.update_camera_image)
+        self.camera_thread.status_signal.connect(self.update_camera_status)
+        self.camera_thread.start()
 
         # ====== ANIMATION 3D ======
         self.current_frame = 0
         self.traj_points = []
-        if Motor_command_xyz:
-            self.traj_points = Motor_command_xyz
         
+        if Motor_command_xyz and interpolate_linear and interpolate_joint:
+            # Précalculer la trajectoire interpolée pour une animation fluide
+            steps_per_move = 30
+            current_pos = Motor_command_xyz[0][:3]
+            for i in range(1, len(Motor_command_xyz)):
+                target_pt = Motor_command_xyz[i]
+                pos_xyz = target_pt[:3]
+                mode = target_pt[3] if len(target_pt) > 3 else 'L'
+                
+                if mode == 'G':
+                    # Temps de pause pince (on reste sur place pour 20 frames)
+                    segment = [current_pos] * 20
+                elif mode == 'J':
+                    segment = interpolate_joint(current_pos, pos_xyz, steps_per_move)
+                else:
+                    segment = interpolate_linear(current_pos, pos_xyz, steps_per_move)
+                
+                self.traj_points.extend(segment)
+                current_pos = pos_xyz
+
         # Initial draw
         if self.traj_points:
             self.draw_robot(self.traj_points[0][:3])
@@ -222,20 +352,25 @@ class VibeCodeUI(QMainWindow):
             
         self.canvas.draw()
 
+    def update_camera_image(self, qt_img):
+        self.cam_label.setPixmap(QPixmap.fromImage(qt_img))
+        
+    def update_camera_status(self, text):
+        self.cam_label.setText(text)
+
     def update_animation(self):
         if not self.traj_points or self.current_frame >= len(self.traj_points):
             self.anim_timer.stop()
             self.is_animating = False
             return
             
-        # Simplification: juste sauter de point en point pour l'instant (la vraie interpo prend trop de frames pour un PyQt timer de base)
         pos = self.traj_points[self.current_frame][:3]
         self.draw_robot(pos)
         self.current_frame += 1
 
     def start_robot(self):
         self.btn_start.setDisabled(True)
-        self.btn_quit.setDisabled(True)
+        # on ne désactive plus le bouton Quitter pour permettre d'arrêter à tout moment
         self.status_label.setText("STATUT : EN MOUVEMENT")
         self.status_label.setStyleSheet("color: #F9E2AF; font-size: 18px; font-weight: bold; border: none;")
 
@@ -243,7 +378,8 @@ class VibeCodeUI(QMainWindow):
         self.current_frame = 0
         if self.traj_points:
             self.is_animating = True
-            self.anim_timer.start(50) # 50ms par waypoint
+            # Vitesse réaliste : 50ms par point interpolé (même timing que le robot)
+            self.anim_timer.start(50) 
 
         # Lancer PieToArduino en parallèle
         self.worker = WorkerThread()
@@ -258,8 +394,18 @@ class VibeCodeUI(QMainWindow):
         self.status_label.setText("STATUT : TERMINÉ")
         self.status_label.setStyleSheet("color: #A6E3A1; font-size: 18px; font-weight: bold; border: none;")
         self.btn_start.setDisabled(False)
-        self.btn_quit.setDisabled(False)
         self.anim_timer.stop()
+
+    def closeEvent(self, event):
+        # Kill OpenCV Camera thread
+        if hasattr(self, 'camera_thread') and self.camera_thread.isRunning():
+            self.camera_thread.stop()
+            
+        # Kill the background process if it is running when the window is closed
+        if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
+            self.worker.stop()
+            self.worker.wait(1000) # give it a second to terminate
+        event.accept()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
