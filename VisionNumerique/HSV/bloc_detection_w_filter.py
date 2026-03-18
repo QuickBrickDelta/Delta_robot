@@ -16,6 +16,8 @@ import time
 import json
 from pathlib import Path
 from typing import Tuple, Dict, List
+
+from sympy import Si
 import cv2
 import numpy as np
 
@@ -118,91 +120,97 @@ def _dominant_fraction(bgr, cnt, ranges):
     return np.count_nonzero(inside) / total
 
 def detect_blocks(bgr, color_ranges, h_data=None):
-    """
-    Détecte les blocs avec :
-    1. Filtrage couleur HSV (multi-plages)
-    2. Nettoyage morphologique (Open + Close pour stabilité)
-    3. Filtrage géométrique (Rectangle approx)
-    4. Filtrage Uniformité (LAB)
-    5. Filtrage Dimensions Réelles (cm) si h_data est fourni
-    """
     out = []
     h, w = bgr.shape[:2]
     
-    # Réduction du bruit avant détection
-    blurred = cv2.GaussianBlur(bgr, (5, 5), 0)
+    # 1. Image de travail
+    blurred = cv2.GaussianBlur(bgr, (11, 11), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     
-    # Noyaux pour la morphologie
+    # 2. MASQUE GLOBAL d'exclusion (Pixels déjà assignés)
+    already_assigned_mask = np.zeros((h, w), dtype=np.uint8)
+    
     kernel_open = np.ones((3, 3), np.uint8)
-    kernel_close = np.ones((7, 7), np.uint8) # Plus grand pour stabiliser le clignotage
+    kernel_close = np.ones((11, 11), np.uint8)
 
+    # Note: L'ordre dans color_ranges.items() devient important. 
+    # Les premières couleurs ont la priorité.
     for name, ranges in color_ranges.items():
-        # 1. Création du masque pour la couleur
-        mask = np.zeros((h, w), dtype=np.uint8)
+        # Création du masque pour la couleur actuelle
+        color_mask = np.zeros((h, w), dtype=np.uint8)
         for lo, hi in ranges:
-            mask = cv2.bitwise_or(mask, cv2.inRange(hsv, lo, hi))
+            color_mask = cv2.bitwise_or(color_mask, cv2.inRange(hsv, lo, hi))
         
-        # 2. Nettoyage : supprimer bruit (Open) puis boucher les trous (Close)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
+        # --- ÉTAPE CLÉ : On soustrait les pixels déjà pris par une autre couleur ---
+        color_mask = cv2.bitwise_and(color_mask, cv2.bitwise_not(already_assigned_mask))
         
-        # 3. Recherche de contours
-        cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Nettoyage habituel
+        color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel_open)
+        color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_CLOSE, kernel_close)
+        
+        # Recherche de contours
+        cnts, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         for c in cnts:
             area = cv2.contourArea(c)
             if area < MIN_AREA_PX:
                 continue
             
-            # 4. Vérification forme géométrique (approx rectangle)
             if not _is_rectangle_approx(c, RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN):
                 continue
                 
-            # 5. Vérification uniformité de la couleur (LAB)
             if _region_uniformity_lab(bgr, c) > COLOR_STD_THRESH:
                 continue
             
-            # 6. Vérification fraction de couleur dominante
             if _dominant_fraction(bgr, c, ranges) < DOMINANT_FRAC_THRESH:
                 continue
             
-            # 7. --- NOUVEAU : Filtrage par dimensions réelles (cm) ---
             rect = cv2.minAreaRect(c)
             (cx, cy), (w_px, h_px), angle = rect
             
+            # (Optionnel) Calcul des dimensions réelles comme tu l'as déjà
+            # --- CALCUL DES DIMENSIONS RÉELLES (cm) ---
+            dims_cm = None
             if h_data is not None:
                 H_matrix = h_data[0]
-                # Calcul de l'échelle locale (ratio pixels/cm)
+                
+                # On utilise le centre du bloc pour calculer l'échelle locale (ratio pixels/cm)
+                # On compare le centre avec un point décalé de 100 pixels
                 p_center = pix_to_world_cm((cx, cy), H_matrix)
                 p_offset = pix_to_world_cm((cx + 100, cy), H_matrix)
                 
                 if p_center and p_offset:
-                    # Distance en cm pour 100 pixels
+                    # Calcul de la distance réelle en cm pour ces 100 pixels
                     dist_cm = np.sqrt((p_center[0]-p_offset[0])**2 + (p_center[1]-p_offset[1])**2)
                     px_to_cm = dist_cm / 100.0
                     
+                    # Conversion des dimensions pixels en cm
                     dim1 = w_px * px_to_cm
                     dim2 = h_px * px_to_cm
                     
-                    # TRIER pour comparer [petit, grand] peu importe l'angle
+                    # On trie pour avoir toujours [petit_coté, grand_coté]
                     dims_cm = sorted([dim1, dim2])
                     
-                    # EXEMPLE : On cherche des blocs de 3.2cm x 6.4cm (LEGO 2x4 approx)
-                    # Tu peux ajuster ou commenter ces lignes si tu veux tout accepter
+                    #--- FILTRE LEGO (Optionnel) ---
+                    #Si tu veux filtrer les briques 2x4 (environ 1.6 x 3.2 cm)
                     TARGET_W, TARGET_H = 1.6, 3.2
-                    TOLERANCE = 0.8
-                    if abs(dims_cm[0] - TARGET_W) > TOLERANCE or abs(dims_cm[1] - TARGET_H) > TOLERANCE:
+                    TOL = 0.8
+                    if abs(dims_cm[0] - TARGET_W) > TOL or abs(dims_cm[1] - TARGET_H) > TOL:
                         continue
 
-            # Si toutes les conditions sont remplies, on ajoute le bloc
+            # SI LE BLOC EST VALIDE :
+            # On l'ajoute à la liste
             out.append({
                 "color": name,
                 "box": cv2.boxPoints(rect),
                 "center": (cx, cy),
                 "angle": angle,
-                "dims_cm": dims_cm if h_data else None
+                "dims_cm": dims_cm
             })
+            
+            # ON MARQUE LE BLOC comme "assigné" dans le masque global
+            # pour que les couleurs suivantes ignorent cette zone
+            cv2.drawContours(already_assigned_mask, [c], -1, 255, -1)
             
     return out
 
@@ -235,12 +243,19 @@ def main():
     print("[o] Capture OFF | [l] Capture ON | [c] Calcul Filtre")
     print("[f] Toggle Filtre | [+/-] Force | [1/!] Area | [2/\"] Std | [3/#] Frac")
 
+
+    prev_detections = []
     while True:
         ok, frame = cap.read()
         if not ok: break
 
         proc_frame = apply_flash_filter(frame, filt, strength) if (show_filtered and filt) else frame
-        detections = detect_blocks(proc_frame, COLOR_RANGES, H_DATA)
+        new_detections = detect_blocks(proc_frame, COLOR_RANGES, H_DATA)
+        if not new_detections and prev_detections:
+            detections = prev_detections
+        else:
+            detections = new_detections
+            prev_detections = new_detections
         
         sq, scale, x0, y0 = to_square(proc_frame, WINDOW_SIZE)
         cmap = {
@@ -249,7 +264,7 @@ def main():
             "green_light": (144, 238, 144), # Vert clair
             "orange": (0, 165, 255),      # Orange
             "yellow": (0, 255, 255),
-            "blue": (255, 0, 0)
+            "blue": (255, 0, 0),
         }
 
         for det in detections:
