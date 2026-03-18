@@ -13,12 +13,12 @@ import statistics
 import numpy as np
 
 from VisionNumerique.HSV.bloc_detection import (
-    detect_colored_blocks,
     COLOR_RANGES,
     pix_to_world_cm,
     open_cap,
     load_homography,
 )
+from VisionNumerique.HSV import bloc_detection_w_filter as bdwf
 
 # ----------------------------
 # Detector thresholds (yours)
@@ -104,21 +104,20 @@ def print_stable_blocks_once(ctx: "Context"):
             time.sleep(0.01)
             continue
 
-        dets = detect_colored_blocks(
-            frame,
-            COLOR_RANGES,
-            min_area_px=DET_MIN_AREA_PX,
-            color_std_thresh=DET_COLOR_STD_THRESH,
-            dominant_frac_thresh=DET_DOMINANT_FRAC,
-            rect_angle_tol_deg=DET_RECT_ANGLE_TOL_DEG,
-            rect_area_ratio_min=DET_RECT_AREA_RATIO_MIN,
-            aspect_ratio_range=DET_ASPECT,
-        )
+        # Use the color assignment logic from `bloc_detection_w_filter` (no flash filter,
+        # and no LEGO dimension filter since we pass h_data=None).
+        bdwf.MIN_AREA_PX = DET_MIN_AREA_PX
+        bdwf.COLOR_STD_THRESH = DET_COLOR_STD_THRESH
+        bdwf.DOMINANT_FRAC_THRESH = DET_DOMINANT_FRAC
+        bdwf.RECT_ANGLE_TOL_DEG = DET_RECT_ANGLE_TOL_DEG
+        bdwf.RECT_AREA_RATIO_MIN = DET_RECT_AREA_RATIO_MIN
+
+        dets = bdwf.detect_blocks(frame, COLOR_RANGES, h_data=None)
 
         frame_blocks = []
         for d in dets:
             (cx, cy) = d["center"]
-            ang = float(d["angle_deg"])
+            ang = float(d["angle"])
             xy = pix_to_world_cm((cx, cy), ctx.H)
             if xy is None:
                 continue

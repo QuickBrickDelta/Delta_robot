@@ -17,7 +17,6 @@ import json
 from pathlib import Path
 from typing import Tuple, Dict, List
 
-from sympy import Si
 import cv2
 import numpy as np
 
