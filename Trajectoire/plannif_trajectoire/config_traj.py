@@ -11,18 +11,26 @@ speed_approach_move_global = 15.0  # cm/s
 # Avec Lc=15 et Lb=32:
 # Zone valide Z approx: [-20, -45] selon l'éloignement du centre.
 
-z_table = -38.5      # Hauteur de la table adaptée pour Lc=15/Lb=32
+z_table = -39.5     # Hauteur de la table adaptée pour Lc=15/Lb=32
+z_drop = z_table + 5
 z_home = -25.0        # Hauteur de sécurité (Home)
 
 home_position = (0.0, 0.0, z_home)
 
-# Positions de sortie (Output)
-# On réduit l'écartement car le robot est plus petit
-offset_output = 16.0
-red_output_position = (8.5, 5.0, z_table)
-blue_output_position = (-9.0, 0.0, z_table)
-green_output_position = (0.0, 10.0, z_table)
-yellow_output_position = (0.0, -10.0, z_table)
+# Positions de sortie (Drop Bacs)
+# 3 bacs à r=18cm, même disposition que les pignons mais décalé de 90° en XY
+# Pignons: 0°, 120°, 240°  →  Drops: 90°, 210°, 330°
+import math
+r_drop = 25
+drop_bac1_position = ( 0.0,                            r_drop,                          z_drop)  # 90°
+drop_bac2_position = (-math.sin(math.radians(60))*r_drop, -math.cos(math.radians(60))*r_drop, z_drop)  # 210°
+drop_bac3_position = ( math.sin(math.radians(60))*r_drop, -math.cos(math.radians(60))*r_drop, z_drop)  # 330°
+
+# Mapping couleur → bac (3 bacs, 4 couleurs)
+red_output_position    = drop_bac1_position   # Bac 1
+blue_output_position   = drop_bac2_position   # Bac 2
+green_output_position  = drop_bac3_position   # Bac 3
+yellow_output_position = drop_bac1_position   # Bac 1 (partagé avec red)
 
 # --- Blocs ---
 
