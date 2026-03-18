@@ -23,11 +23,11 @@ from VisionNumerique.HSV import bloc_detection_w_filter as bdwf
 # ----------------------------
 # Detector thresholds (yours)
 # ----------------------------
-DET_MIN_AREA_PX = 3600
-DET_COLOR_STD_THRESH = 15.0
-DET_DOMINANT_FRAC = 0.80
-DET_RECT_ANGLE_TOL_DEG = 5.0
-DET_RECT_AREA_RATIO_MIN = 0.92
+DET_MIN_AREA_PX = 2000
+DET_COLOR_STD_THRESH = 50.0
+DET_DOMINANT_FRAC_THRESH = 0.15
+DET_RECT_ANGLE_TOL_DEG = 20.0
+DET_RECT_AREA_RATIO_MIN = 0.70
 DET_ASPECT = None  # OFF
 
 # ----------------------------
