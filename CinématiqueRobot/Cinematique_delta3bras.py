@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 
 
 # --- Paramètres du robot ---
-f = 10  # Rayon base moteur
-e = 6   # Rayon effecteur
+f = 5.5  # Rayon base moteur
+e = 4   # Rayon effecteur
 r_parralelogramme = 5 
-Lc = 15  # Longueur bras supérieur (proximal)
-Lb = 32 # Longueur bras inférieur (distal)
+Lc = 15  # Longueur bras supérieur
+Lb = 32.5 # Longueur bras inférieur 
 
 def rotZ(p, phi):
     """Rotation d'un point p autour de l'axe Z."""
@@ -68,7 +68,7 @@ def GetAngleMoteur1(x_eff, y_eff, z_eff, phi):
         deg = np.degrees(theta_candidate)
         
         # On accepte une petite tolérance (-0.1) pour inclure 0 pile
-        if -0.1 <= deg <= 90.1:
+        if -0.1 <= deg <= 165.1:
             # Si deux solutions valides, on garde celle avec le Z le plus bas
             if valid_solution is None or z_B < valid_solution[2]:
                 valid_solution = (theta_candidate, y_B, z_B)
