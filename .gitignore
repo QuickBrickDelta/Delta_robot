@@ -17,3 +17,6 @@ plots_algo_path/
 # calib_flash
 .calib_flash/
 calib_flash/
+
+# Fichiers générés dynamiquement
+detected_blocks.json

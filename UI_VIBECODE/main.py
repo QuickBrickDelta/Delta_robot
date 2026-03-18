@@ -178,6 +178,18 @@ class CameraThread(QThread):
                         if xy_world:
                             Xcm = float(xy_world[0] - self.cam_center[0])
                             Ycm = float(xy_world[1] - self.cam_center[1])
+                            
+                            # --- SÉCURITÉ : CLAMP MÉCANIQUE ---
+                            # On limite physiquement la portée maximale de ramassage.
+                            # Le robot peut déposer à r=25, mais on restreint le ramassage à r=22 max
+                            # pour éviter que les moteurs forcent sur des détections éloignées ou mal calibrées.
+                            R_MAX = 22.0
+                            r_current = (Xcm**2 + Ycm**2)**0.5
+                            if r_current > R_MAX:
+                                Xcm = Xcm * (R_MAX / r_current)
+                                Ycm = Ycm * (R_MAX / r_current)
+                                label += " [LIMITE]"
+                                
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
                             
                             # Normaliser la couleur pour le planificateur de trajectoire
@@ -233,23 +245,23 @@ class VibeCodeUI(QMainWindow):
         main_layout.setSpacing(20)
 
         # ====== GAUCHE : Panneau de contrôle ======
-        control_panel = QFrame()
-        control_panel.setStyleSheet("""
+        self.control_panel = QFrame()
+        self.control_panel.setStyleSheet("""
             QFrame {
                 background-color: #1E1E2E;
                 border-radius: 15px;
                 border: 2px solid #89B4FA;
             }
         """)
-        control_panel.setFixedWidth(350)
-        control_layout = QVBoxLayout(control_panel)
+        self.control_panel.setFixedWidth(350)
+        control_layout = QVBoxLayout(self.control_panel)
         control_layout.setContentsMargins(20, 30, 20, 30)
 
         # Titre
-        title = QLabel("D E L T A\nV I B E")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #89B4FA; font-size: 36px; font-weight: bold; border: none;")
-        control_layout.addWidget(title)
+        self.title_label = QLabel("D E L T A\nV I B E")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet("color: #89B4FA; font-size: 36px; font-weight: bold; border: none;")
+        control_layout.addWidget(self.title_label)
 
         control_layout.addStretch()
 
@@ -259,7 +271,19 @@ class VibeCodeUI(QMainWindow):
         self.status_label.setStyleSheet("color: #A6E3A1; font-size: 18px; font-weight: bold; border: none;")
         control_layout.addWidget(self.status_label)
 
-        control_layout.addSpacing(30)
+        control_layout.addSpacing(20)
+
+        # Liste des blocs à ramasser
+        self.sequence_title = QLabel("ORDRE DE RAMASSAGE :")
+        self.sequence_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
+        control_layout.addWidget(self.sequence_title)
+
+        self.sequence_label = QLabel("Aucun mouvement prévu")
+        self.sequence_label.setWordWrap(True)
+        self.sequence_label.setStyleSheet("color: #CDD6F4; font-size: 16px; font-weight: bold; border: none;")
+        control_layout.addWidget(self.sequence_label)
+
+        control_layout.addSpacing(20)
 
         # Bouton Démarrer
         self.btn_start = QPushButton("▶ DÉMARRER")
@@ -309,7 +333,7 @@ class VibeCodeUI(QMainWindow):
 
         control_layout.addStretch()
 
-        main_layout.addWidget(control_panel)
+        main_layout.addWidget(self.control_panel)
 
         # ====== DROITE : Matplotlib 3D + Caméra ======
         right_panel = QWidget()
@@ -373,6 +397,40 @@ class VibeCodeUI(QMainWindow):
 
         self.worker = None
 
+        # Timer pour le fade de couleur RGB (Visual Candy)
+        self.hue = 0.0
+        self.color_timer = QTimer()
+        self.color_timer.timeout.connect(self.update_colors)
+        self.color_timer.start(50)
+
+    def update_colors(self):
+        self.hue += 0.005
+        if self.hue >= 1.0:
+            self.hue = 0.0
+        color = QColor.fromHsvF(self.hue, 0.7, 0.9).name()
+        
+        self.title_label.setStyleSheet(f"color: {color}; font-size: 36px; font-weight: bold; border: none;")
+        self.control_panel.setStyleSheet(f"QFrame {{ background-color: #1E1E2E; border-radius: 15px; border: 2px solid {color}; }}")
+
+    def update_pick_sequence_ui(self, current_idx):
+        if not hasattr(self, 'pick_sequence') or not self.pick_sequence:
+            self.sequence_label.setText("Vidé")
+            return
+            
+        text = ""
+        for i, col in enumerate(self.pick_sequence):
+            # Formater joliment (ex: [1] vert, [2] rouge, etc.)
+            emoji = {"red": "🔴", "green": "🟢", "blue": "🔵", "yellow": "🟡", "orange": "🟠", "purple": "🟣"}.get(col, "⚫")
+            item = f"{emoji} {col.upper()}"
+            if i == current_idx:
+                text += f"<span style='color: #F9E2AF; font-size: 20px;'>➜ {item}</span><br>"
+            elif i < current_idx:
+                text += f"<span style='color: #585B70; text-decoration: line-through;'>{item}</span><br>"
+            else:
+                text += f"<span style='color: #CDD6F4;'>{item}</span><br>"
+                
+        self.sequence_label.setText(text)
+
     def rebuild_trajectory(self):
         """ Recharge la trajectoire et l'animation basées sur les derniers blocs détectés """
         global Motor_command_xyz
@@ -395,23 +453,44 @@ class VibeCodeUI(QMainWindow):
 
         # 3. Recalculer l'animation matplotlib 3D pour l'interface
         self.traj_points = []
+        self.frame_to_pick_idx = []
+        
+        # 4. Extraire la séquence de ramassage depuis la trajectoire sémantique
+        self.pick_sequence = []
+        if hasattr(MouvementConnecte, 'Trajectory'):
+            for step in MouvementConnecte.Trajectory:
+                if step[2] == "closeGripper":
+                    self.pick_sequence.append(step[0]) # couleur du bloc
+        self.update_pick_sequence_ui(-1)
+
         if Motor_command_xyz and interpolate_linear and interpolate_joint:
             steps_per_move = 30
             current_pos = Motor_command_xyz[0][:3]
-            for i in range(1, len(Motor_command_xyz)):
-                target_pt = Motor_command_xyz[i]
-                pos_xyz = target_pt[:3]
-                mode = target_pt[3] if len(target_pt) > 3 else 'L'
-                
-                if mode == 'G':
-                    segment = [current_pos] * 20
-                elif mode == 'J':
-                    segment = interpolate_joint(current_pos, pos_xyz, steps_per_move)
-                else:
-                    segment = interpolate_linear(current_pos, pos_xyz, steps_per_move)
-                
-                self.traj_points.extend(segment)
-                current_pos = pos_xyz
+            cmd_idx = 1
+            current_pick_idx = -1
+            
+            # On navigue à travers la vraie trajectoire pour lier les indices d'animation au bloc courant
+            for step in MouvementConnecte.Trajectory[1:]: # Ignorer le home initial
+                move_type = step[2]
+                if move_type in ["home", "joint", "linear", "closeGripper", "openGripper"]:
+                    target_pt = Motor_command_xyz[cmd_idx]
+                    cmd_idx += 1
+                    pos_xyz = target_pt[:3]
+                    mode = target_pt[3] if len(target_pt) > 3 else 'L'
+
+                    if move_type == "closeGripper":
+                        current_pick_idx += 1
+                        
+                    if mode == 'G':
+                        segment = [current_pos] * 20
+                    elif mode == 'J':
+                        segment = interpolate_joint(current_pos, pos_xyz, steps_per_move)
+                    else:
+                        segment = interpolate_linear(current_pos, pos_xyz, steps_per_move)
+                    
+                    self.traj_points.extend(segment)
+                    self.frame_to_pick_idx.extend([current_pick_idx] * len(segment))
+                    current_pos = pos_xyz
 
         # Dessiner le robot à la position initiale
         if self.traj_points:
@@ -472,6 +551,9 @@ class VibeCodeUI(QMainWindow):
             return
             
         pos = self.traj_points[self.current_frame][:3]
+        idx = self.frame_to_pick_idx[self.current_frame] if self.current_frame < len(self.frame_to_pick_idx) else -1
+        self.update_pick_sequence_ui(idx)
+        
         self.draw_robot(pos)
         self.current_frame += 1
 
