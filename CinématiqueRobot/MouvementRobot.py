@@ -138,6 +138,11 @@ def run_simulation_realtime(points_data, steps_per_move=30):
                 # Entretoises
                 ax.plot([res["BG"][0], res["BD"][0]], [res["BG"][1], res["BD"][1]], [res["BG"][2], res["BD"][2]], color='black')
                 ax.plot([res["EG"][0], res["ED"][0]], [res["EG"][1], res["ED"][1]], [res["EG"][2], res["ED"][2]], color='purple')
+                
+                # Print la longueur de la barre (BG-EG) pour vérifier qu'elle est constante
+                if k == 0: # On print juste pour le Bras 1 pour ne pas spammer la console
+                    long_tige = np.linalg.norm(res["BG"] - res["EG"])
+                    print(f"Frame | Longueur vraie de la tige BG-EG: {long_tige:.4f} cm")
             
             plt.pause(0.001)
             
