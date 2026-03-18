@@ -1,0 +1,7 @@
+PyQt6
+matplotlib
+numpy<2.0
+opencv-python
+mediapipe==0.10.11
+scipy
+pyserial
