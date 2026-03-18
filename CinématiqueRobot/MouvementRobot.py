@@ -1,9 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.optimize import root  # <--- Ajout nécessaire pour le mode Joint
 from Cinematique_delta3bras import rotZ, GetAngleMoteur1, GetBrasComplet
-
+import matplotlib
+matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
 
 # ==========================================
 # 1. LOGIQUE D'INTERPOLATION 
