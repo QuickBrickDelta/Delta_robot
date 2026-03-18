@@ -21,7 +21,7 @@ import numpy as np
 
 # ---------- Réglages par défaut ----------
 WINDOW_SIZE = 900
-FPS = 5
+FPS = 2
 SQUARE_MODE = "letterbox"
 
 # Paramètres de détection (tes valeurs relaxées pour le vert)
