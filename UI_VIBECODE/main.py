@@ -307,9 +307,10 @@ class VibeCodeUI(QMainWindow):
             }
         """)
         plot_layout = QVBoxLayout(plot_frame)
-        plot_layout.setContentsMargins(5, 5, 5, 5)
+        plot_layout.setContentsMargins(0, 0, 0, 0) # Supprime les marges du widget
 
         self.fig = plt.figure(facecolor='#11111B')
+        self.fig.subplots_adjust(left=-0.05, right=1.05, bottom=-0.05, top=1.05) # "Zoom" extrême en enlevant les marges matplotlib
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.ax.set_facecolor('#11111B')
@@ -389,10 +390,10 @@ class VibeCodeUI(QMainWindow):
     def draw_robot(self, pos):
         self.ax.cla()
         self.ax.set_axis_off()
-        lim = 40.0
+        lim = 25.0  # Limite réduite pour "zoom in" horizontal
         self.ax.set_xlim(-lim, lim)
         self.ax.set_ylim(-lim, lim)
-        self.ax.set_zlim(-80.0, 10.0)
+        self.ax.set_zlim(-45.0, 15.0)  # Limite réduite pour "zoom in" vertical
 
         angles_phi = [0, np.radians(120), np.radians(240)]
         colors = ['#F38BA8', '#A6E3A1', '#89B4FA'] # Vibe colors (Red, Green, Blue)
