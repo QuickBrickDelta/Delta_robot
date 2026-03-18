@@ -16,6 +16,8 @@ import time
 import json
 from pathlib import Path
 from typing import Tuple, Dict, List
+
+from sympy import Si
 import cv2
 import numpy as np
 
@@ -167,11 +169,34 @@ def detect_blocks(bgr, color_ranges, h_data=None):
             (cx, cy), (w_px, h_px), angle = rect
             
             # (Optionnel) Calcul des dimensions réelles comme tu l'as déjà
+            # --- CALCUL DES DIMENSIONS RÉELLES (cm) ---
             dims_cm = None
             if h_data is not None:
-                # ... ton calcul de dimensions ...
-                # (Je simplifie ici pour la lisibilité, garde ton code actuel)
-                dims_cm = [0, 0] 
+                H_matrix = h_data[0]
+                
+                # On utilise le centre du bloc pour calculer l'échelle locale (ratio pixels/cm)
+                # On compare le centre avec un point décalé de 100 pixels
+                p_center = pix_to_world_cm((cx, cy), H_matrix)
+                p_offset = pix_to_world_cm((cx + 100, cy), H_matrix)
+                
+                if p_center and p_offset:
+                    # Calcul de la distance réelle en cm pour ces 100 pixels
+                    dist_cm = np.sqrt((p_center[0]-p_offset[0])**2 + (p_center[1]-p_offset[1])**2)
+                    px_to_cm = dist_cm / 100.0
+                    
+                    # Conversion des dimensions pixels en cm
+                    dim1 = w_px * px_to_cm
+                    dim2 = h_px * px_to_cm
+                    
+                    # On trie pour avoir toujours [petit_coté, grand_coté]
+                    dims_cm = sorted([dim1, dim2])
+                    
+                    #--- FILTRE LEGO (Optionnel) ---
+                    #Si tu veux filtrer les briques 2x4 (environ 1.6 x 3.2 cm)
+                    TARGET_W, TARGET_H = 1.6, 3.2
+                    TOL = 0.8
+                    if abs(dims_cm[0] - TARGET_W) > TOL or abs(dims_cm[1] - TARGET_H) > TOL:
+                        continue
 
             # SI LE BLOC EST VALIDE :
             # On l'ajoute à la liste
