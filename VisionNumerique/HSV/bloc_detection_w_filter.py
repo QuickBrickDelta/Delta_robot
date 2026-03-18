@@ -21,7 +21,7 @@ import numpy as np
 
 # ---------- Réglages par défaut ----------
 WINDOW_SIZE = 900
-FPS = 5
+FPS = 2
 SQUARE_MODE = "letterbox"
 
 # Paramètres de détection (tes valeurs relaxées pour le vert)
@@ -37,7 +37,7 @@ H_PATH = _THIS_DIR.parent / "calibration" / "homography_plane.npz"
 
 pipeline = (
     'libcamerasrc af-mode=manual lens-position=3.4 ! '
-    'video/x-raw,format=NV12,width=4608,height=2592,framerate=5/1 ! '
+    'video/x-raw,format=NV12,width=4608,height=2592,framerate=2/1 ! '
     'videoscale ! video/x-raw,width=1920,height=1080 ! '
     'videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false'
 )
@@ -117,25 +117,93 @@ def _dominant_fraction(bgr, cnt, ranges):
     inside = cv2.bitwise_and(color_mask, mask)
     return np.count_nonzero(inside) / total
 
-def detect_blocks(bgr, color_ranges):
+def detect_blocks(bgr, color_ranges, h_data=None):
+    """
+    Détecte les blocs avec :
+    1. Filtrage couleur HSV (multi-plages)
+    2. Nettoyage morphologique (Open + Close pour stabilité)
+    3. Filtrage géométrique (Rectangle approx)
+    4. Filtrage Uniformité (LAB)
+    5. Filtrage Dimensions Réelles (cm) si h_data est fourni
+    """
     out = []
     h, w = bgr.shape[:2]
+    
+    # Réduction du bruit avant détection
     blurred = cv2.GaussianBlur(bgr, (5, 5), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+    
+    # Noyaux pour la morphologie
+    kernel_open = np.ones((3, 3), np.uint8)
+    kernel_close = np.ones((7, 7), np.uint8) # Plus grand pour stabiliser le clignotage
+
     for name, ranges in color_ranges.items():
+        # 1. Création du masque pour la couleur
         mask = np.zeros((h, w), dtype=np.uint8)
         for lo, hi in ranges:
             mask = cv2.bitwise_or(mask, cv2.inRange(hsv, lo, hi))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8)) # Bouche les petits trous
+        
+        # 2. Nettoyage : supprimer bruit (Open) puis boucher les trous (Close)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
+        
+        # 3. Recherche de contours
         cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
         for c in cnts:
-            if cv2.contourArea(c) < MIN_AREA_PX: continue
-            if not _is_rectangle_approx(c, RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN): continue
-            if _region_uniformity_lab(bgr, c) > COLOR_STD_THRESH: continue
-            if _dominant_fraction(bgr, c, ranges) < DOMINANT_FRAC_THRESH: continue
+            area = cv2.contourArea(c)
+            if area < MIN_AREA_PX:
+                continue
+            
+            # 4. Vérification forme géométrique (approx rectangle)
+            if not _is_rectangle_approx(c, RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN):
+                continue
+                
+            # 5. Vérification uniformité de la couleur (LAB)
+            if _region_uniformity_lab(bgr, c) > COLOR_STD_THRESH:
+                continue
+            
+            # 6. Vérification fraction de couleur dominante
+            if _dominant_fraction(bgr, c, ranges) < DOMINANT_FRAC_THRESH:
+                continue
+            
+            # 7. --- NOUVEAU : Filtrage par dimensions réelles (cm) ---
             rect = cv2.minAreaRect(c)
-            out.append({"color": name, "box": cv2.boxPoints(rect), "center": rect[0], "angle": rect[2]})
+            (cx, cy), (w_px, h_px), angle = rect
+            
+            if h_data is not None:
+                H_matrix = h_data[0]
+                # Calcul de l'échelle locale (ratio pixels/cm)
+                p_center = pix_to_world_cm((cx, cy), H_matrix)
+                p_offset = pix_to_world_cm((cx + 100, cy), H_matrix)
+                
+                if p_center and p_offset:
+                    # Distance en cm pour 100 pixels
+                    dist_cm = np.sqrt((p_center[0]-p_offset[0])**2 + (p_center[1]-p_offset[1])**2)
+                    px_to_cm = dist_cm / 100.0
+                    
+                    dim1 = w_px * px_to_cm
+                    dim2 = h_px * px_to_cm
+                    
+                    # TRIER pour comparer [petit, grand] peu importe l'angle
+                    dims_cm = sorted([dim1, dim2])
+                    
+                    # EXEMPLE : On cherche des blocs de 3.2cm x 6.4cm (LEGO 2x4 approx)
+                    # Tu peux ajuster ou commenter ces lignes si tu veux tout accepter
+                    TARGET_W, TARGET_H = 1.6, 3.2
+                    TOLERANCE = 0.8
+                    if abs(dims_cm[0] - TARGET_W) > TOLERANCE or abs(dims_cm[1] - TARGET_H) > TOLERANCE:
+                        continue
+
+            # Si toutes les conditions sont remplies, on ajoute le bloc
+            out.append({
+                "color": name,
+                "box": cv2.boxPoints(rect),
+                "center": (cx, cy),
+                "angle": angle,
+                "dims_cm": dims_cm if h_data else None
+            })
+            
     return out
 
 # ---------- 4. Affichage & Main ----------
@@ -172,17 +240,14 @@ def main():
         if not ok: break
 
         proc_frame = apply_flash_filter(frame, filt, strength) if (show_filtered and filt) else frame
-        detections = detect_blocks(proc_frame, COLOR_RANGES)
+        detections = detect_blocks(proc_frame, COLOR_RANGES, H_DATA)
         
         sq, scale, x0, y0 = to_square(proc_frame, WINDOW_SIZE)
         cmap = {
             "red": (0, 0, 255),
             "green_dark": (0, 100, 0),    # Vert foncé
             "green_light": (144, 238, 144), # Vert clair
-            "brown": (19, 69, 139),       # Marron (SaddleBrown)
             "orange": (0, 165, 255),      # Orange
-            "black": (30, 30, 30),        # Gris très foncé/Noir
-            "white": (240, 240, 240),     # Blanc cassé
             "yellow": (0, 255, 255),
             "blue": (255, 0, 0)
         }
