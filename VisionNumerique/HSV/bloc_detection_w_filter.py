@@ -127,7 +127,7 @@ def detect_blocks(bgr, color_ranges):
         for lo, hi in ranges:
             mask = cv2.bitwise_or(mask, cv2.inRange(hsv, lo, hi))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8)) # Bouche les petits trous
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((7,7), np.uint8)) # Bouche les petits trous
         cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for c in cnts:
             if cv2.contourArea(c) < MIN_AREA_PX: continue
