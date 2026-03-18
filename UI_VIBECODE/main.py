@@ -88,6 +88,15 @@ class CameraThread(QThread):
     def __init__(self):
         super().__init__()
         self._run_flag = True
+        self.latest_blocks = []
+        
+        # Charger z_table pour les coordonnées physiques des blocs
+        self.z_table = -38.0
+        try:
+            import config_traj
+            self.z_table = config_traj.z_table
+        except:
+            pass
 
     def run(self):
         if os.name == 'nt':
@@ -145,6 +154,7 @@ class CameraThread(QThread):
                 # Il utilise ses propres variables globales pour les seuils
                 detections = detect_blocks(frame, COLOR_RANGES, h_data=None)
                 
+                current_blocks = []
                 for det in detections:
                     box = np.array(det["box"], dtype=np.int32)
                     cx, cy = det["center"]
@@ -169,8 +179,14 @@ class CameraThread(QThread):
                             Ycm = float(xy_world[1] - self.cam_center[1])
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
                             
+                            # Ajouter le bloc détecté à la liste partagée (format final MouvementConnecte)
+                            # On choisit "2x4" ou "2x2" arbitrairement, "2x4" est le classique
+                            current_blocks.append([col, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
+                            
                     cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
+                                
+                self.latest_blocks = current_blocks
 
             # 2. Overlay Mediapipe (Mains)
             if hands:
@@ -347,11 +363,35 @@ class VibeCodeUI(QMainWindow):
         self.camera_thread.start()
 
         # ====== ANIMATION 3D ======
-        self.current_frame = 0
-        self.traj_points = []
+        self.anim_timer = QTimer()
+        self.anim_timer.timeout.connect(self.update_animation)
+        self.is_animating = False
+
+        self.worker = None
+
+    def rebuild_trajectory(self):
+        """ Recharge la trajectoire et l'animation basées sur les derniers blocs détectés """
+        global Motor_command_xyz
         
+        # 1. Sauvegarder les blocs vus par la caméra
+        import json
+        import os
+        detected_path = os.path.join(os.path.dirname(__file__), "detected_blocks.json")
+        with open(detected_path, "w") as f:
+            if hasattr(self, 'camera_thread'):
+                json.dump(self.camera_thread.latest_blocks, f)
+            else:
+                json.dump([], f)
+                
+        # 2. Recharger le script qui planifie la trajectoire physiquement (MouvementConnecte)
+        import importlib
+        import MouvementConnecte
+        importlib.reload(MouvementConnecte)
+        Motor_command_xyz = MouvementConnecte.Motor_command_xyz
+
+        # 3. Recalculer l'animation matplotlib 3D pour l'interface
+        self.traj_points = []
         if Motor_command_xyz and interpolate_linear and interpolate_joint:
-            # Précalculer la trajectoire interpolée pour une animation fluide
             steps_per_move = 30
             current_pos = Motor_command_xyz[0][:3]
             for i in range(1, len(Motor_command_xyz)):
@@ -360,7 +400,6 @@ class VibeCodeUI(QMainWindow):
                 mode = target_pt[3] if len(target_pt) > 3 else 'L'
                 
                 if mode == 'G':
-                    # Temps de pause pince (on reste sur place pour 20 frames)
                     segment = [current_pos] * 20
                 elif mode == 'J':
                     segment = interpolate_joint(current_pos, pos_xyz, steps_per_move)
@@ -370,15 +409,12 @@ class VibeCodeUI(QMainWindow):
                 self.traj_points.extend(segment)
                 current_pos = pos_xyz
 
-        # Initial draw
+        # Dessiner le robot à la position initiale
         if self.traj_points:
             self.draw_robot(self.traj_points[0][:3])
-
-        self.anim_timer = QTimer()
-        self.anim_timer.timeout.connect(self.update_animation)
-        self.is_animating = False
-
-        self.worker = None
+        else:
+            # Fallback
+            self.draw_robot([0, 0, -25])
 
     def get_dark_theme(self):
         return """
@@ -438,9 +474,15 @@ class VibeCodeUI(QMainWindow):
     def start_robot(self):
         self.btn_start.setDisabled(True)
         # on ne désactive plus le bouton Quitter pour permettre d'arrêter à tout moment
-        self.status_label.setText("STATUT : EN MOUVEMENT")
+        self.status_label.setText("STATUT : RECALCUL...")
         self.status_label.setStyleSheet("color: #F9E2AF; font-size: 18px; font-weight: bold; border: none;")
 
+        # Recalcule la trajectoire avec les blocs détectés présentement par la caméra
+        QApplication.processEvents() # MàJ de l'UI
+        self.rebuild_trajectory()
+
+        self.status_label.setText("STATUT : EN MOUVEMENT")
+        
         # Redémarrer l'animation de 0
         self.current_frame = 0
         if self.traj_points:

@@ -39,8 +39,23 @@ import config_traj
 #  Génération des commandes
 # ===============================
 
+import json
+
 # Trajectoire haut niveau (positions XYZ + info pince)
+detected_path = os.path.join(project_root, "UI_VIBECODE", "detected_blocks.json")
 blocs = config_traj.blocs
+
+if os.path.exists(detected_path):
+    print(f"Chargement des blocs détectés depuis {detected_path}")
+    try:
+        with open(detected_path, 'r') as f:
+            data = json.load(f)
+            if data and len(data) > 0:
+                # Convertir en tableau 2D d'objets comme dans config_traj
+                blocs = numpy.array(data, dtype=object)
+    except Exception as e:
+        print(f"Erreur de lecture des blocs: {e}")
+
 Trajectory = plannif_trajectoire.plan_full_trajectory(blocs)
 
 # Commandes pour la simulation (XYZ + mode L/J/G)
