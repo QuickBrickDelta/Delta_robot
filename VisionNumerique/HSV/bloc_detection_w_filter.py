@@ -249,7 +249,8 @@ def main():
             "green_light": (144, 238, 144), # Vert clair
             "orange": (0, 165, 255),      # Orange
             "yellow": (0, 255, 255),
-            "blue": (255, 0, 0)
+            "blue": (255, 0, 0),
+            "bleu_pale": (255, 191, 0)
         }
 
         for det in detections:
