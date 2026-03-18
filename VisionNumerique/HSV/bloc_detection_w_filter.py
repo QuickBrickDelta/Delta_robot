@@ -21,7 +21,7 @@ import numpy as np
 
 # ---------- Réglages par défaut ----------
 WINDOW_SIZE = 900
-FPS = 5
+FPS = 2
 SQUARE_MODE = "letterbox"
 
 # Paramètres de détection (tes valeurs relaxées pour le vert)
@@ -37,7 +37,7 @@ H_PATH = _THIS_DIR.parent / "calibration" / "homography_plane.npz"
 
 pipeline = (
     'libcamerasrc af-mode=manual lens-position=3.4 ! '
-    'video/x-raw,format=NV12,width=4608,height=2592,framerate=5/1 ! '
+    'video/x-raw,format=NV12,width=4608,height=2592,framerate=2/1 ! '
     'videoscale ! video/x-raw,width=1920,height=1080 ! '
     'videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=1 sync=false'
 )
@@ -190,10 +190,10 @@ def detect_blocks(bgr, color_ranges, h_data=None):
                     
                     # EXEMPLE : On cherche des blocs de 3.2cm x 6.4cm (LEGO 2x4 approx)
                     # Tu peux ajuster ou commenter ces lignes si tu veux tout accepter
-                    # TARGET_W, TARGET_H = 3.2, 6.4
-                    # TOLERANCE = 0.8
-                    # if abs(dims_cm[0] - TARGET_W) > TOLERANCE or abs(dims_cm[1] - TARGET_H) > TOLERANCE:
-                    #     continue
+                    TARGET_W, TARGET_H = 1.6, 3.2
+                    TOLERANCE = 0.8
+                    if abs(dims_cm[0] - TARGET_W) > TOLERANCE or abs(dims_cm[1] - TARGET_H) > TOLERANCE:
+                        continue
 
             # Si toutes les conditions sont remplies, on ajoute le bloc
             out.append({
@@ -247,10 +247,7 @@ def main():
             "red": (0, 0, 255),
             "green_dark": (0, 100, 0),    # Vert foncé
             "green_light": (144, 238, 144), # Vert clair
-            "brown": (19, 69, 139),       # Marron (SaddleBrown)
             "orange": (0, 165, 255),      # Orange
-            "black": (30, 30, 30),        # Gris très foncé/Noir
-            "white": (240, 240, 240),     # Blanc cassé
             "yellow": (0, 255, 255),
             "blue": (255, 0, 0)
         }
