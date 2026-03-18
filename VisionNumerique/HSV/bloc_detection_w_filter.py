@@ -130,12 +130,12 @@ def detect_blocks(bgr, color_ranges, h_data=None):
     h, w = bgr.shape[:2]
     
     # Réduction du bruit avant détection
-    blurred = cv2.GaussianBlur(bgr, (5, 5), 0)
+    blurred = cv2.GaussianBlur(bgr, (11, 11), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     
     # Noyaux pour la morphologie
     kernel_open = np.ones((3, 3), np.uint8)
-    kernel_close = np.ones((7, 7), np.uint8) # Plus grand pour stabiliser le clignotage
+    kernel_close = np.ones((11, 11), np.uint8) # Plus grand pour stabiliser le clignotage
 
     for name, ranges in color_ranges.items():
         # 1. Création du masque pour la couleur
@@ -250,7 +250,6 @@ def main():
             "orange": (0, 165, 255),      # Orange
             "yellow": (0, 255, 255),
             "blue": (255, 0, 0),
-            "bleu_pale": (255, 191, 0)
         }
 
         for det in detections:
