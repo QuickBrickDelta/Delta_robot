@@ -43,17 +43,13 @@ import config_traj
 blocs = config_traj.blocs
 Trajectory = plannif_trajectoire.plan_full_trajectory(blocs)
 
-# Commandes pour la simulation (XYZ + mode L/J/G)
+# Commandes pour la simulation (XYZ + mode L/J)
 Motor_command_xyz = []
 pince_states = []
 
-# Commandes bas niveau pour la communication :
+# Nouvelles commandes bas niveau pour la communication :
 # liste dense de [angle1, angle2, angle3, pince_fermee] après interpolation
 Motor_command_angles = []
-
-# Nombre de commandes de pause pour laisser la pince s'ouvrir/fermer
-# 20 steps × 50ms = 1.0s de délai
-GRIPPER_HOLD_STEPS = 20
 
 # ===============================
 # 1) Construire les waypoints XYZ + mode + pince
@@ -62,6 +58,8 @@ for step in Trajectory:
     # step structure:
     # (bloc_carried, bloc_type, movement_type, speed,
     #  x, y, z, angle, pince_fermee)
+    # Indices utiles:
+    #   2 = movement_type, 4 = x, 5 = y, 6 = z, 8 = pince_fermee
     move_type = step[2]
     x, y, z = float(step[4]), float(step[5]), float(step[6])
     pince_fermee = bool(step[8])
@@ -71,11 +69,11 @@ for step in Trajectory:
         code_mouv = "J"
     elif move_type == "linear":
         code_mouv = "L"
-    elif move_type in ["closeGripper", "openGripper"]:
-        code_mouv = "G"  # Gripper action — maintenir position + changer pince
 
     if code_mouv:
+        # Waypoints cartésiens pour la simulation
         Motor_command_xyz.append([x, y, z, code_mouv])
+        # État de la pince associé à ce waypoint
         pince_states.append(pince_fermee)
 
 
@@ -83,7 +81,7 @@ for step in Trajectory:
 # 2) Générer la trajectoire en ANGLES + pince (interpolation)
 # ===============================
 if Motor_command_xyz:
-    # Nombre de pas d'interpolation par segment de mouvement
+    # Nombre de pas d'interpolation par segment
     steps_per_move = 30
 
     current_pos = Motor_command_xyz[0][:3]
@@ -92,54 +90,26 @@ if Motor_command_xyz:
         target_pt = Motor_command_xyz[i]
         pos_xyz = target_pt[:3]
         mode = target_pt[3]
+
+        # État de la pince pour tout ce segment
         pince_seg = pince_states[i]
 
-        if mode == "G":
-            # Action pince : maintenir la position actuelle + changer l'état pince
-            thetas = get_all_thetas(current_pos)
-            if thetas is not None:
-                theta1, theta2, theta3 = [float(t) for t in thetas]
-                for _ in range(GRIPPER_HOLD_STEPS):
-                    Motor_command_angles.append([theta1, theta2, theta3, pince_seg])
-            continue
-
-        # Sauter les mouvements de distance zéro
-        dist = numpy.linalg.norm(numpy.array(pos_xyz) - numpy.array(current_pos))
-        if dist < 0.01:
-            current_pos = pos_xyz
-            continue
-
-        # Choix de l'interpolation (joint avec fallback linéaire)
+        # Choix de l'interpolation (même logique que run_simulation_realtime)
         if mode == "J":
-            # Vérifier si les deux extrémités sont atteignables avant joint
-            start_ok = get_all_thetas(current_pos) is not None
-            end_ok = get_all_thetas(pos_xyz) is not None
-            if start_ok and end_ok:
-                traj_points = interpolate_joint(current_pos, pos_xyz, steps_per_move)
-            else:
-                # Fallback linéaire si joint échoue
-                traj_points = interpolate_linear(current_pos, pos_xyz, steps_per_move)
+            traj_points = interpolate_joint(current_pos, pos_xyz, steps_per_move)
         else:
             traj_points = interpolate_linear(current_pos, pos_xyz, steps_per_move)
 
         for pos in traj_points:
             thetas = get_all_thetas(pos)
             if thetas is None:
+                # Point hors limite : on ignore ce sous-point
                 continue
 
             theta1, theta2, theta3 = [float(t) for t in thetas]
             Motor_command_angles.append([theta1, theta2, theta3, pince_seg])
 
         current_pos = pos_xyz
-
-    # Debug : afficher les transitions de pince
-    print(f"Total commandes: {len(Motor_command_angles)}")
-    prev_p = None
-    for idx, cmd in enumerate(Motor_command_angles):
-        p = cmd[3]
-        if p != prev_p:
-            print(f"  Cmd #{idx}: pince={'FERME' if p else 'OUVERT'}")
-            prev_p = p
 
 
 # Lancer la simulation si exécuté directement
