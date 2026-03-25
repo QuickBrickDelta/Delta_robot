@@ -50,9 +50,11 @@ def find_openrb_port():
     for p in ports:
         print(f"  {p.device} — {p.description}")
     
-    # Argument en ligne de commande ? (ex: python PieToArduino.py COM3)
-    if len(sys.argv) > 1:
-        return sys.argv[1]
+    # Argument positionnel en ligne de commande ? (ex: python PieToArduino.py COM3)
+    # On ignore les arguments --flag
+    positional_args = [a for a in sys.argv[1:] if not a.startswith('-')]
+    if positional_args:
+        return positional_args[0]
     
     # Chercher un port USB (pas Bluetooth)
     for p in ports:
