@@ -178,11 +178,10 @@ class CameraThread(QThread):
                     
                     # Couleurs en RGB pour dessiner sur l'image Qt
                     color_rgb = {
-                        "red": (255, 0, 0), "green": (0, 255, 0),
+                        "red": (255, 0, 0),
                         "green_dark": (0, 150, 0), "green_light": (144, 238, 144),
                         "blue": (0, 0, 255), "yellow": (255, 255, 0),
-                        "orange": (255, 165, 0), "purple": (255, 0, 255),
-                        "white": (220, 220, 220),
+                        "orange": (255, 165, 0),
                     }.get(col, (255, 255, 255))
 
                     cv2.drawContours(rgb, [box], 0, color_rgb, 2)
@@ -438,7 +437,7 @@ class VibeCodeUI(QMainWindow):
         text = ""
         for i, col in enumerate(self.pick_sequence):
             # Formater joliment (ex: [1] vert, [2] rouge, etc.)
-            emoji = {"red": "🔴", "green": "🟢", "blue": "🔵", "yellow": "🟡", "orange": "🟠", "purple": "🟣"}.get(col, "⚫")
+            emoji = {"red": "🔴", "green_dark": "🟢", "green_light": "🟢", "blue": "🔵", "yellow": "🟡", "orange": "🟠"}.get(col, "⚫")
             item = f"{emoji} {col.upper()}"
             if i == current_idx:
                 text += f"<span style='color: #F9E2AF; font-size: 20px;'>➜ {item}</span><br>"
