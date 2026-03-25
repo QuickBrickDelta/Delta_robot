@@ -371,6 +371,15 @@ class VibeCodeUI(QMainWindow):
         self.ax.set_axis_off()
         
         plot_layout.addWidget(self.canvas)
+
+        # Label position XYZ temps réel
+        self.xyz_label = QLabel("X: —     Y: —     Z: —")
+        self.xyz_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.xyz_label.setStyleSheet(
+            "color: #CBA6F7; font-size: 16px; font-family: monospace; "
+            "font-weight: bold; border: none; padding: 4px;"
+        )
+        plot_layout.addWidget(self.xyz_label)
         right_layout.addWidget(plot_frame, stretch=2) # Le plot prend 2/3 de l'espace
 
         # -- Bas : Caméra
@@ -558,11 +567,15 @@ class VibeCodeUI(QMainWindow):
         if not self.traj_points or self.current_frame >= len(self.traj_points):
             self.anim_timer.stop()
             self.is_animating = False
+            self.xyz_label.setText("X: —     Y: —     Z: —")
             return
             
         pos = self.traj_points[self.current_frame][:3]
         idx = self.frame_to_pick_idx[self.current_frame] if self.current_frame < len(self.frame_to_pick_idx) else -1
         self.update_pick_sequence_ui(idx)
+        
+        # Mise à jour du label XYZ
+        self.xyz_label.setText(f"X: {pos[0]:+.1f} cm     Y: {pos[1]:+.1f} cm     Z: {pos[2]:+.1f} cm")
         
         self.draw_robot(pos)
         self.current_frame += 1
