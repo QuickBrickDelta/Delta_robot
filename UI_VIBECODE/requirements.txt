@@ -1,6 +1,0 @@
-PyQt6
-matplotlib
-numpy<2.0
-opencv-python
-scipy
-pyserial
