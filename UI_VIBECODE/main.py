@@ -139,10 +139,7 @@ class CameraThread(QThread):
             if not ret:
                 continue
 
-            # Inverser l'image pour un effet miroir plus naturel
-            frame = cv2.flip(frame, 1)
-
-            # Conversion pour Qt/Mediapipe (RGB)
+            # Conversion pour Qt/Mediapipe (RGB) — PAS de flip (même comportement que bloc_detection_w_filter.py)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
             # 1. Overlay Computer Vision (Blocs) — SEULEMENT si le robot ne bouge pas
