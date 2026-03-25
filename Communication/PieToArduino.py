@@ -1,6 +1,8 @@
 import sys
 import os
 import time
+import json
+import argparse
 import serial
 import serial.tools.list_ports
 
@@ -17,12 +19,23 @@ cin_dir = os.path.join(project_root, "CinématiqueRobot")
 
 if project_root not in sys.path:
     sys.path.append(project_root)
-
 if cin_dir not in sys.path:
     sys.path.append(cin_dir)
 
-# Import du module de génération des commandes moteurs
-from MouvementConnecte import Motor_command_angles
+# Parse les arguments AVANT d'importer MouvementConnecte (qui est lourd)
+parser = argparse.ArgumentParser(description="Envoi de commandes au robot via port série")
+parser.add_argument("--manual", metavar="JSON_PATH",
+                    help="Chemin vers un fichier JSON de commandes manuelles à envoyer directement")
+args, _ = parser.parse_known_args()
+
+if args.manual:
+    # Mode manuel : lire les angles depuis un fichier JSON
+    print(f"Mode MANUEL — chargement depuis {args.manual}")
+    with open(args.manual, 'r') as f:
+        Motor_command_angles = json.load(f)
+else:
+    # Mode auto : importer MouvementConnecte (planification complète)
+    from MouvementConnecte import Motor_command_angles
 
 
 # ===============================

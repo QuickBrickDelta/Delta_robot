@@ -14,7 +14,8 @@ if cinematique_dir not in sys.path:
     sys.path.append(cinematique_dir)
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QHBoxLayout, QPushButton, QLabel, QFrame)
+                             QHBoxLayout, QPushButton, QLabel, QFrame,
+                             QDoubleSpinBox, QSizePolicy)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor, QImage, QPixmap
 
@@ -60,13 +61,18 @@ class WorkerThread(QThread):
     finished_signal = pyqtSignal()
     output_signal = pyqtSignal(str)
 
+    def __init__(self, manual_path=None):
+        super().__init__()
+        self.manual_path = manual_path  # None = mode auto (MouvementConnecte), sinon JSON manuel
+
     def run(self):
-        # Lancer le script PieToArduino
         script_path = os.path.join(project_root, "Communication", "PieToArduino.py")
+        cmd = [sys.executable, script_path]
+        if self.manual_path:
+            cmd += ["--manual", self.manual_path]
         try:
-            # Exécution silencieuse (les prints vont dans la console)
-            self.process = subprocess.Popen([sys.executable, script_path], 
-                                       stdout=subprocess.PIPE, 
+            self.process = subprocess.Popen(cmd,
+                                       stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT,
                                        text=True)
             for line in self.process.stdout:
@@ -294,6 +300,83 @@ class VibeCodeUI(QMainWindow):
         control_layout.addWidget(self.sequence_label)
 
         control_layout.addSpacing(20)
+
+        # ====== MODE MANUEL ======
+        manual_title = QLabel("POSITION MANUELLE :")
+        manual_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
+        control_layout.addWidget(manual_title)
+
+        spin_style = """
+            QDoubleSpinBox {
+                background-color: #313244;
+                color: #CDD6F4;
+                border: 1px solid #585B70;
+                border-radius: 6px;
+                padding: 4px 30px 4px 6px;
+                font-size: 13px;
+                font-family: monospace;
+            }
+            QDoubleSpinBox:focus { border: 1px solid #89B4FA; }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 16px;
+                background-color: #45475A;
+                border-radius: 3px;
+            }
+            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+                background-color: #585B70;
+            }
+        """
+        xyz_row = QHBoxLayout()
+        for label_txt, attr, lo, hi, default in [
+            ("X", "spin_x", -22.0, 22.0, 0.0),
+            ("Y", "spin_y", -22.0, 22.0, 0.0),
+            ("Z", "spin_z", -45.0, -20.0, -25.0),
+        ]:
+            col_widget = QWidget()
+            col_layout = QVBoxLayout(col_widget)
+            col_layout.setContentsMargins(0, 0, 0, 0)
+            col_layout.setSpacing(2)
+            lbl = QLabel(label_txt)
+            lbl.setStyleSheet("color: #89B4FA; font-size: 13px; font-weight: bold; border: none;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            spin = QDoubleSpinBox()
+            spin.setRange(lo, hi)
+            spin.setValue(default)
+            spin.setSingleStep(0.5)
+            spin.setDecimals(1)
+            spin.setStyleSheet(spin_style)
+            setattr(self, attr, spin)
+            col_layout.addWidget(lbl)
+            col_layout.addWidget(spin)
+            xyz_row.addWidget(col_widget)
+        control_layout.addLayout(xyz_row)
+
+        self.btn_go_manual = QPushButton("→ ALLER")
+        self.btn_go_manual.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_go_manual.setStyleSheet("""
+            QPushButton {
+                background-color: #CBA6F7;
+                color: #11111B;
+                font-size: 16px;
+                font-weight: bold;
+                border-radius: 8px;
+                padding: 10px;
+                border: none;
+            }
+            QPushButton:hover { background-color: #B4BEFE; }
+            QPushButton:pressed { background-color: #89DCEB; }
+            QPushButton:disabled { background-color: #585B70; color: #A6ADC8; }
+        """)
+        self.btn_go_manual.clicked.connect(self.go_manual)
+        control_layout.addWidget(self.btn_go_manual)
+
+        self.manual_status = QLabel("")
+        self.manual_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.manual_status.setWordWrap(True)
+        self.manual_status.setStyleSheet("color: #A6ADC8; font-size: 13px; border: none; padding: 2px;")
+        control_layout.addWidget(self.manual_status)
+
+        control_layout.addSpacing(10)
 
         # Bouton Démarrer
         self.btn_start = QPushButton("▶ DÉMARRER")
@@ -624,9 +707,65 @@ class VibeCodeUI(QMainWindow):
         self.status_label.setText("STATUT : TERMINÉ")
         self.status_label.setStyleSheet("color: #A6E3A1; font-size: 18px; font-weight: bold; border: none;")
         self.btn_start.setDisabled(False)
+        self.btn_go_manual.setDisabled(False)
         self.anim_timer.stop()
         # RÉACTIVE la détection vision maintenant que le robot est arrêté
         self.camera_thread.pause_detection = False
+
+    def go_manual(self):
+        """Mode manuel : vérifie la portée et envoie le robot à la position X,Y,Z saisie."""
+        import json
+        x = self.spin_x.value()
+        y = self.spin_y.value()
+        z = self.spin_z.value()
+        target_pos = [x, y, z]
+
+        # 1. Vérifier la cinématique inverse
+        thetas = get_all_thetas(target_pos)
+        if thetas is None:
+            self.manual_status.setStyleSheet("color: #F38BA8; font-size: 13px; border: none; padding: 2px;")
+            self.manual_status.setText(f"⚠️ Hors portée ({x:+.1f}, {y:+.1f}, {z:+.1f})")
+            return
+
+        self.manual_status.setStyleSheet("color: #A6E3A1; font-size: 13px; border: none; padding: 2px;")
+        self.manual_status.setText(f"✓ Accessible — envoi en cours...")
+
+        # 2. Générer la trajectoire home → cible
+        home = [0.0, 0.0, -25.0]
+        steps = 40
+        manual_commands = []
+
+        for pts in [interpolate_joint(home, target_pos, steps),
+                    interpolate_joint(target_pos, home, steps)]:
+            for pt in pts:
+                th = get_all_thetas(pt)
+                if th is None:
+                    continue
+                t1, t2, t3 = [float(v) for v in th]
+                manual_commands.append([t1, t2, t3, False])  # pince ouverte
+
+        # 3. Sauvegarder en JSON pour PieToArduino
+        manual_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "manual_command_angles.json")
+        with open(manual_path, "w") as f:
+            json.dump(manual_commands, f)
+
+        # 4. Animer le 3D (aller seulement)
+        go_pts = interpolate_joint(home, target_pos, steps)
+        back_pts = interpolate_joint(target_pos, home, steps)
+        self.traj_points = list(go_pts) + list(back_pts)
+        self.frame_to_pick_idx = [-1] * len(self.traj_points)
+        self.current_frame = 0
+        self.anim_timer.start(50)
+
+        # 5. Lancer PieToArduino (mode manuel via arg)
+        self.btn_go_manual.setDisabled(True)
+        self.btn_start.setDisabled(True)
+        self.status_label.setText("STATUT : MODE MANUEL")
+        self.status_label.setStyleSheet("color: #CBA6F7; font-size: 18px; font-weight: bold; border: none;")
+        self.worker = WorkerThread(manual_path=manual_path)
+        self.worker.output_signal.connect(self.log_output)
+        self.worker.finished_signal.connect(self.robot_finished)
+        self.worker.start()
 
     def closeEvent(self, event):
         # Kill OpenCV Camera thread
