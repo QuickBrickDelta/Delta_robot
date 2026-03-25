@@ -108,12 +108,14 @@ class CameraThread(QThread):
             # Environnement local Windows: Webcam standard
             cap = cv2.VideoCapture(0)
         else:
-            # Environnement Raspberry Pi: Pipeline GStreamer (libcamera)
+            # Environnement Raspberry Pi: Pipeline GStreamer — IDENTIQUE à bloc_detection_w_filter.py
+            # IMPORTANT: l'homographie a été calibrée avec ce pipeline (1920x1080 plein capteur)
             pipeline = (
-                "libcamerasrc ! "
-                "video/x-raw,format=NV12,width=1280,height=720,framerate=15/1 ! "
-                "videoconvert ! video/x-raw,format=BGR ! "
-                "appsink drop=true max-buffers=1 sync=false"
+                'libcamerasrc af-mode=manual lens-position=3.4 ! '
+                'video/x-raw,format=NV12,width=4608,height=2592,framerate=2/1 ! '
+                'videoscale ! video/x-raw,width=1920,height=1080 ! '
+                'videoconvert ! video/x-raw,format=BGR ! '
+                'appsink drop=true max-buffers=1 sync=false'
             )
             cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
 
