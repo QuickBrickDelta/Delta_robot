@@ -106,6 +106,20 @@ RECT_AREA_RATIO_MIN = 0.70   # ratio aire_contour / aire_rect minimum
 # Optionnel: contrainte de ratio L/H (désactivée par défaut)
 ASPECT_RATIO_RANGE = None    # ex: (0.7, 4.0) pour types de briques
 
+def _dominant_fraction(bgr, cnt, ranges):
+    h, w = bgr.shape[:2]
+    mask = np.zeros((h, w), dtype=np.uint8)
+    cv2.drawContours(mask, [cnt], -1, 255, -1)
+    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+    total = np.count_nonzero(mask)
+    if total == 0: return 0.0
+    color_mask = None
+    for lo, hi in ranges:
+        m = cv2.inRange(hsv, lo, hi)
+        color_mask = m if color_mask is None else cv2.bitwise_or(color_mask, m)
+    inside = cv2.bitwise_and(color_mask, mask)
+    return np.count_nonzero(inside) / total
+
 # ---------- Fonctions utilitaires d'affichage carré ----------
 def to_square_letterbox(bgr: np.ndarray, size: int) -> Tuple[np.ndarray, float, int, int]:
     """Retourne (img_carrée, scale, x0, y0)."""
@@ -252,103 +266,99 @@ def _dominant_color_fraction_hsv(bgr: np.ndarray, cnt: np.ndarray,
     frac = float(np.count_nonzero(inside)) / float(total)
     return frac
 
-# ---------- Détection stricte : uniforme + rectangulaire ----------
-def detect_colored_blocks(bgr: np.ndarray,
-                          color_ranges: Dict[str, List[Tuple[np.ndarray, np.ndarray]]],
-                          min_area_px: int = MIN_AREA_PX,
-                          color_std_thresh: float = COLOR_STD_THRESH,
-                          dominant_frac_thresh: float = DOMINANT_FRAC_THRESH,
-                          rect_angle_tol_deg: float = RECT_ANGLE_TOL_DEG,
-                          rect_area_ratio_min: float = RECT_AREA_RATIO_MIN,
-                          aspect_ratio_range=None) -> List[dict]:
-    """
-    Détecteur strict:
-      - Préfiltre couleur HSV
-      - Pour chaque contour:
-          * area >= min_area_px
-          * convexe & approx 4 sommets & angles ~90° (tolérance rect_angle_tol_deg)
-          * area(contour)/area(minAreaRect) >= rect_area_ratio_min
-          * uniformité LAB: std_ab <= color_std_thresh
-          * fraction dominante HSV >= dominant_frac_thresh
-          * (optionnel) ratio L/H dans aspect_ratio_range
-      - Retour: liste de dicts (color, center, angle_deg, box, area, contour, ...).
-    """
+def detect_blocks(bgr, color_ranges, h_data=None):
     out = []
-
-    # Aligné sur `bloc_detection_w_filter.py` (réduction du bruit avant HSV)
+    h, w = bgr.shape[:2]
+    
+    # 1. Image de travail
     blurred = cv2.GaussianBlur(bgr, (11, 11), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    h, w = bgr.shape[:2]
-
-    # Aligné sur `bloc_detection_w_filter.py` (morphologie)
-    kernel = np.ones((11, 11), np.uint8)       # close
+    
+    # 2. MASQUE GLOBAL d'exclusion (Pixels déjà assignés)
+    already_assigned_mask = np.zeros((h, w), dtype=np.uint8)
+    
     kernel_open = np.ones((3, 3), np.uint8)
+    kernel_close = np.ones((11, 11), np.uint8)
 
-    for color_name, ranges in COLOR_RANGES.items():
-        # Création d'un masque vide
-        mask = np.zeros((h, w), dtype=np.uint8)
+    # Note: L'ordre dans color_ranges.items() devient important. 
+    # Les premières couleurs ont la priorité.
+    for name, ranges in color_ranges.items():
+        # Création du masque pour la couleur actuelle
+        color_mask = np.zeros((h, w), dtype=np.uint8)
+        for lo, hi in ranges:
+            color_mask = cv2.bitwise_or(color_mask, cv2.inRange(hsv, lo, hi))
         
-        # On combine toutes les plages définies pour cette couleur (ex: les 2 plages du rouge)
-        for (lower, upper) in ranges:
-            term_mask = cv2.inRange(hsv, lower, upper)
-            mask = cv2.bitwise_or(mask, term_mask)
+        # --- ÉTAPE CLÉ : On soustrait les pixels déjà pris par une autre couleur ---
+        color_mask = cv2.bitwise_and(color_mask, cv2.bitwise_not(already_assigned_mask))
         
-        # Appliquer le reste des filtres (morphologie) sur le masque combiné
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-
-        cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Nettoyage habituel
+        color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel_open)
+        color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_CLOSE, kernel_close)
+        
+        # Recherche de contours
+        cnts, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
         for c in cnts:
             area = cv2.contourArea(c)
-            if area < min_area_px:
+            if area < MIN_AREA_PX:
                 continue
-
-            # Géométrie rectangulaire stricte
-            if not _is_rectangle_approx(c,
-                                        angle_tol_deg=rect_angle_tol_deg,
-                                        area_ratio_min=rect_area_ratio_min):
+            
+            if not _is_rectangle_approx(c, RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN):
                 continue
-
-            # Aspect ratio optionnel
-            if aspect_ratio_range is not None:
-                rect = cv2.minAreaRect(c)
-                (rw, rh) = rect[1]
-                if rw == 0 or rh == 0:
-                    continue
-                ratio = max(rw, rh) / max(1e-6, min(rw, rh))
-                rmin, rmax = aspect_ratio_range
-                if not (rmin <= ratio <= rmax):
-                    continue
-
-            # Uniformité de couleur (LAB)
-            color_std_ab, coverage = _region_uniformity_lab(bgr, c)
-            if color_std_ab > color_std_thresh:
+                
+            if _region_uniformity_lab(bgr, c) > COLOR_STD_THRESH:
                 continue
-
-            # Adhérence à la couleur cible
-            frac = _dominant_color_fraction_hsv(bgr, c, ranges)
-            if frac < dominant_frac_thresh:
+            
+            if _dominant_fraction(bgr, c, ranges) < DOMINANT_FRAC_THRESH:
                 continue
+            
+            rect = cv2.minAreaRect(c)
+            (cx, cy), (w_px, h_px), angle = rect
+            
+            # (Optionnel) Calcul des dimensions réelles comme tu l'as déjà
+            # --- CALCUL DES DIMENSIONS RÉELLES (cm) ---
+            dims_cm = None
+            if h_data is not None:
+                H_matrix = h_data[0]
+                
+                # On utilise le centre du bloc pour calculer l'échelle locale (ratio pixels/cm)
+                # On compare le centre avec un point décalé de 100 pixels
+                p_center = pix_to_world_cm((cx, cy), H_matrix)
+                p_offset = pix_to_world_cm((cx + 100, cy), H_matrix)
+                
+                if p_center and p_offset:
+                    # Calcul de la distance réelle en cm pour ces 100 pixels
+                    dist_cm = np.sqrt((p_center[0]-p_offset[0])**2 + (p_center[1]-p_offset[1])**2)
+                    px_to_cm = dist_cm / 100.0
+                    
+                    # Conversion des dimensions pixels en cm
+                    dim1 = w_px * px_to_cm
+                    dim2 = h_px * px_to_cm
+                    
+                    # On trie pour avoir toujours [petit_coté, grand_coté]
+                    dims_cm = sorted([dim1, dim2])
+                    
+                    #--- FILTRE LEGO (Optionnel) ---
+                    #Si tu veux filtrer les briques 2x4 (environ 1.6 x 3.2 cm)
+                    TARGET_W, TARGET_H = 1.6, 3.2
+                    TOL = 0.8
+                    if abs(dims_cm[0] - TARGET_W) > TOL or abs(dims_cm[1] - TARGET_H) > TOL:
+                        continue
 
-            # OK -> propriétés
-            rect = cv2.minAreaRect(c)  # ((cx,cy),(w,h),angle)
-            (cx, cy), (rw, rh), _ = rect
-            box = cv2.boxPoints(rect)
-            angle = angle_via_pca(c)
-
+            # SI LE BLOC EST VALIDE :
+            # On l'ajoute à la liste
             out.append({
-                "color": color_name,
-                "center": (float(cx), float(cy)),
-                "angle_deg": float(angle),
-                "box": box,
-                "area": float(area),
-                "contour": c,
-                # debug facultatif
-                "uniform_std_ab": float(color_std_ab),
-                "dominant_frac": float(frac),
-                "coverage": float(coverage),
+                "color": name,
+                "box": cv2.boxPoints(rect),
+                "center": (cx, cy),
+                "angle": angle,
+                "dims_cm": dims_cm
             })
-
+            
+            # ON MARQUE LE BLOC comme "assigné" dans le masque global
+            # pour que les couleurs suivantes ignorent cette zone
+            cv2.drawContours(already_assigned_mask, [c], -1, 255, -1)
+            
     return out
 
 # ---------- IO caméra ----------
@@ -407,7 +417,7 @@ def main():
         h, w = frame.shape[:2]
 
         # --- Détection sur le frame source (w x h) ---
-        detections = detect_colored_blocks(
+        detections = detect_blocks(
             frame,
             COLOR_RANGES,
             min_area_px=MIN_AREA_PX,

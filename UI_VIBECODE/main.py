@@ -45,12 +45,10 @@ except ImportError as e:
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from VisionNumerique.HSV.bloc_detection import (
-        COLOR_RANGES, load_homography, pix_to_world_cm,
+        COLOR_RANGES, load_homography, pix_to_world_cm, detect_blocks,
         MIN_AREA_PX, COLOR_STD_THRESH, DOMINANT_FRAC_THRESH,
         RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN
     )
-    from VisionNumerique.HSV.bloc_detection_w_filter import detect_blocks
-    HAS_VISION = True
 except ImportError as e:
     print(f"Module VisionNumerique non trouvé : la vision des blocs sera désactivée. Erreur: {e}")
     HAS_VISION = False
