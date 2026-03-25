@@ -6,8 +6,10 @@ import config_traj  # Pour les variables globales
 # Importer les variables globales depuis config_traj
 red_output_position = config_traj.red_output_position
 blue_output_position = config_traj.blue_output_position
-green_output_position = config_traj.green_output_position
+green_dark_output_position = config_traj.green_dark_output_position
+green_light_output_position = config_traj.green_light_output_position
 yellow_output_position = config_traj.yellow_output_position
+orange_output_position = config_traj.orange_output_position
 
 # Importer les fonctions depuis other_fct_traj.py
 from other_fct_traj import output_pos_for_color
@@ -42,8 +44,10 @@ def plot_blocks_3D(blocs, home_position):
     output_positions = {
         'red': red_output_position,
         'blue': blue_output_position,
-        'green': green_output_position,
-        'yellow': yellow_output_position
+        'green_dark': green_dark_output_position,
+        'green_light': green_light_output_position,
+        'yellow': yellow_output_position,
+        'orange': orange_output_position
     }
     for color, pos in output_positions.items():
         ax.scatter(pos[0], pos[1], pos[2], c=color, s=150, marker='s')
@@ -183,8 +187,10 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
     outputs = {
         'red': red_output_position,
         'blue': blue_output_position,
-        'green': green_output_position,
-        'yellow': yellow_output_position
+        'green_dark': green_dark_output_position,
+        'green_light': green_light_output_position,
+        'yellow': yellow_output_position,
+        'orange': orange_output_position
     }
     for color, pos in outputs.items():
         ax.scatter(pos[0], pos[1], c=color, s=120, marker='s')
@@ -297,8 +303,10 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     outputs = {
         'red': red_output_position,
         'blue': blue_output_position,
-        'green': green_output_position,
-        'yellow': yellow_output_position
+        'green_dark': green_dark_output_position,
+        'green_light': green_light_output_position,
+        'yellow': yellow_output_position,
+        'orange': orange_output_position
     }
     for color, pos in outputs.items():
         ax.scatter(pos[0], pos[1], pos[2], c=color, s=120, marker='s')

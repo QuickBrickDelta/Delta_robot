@@ -29,8 +29,10 @@ drop_bac3_position = ( math.sin(math.radians(60))*r_drop, -math.cos(math.radians
 # Mapping couleur → bac (3 bacs, 4 couleurs)
 red_output_position    = drop_bac1_position   # Bac 1
 blue_output_position   = drop_bac2_position   # Bac 2
-green_output_position  = drop_bac3_position   # Bac 3
+green_dark_output_position  = drop_bac3_position   # Bac 3
+green_light_output_position = drop_bac1_position   # Bac 1 (partagé avec red)
 yellow_output_position = drop_bac1_position   # Bac 1 (partagé avec red)
+orange_output_position = drop_bac2_position   # Bac 2 (partagé avec blue)
 
 # --- Blocs ---
 

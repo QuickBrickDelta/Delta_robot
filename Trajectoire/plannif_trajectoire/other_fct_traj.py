@@ -4,8 +4,10 @@ import config_traj  # Pour les variables globales
 # Importer les variables globales depuis config_traj
 red_output_position = config_traj.red_output_position
 blue_output_position = config_traj.blue_output_position
-green_output_position = config_traj.green_output_position
+green_dark_output_position = config_traj.green_dark_output_position
+green_light_output_position = config_traj.green_light_output_position
 yellow_output_position = config_traj.yellow_output_position
+orange_output_position = config_traj.orange_output_position
 
 ## Get position functions
 def bloc_pos(bloc):
@@ -16,8 +18,10 @@ def output_pos_for_color(color):
     return {
         'red': red_output_position,
         'blue': blue_output_position,
-        'green': green_output_position,
-        'yellow': yellow_output_position
+        'green_dark': green_dark_output_position,
+        'green_light': green_light_output_position,
+        'yellow': yellow_output_position,
+        'orange': orange_output_position,
     }[color]
 
 ## Cost calculation functions
@@ -36,10 +40,14 @@ def distance_from_output(bloc):
         output_pos = red_output_position
     elif couleur == 'blue':
         output_pos = blue_output_position
-    elif couleur == 'green':
-        output_pos = green_output_position
+    elif couleur == 'green_dark':
+        output_pos = green_dark_output_position
+    elif couleur == 'green_light':
+        output_pos = green_light_output_position
     elif couleur == 'yellow':
         output_pos = yellow_output_position
+    elif couleur == 'orange':
+        output_pos = orange_output_position
     else:
         raise ValueError(f"Couleur inconnue: {couleur}")
     
