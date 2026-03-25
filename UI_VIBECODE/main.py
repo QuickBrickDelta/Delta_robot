@@ -207,7 +207,7 @@ class CameraThread(QThread):
                                 
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
                             
-                            current_blocks.append([col, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
+                            current_blocks.append([col, "2x4", round(-Xcm, 2), round(Ycm, 2), float(self.z_table)])
                             
                     cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
