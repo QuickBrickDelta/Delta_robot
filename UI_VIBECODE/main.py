@@ -160,7 +160,7 @@ class CameraThread(QThread):
                 detections = detect_blocks(frame, COLOR_RANGES, h_data=None)
                 
                 # RECHERCHE DU BLOC JAUNE POUR AUTO-CALIBRATION
-                for det in detections:
+                """for det in detections:
                     if det["color"] == "yellow":
                         cx, cy = det["center"]
                         if self.H_cam is not None:
@@ -168,7 +168,7 @@ class CameraThread(QThread):
                             if xy_world:
                                 self.calibr_offset_x = float(xy_world[0] - self.cam_center[0])
                                 self.calibr_offset_y = float(xy_world[1] - self.cam_center[1])
-                        break # Un seul bloc jaune suffit
+                        break # Un seul bloc jaune suffit"""
                 
                 current_blocks = []
                 for det in detections:
@@ -208,11 +208,7 @@ class CameraThread(QThread):
                                 
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
                             
-                            # Le bloc JAUNE sert UNIQUEMENT de calibration — on ne le ramasse PAS
-                            if col == "yellow":
-                                label += " [CALIB]"
-                            else:
-                                current_blocks.append([col, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
+                            current_blocks.append([col, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
                             
                     cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
