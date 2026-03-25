@@ -28,14 +28,14 @@ import numpy as np
 
 # ---------- Réglages ----------
 WINDOW_SIZE = 900          # taille de la fenêtre carrée
-FPS = 5                    # 5 Hz
+FPS = 2                    # 2 Hz
 SQUARE_MODE = "letterbox"  # "letterbox" (FOV max) ou "crop" (zoom centre)
 SHOW_VIS = True            # affichage des contours / boxes
 
 # Pipeline 1 : FOV maximal (plein capteur 16:9) -> downscale pour OpenCV
 pipeline = (
     'libcamerasrc af-mode=manual lens-position=3.4 ! '
-    'video/x-raw,format=NV12,width=4608,height=2592,framerate=5/1 ! '
+    'video/x-raw,format=NV12,width=4608,height=2592,framerate=2/1 ! '
     'videoscale ! video/x-raw,width=1920,height=1080 ! '
     'queue max-size-buffers=1 leaky=downstream ! '
     'videoconvert ! video/x-raw,format=BGR ! '
@@ -96,12 +96,12 @@ COLOR_RANGES = load_color_ranges(HSV_JSON_PATH)
 print(f"Calibration chargée avec succès : {list(COLOR_RANGES.keys())}")
 
 
-# Filtres de taille / forme (relaxés)
-MIN_AREA_PX = 2000            # ↓ de 1200 -> 800
-COLOR_STD_THRESH = 40.0      # ↑ de 6.0 -> 10.0 (plus tolérant)
-DOMINANT_FRAC_THRESH = 0.15  # ↓ de 0.65 -> 0.55
-RECT_ANGLE_TOL_DEG = 20.0    # ↑ de 15.0 -> 22.5
-RECT_AREA_RATIO_MIN = 0.70   # ↓ de 0.86 -> 0.80
+# Filtres de taille / forme (alignés avec `bloc_detection_w_filter.py`)
+MIN_AREA_PX = 2000            # px min pour accepter un contour
+COLOR_STD_THRESH = 50.0      # tolérance d'uniformité LAB (plus tolérant que 40)
+DOMINANT_FRAC_THRESH = 0.15  # fraction dominante HSV
+RECT_ANGLE_TOL_DEG = 20.0    # tolérance de “rectangularité” via l'approche actuelle
+RECT_AREA_RATIO_MIN = 0.70   # ratio aire_contour / aire_rect minimum
 
 # Optionnel: contrainte de ratio L/H (désactivée par défaut)
 ASPECT_RATIO_RANGE = None    # ex: (0.7, 4.0) pour types de briques
@@ -275,11 +275,13 @@ def detect_colored_blocks(bgr: np.ndarray,
     """
     out = []
 
-    blurred = cv2.GaussianBlur(bgr, (5, 5), 0)
+    # Aligné sur `bloc_detection_w_filter.py` (réduction du bruit avant HSV)
+    blurred = cv2.GaussianBlur(bgr, (11, 11), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     h, w = bgr.shape[:2]
 
-    kernel = np.ones((5, 5), np.uint8)
+    # Aligné sur `bloc_detection_w_filter.py` (morphologie)
+    kernel = np.ones((11, 11), np.uint8)       # close
     kernel_open = np.ones((3, 3), np.uint8)
 
     for color_name, ranges in COLOR_RANGES.items():
@@ -293,7 +295,7 @@ def detect_colored_blocks(bgr: np.ndarray,
         
         # Appliquer le reste des filtres (morphologie) sur le masque combiné
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
         cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for c in cnts:
