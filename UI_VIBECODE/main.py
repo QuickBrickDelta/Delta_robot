@@ -420,7 +420,7 @@ class VibeCodeUI(QMainWindow):
         text = ""
         for i, col in enumerate(self.pick_sequence):
             # Formater joliment (ex: [1] vert, [2] rouge, etc.)
-            emoji = {"red": "🔴", "green": "🟢", "blue": "🔵", "yellow": "🟡", "orange": "🟠", "purple": "🟣"}.get(col, "⚫")
+            emoji = {"red": "🔴", "green": "🟢", "blue": "🔵", "yellow": "🟡", "orange": "🟠"}.get(col, "⚫")
             item = f"{emoji} {col.upper()}"
             if i == current_idx:
                 text += f"<span style='color: #F9E2AF; font-size: 20px;'>➜ {item}</span><br>"
