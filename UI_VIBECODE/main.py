@@ -220,7 +220,7 @@ class CameraThread(QThread):
                                 
                 self.latest_blocks = current_blocks
 
-            # 2. Overlay Mediapipe (Mains)
+            # 2. Overlay Mediapipe (Mains).
             if hands:
                 result = hands.process(rgb)
                 # Dessin des points de repère de la main
