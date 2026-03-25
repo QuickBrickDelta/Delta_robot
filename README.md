@@ -51,7 +51,7 @@ Delta_robot/
 ├── CinématiqueRobot/   # Modèle géométrique direct & inverse
 ├── Communication/      # Envoi des commandes Raspberry Pi → Arduino
 ├── Trajectoire/        # Planification de trajectoire & optimisation
-├── UI_VIBECODE/        # Interface graphique PyQt6 (VibeCode UI)
+├── UI/                 # Interface graphique PyQt6 (VibeCode UI)
 └── VisionNumerique/    # Détection des blocs par vision HSV
 ```
 
@@ -113,7 +113,7 @@ Firmware embarqué sur la carte **OpenRB-150**.
 
 ---
 
-### 💻 `UI_VIBECODE/`
+### 💻 `UI/`
 Interface graphique de contrôle et de visualisation.
 
 - `main.py` — Application PyQt6 :
@@ -161,7 +161,7 @@ Le modèle géométrique transforme une position cartésienne `(x, y, z)` en ang
 ## Séquence d'opération
 
 ```
-1. Lancer main.py (UI_VIBECODE)
+1. Lancer main.py (UI)
 2. La caméra détecte les blocs en temps réel
 3. L'utilisateur appuie sur ▶ DÉMARRER
 4. Les blocs visibles sont sauvegardés → detected_blocks.json
