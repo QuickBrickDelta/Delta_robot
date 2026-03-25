@@ -40,10 +40,10 @@ orange_output_position = drop_bac2_position   # Bac 2 (partagé avec blue)
 blocs = np.array([
     ("red","2x4",  4.0,  -5.0, z_table),
     ("yellow","2x8", -7.0,  8.0, z_table),
-    ("green","1x4",   -5.0,  6.0, z_table),
+    ("green_dark","1x4",   -5.0,  6.0, z_table),
     ("blue","2x2",  5.0,  5.0, z_table),
     ("red","2x2",  -5.0,   0.0, z_table),
     ("yellow","2x8", 10.0,  0.5, z_table),
-    ("green","1x4",   2.0,  2.0, z_table),
+    ("green_dark","1x4",   2.0,  2.0, z_table),
     ("blue","2x2",  -5.0,  10.0, z_table)
 ], dtype=object)
