@@ -34,7 +34,7 @@ except ImportError:
 try:
     from MouvementConnecte import Motor_command_xyz
     from Cinematique_delta3bras import rotZ, GetBrasComplet
-    from MouvementRobot import interpolate_linear, interpolate_joint
+    from MouvementRobot import interpolate_linear, interpolate_joint, get_all_thetas
 except ImportError as e:
     print(f"Erreur d'importation des modules robot : {e}. Assurez-vous d'exécuter depuis la racine du projet.")
     sys.exit(1)
