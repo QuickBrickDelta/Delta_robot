@@ -6,6 +6,8 @@ import argparse
 import serial
 import serial.tools.list_ports
 
+print(">>> Script de communication PieToArduino lancé")
+
 # ===============================
 # PARAMÈTRE — Change le port ici
 # ===============================
@@ -130,9 +132,18 @@ def main():
     ser = serial.Serial(port, baudrate=115200, timeout=1)
     time.sleep(2)  # Attendre le reset de l'Arduino après connexion
     
-    # 3) Lire le message de bienvenue
+    # 3) Lire le message de bienvenue (Preuve de communication inverse)
+    has_responded = False
     while ser.in_waiting > 0:
-        print(f"  Arduino: {ser.readline().decode('utf-8', errors='ignore').strip()}")
+        msg = ser.readline().decode('utf-8', errors='ignore').strip()
+        if msg:
+            print(f"  Arduino: {msg}")
+            has_responded = True
+    
+    if has_responded:
+        print(">>> CONNEXION BIDIRECTIONNELLE ÉTABLIE (Robot -> Python OK)")
+    else:
+        print(">>> ATTENTION : Le robot n'a pas encore répondu (Vérifiez le code Arduino)")
     
     # 4) Envoyer les commandes
     if not Motor_command_angles:

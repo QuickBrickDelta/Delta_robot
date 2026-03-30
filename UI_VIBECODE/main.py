@@ -527,6 +527,10 @@ class VibeCodeUI(QMainWindow):
         self.color_timer.timeout.connect(self.update_colors)
         self.color_timer.start(50)
 
+        # Message initial
+        self.log_output("--- Système VibeCode Initialisé ---")
+        self.log_output("Prêt à démarrer la communication...")
+
     def update_colors(self):
         self.hue += 0.005
         if self.hue >= 1.0:
@@ -699,6 +703,8 @@ class VibeCodeUI(QMainWindow):
         self.camera_thread.pause_detection = True
 
         self.status_label.setText("STATUT : PRÊT DANS 2s...")
+        self.log_output("Calcul de la trajectoire terminé.")
+        self.log_output("Lancement de la communication avec l'OpenRB...")
         QApplication.processEvents()
 
         # Délai de 2 secondes pour laisser le temps au système de finir tous les calculs
