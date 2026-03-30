@@ -60,17 +60,28 @@ uint32_t lastErrorCheck = 0;
 // ================================
 void checkHardErrors() {
   uint8_t ids[] = {ID_M1, ID_M2, ID_M3};
-  bool foundError = false;
   
   for (int i = 0; i < 3; i++) {
-    uint8_t error = dxl.readControlTableItem(ControlTableItem::HARDWARE_ERROR_STATUS, ids[i]);
-    if (error > 0) {
-      DEBUG_SERIAL.print("!! ALARM: M");
-      DEBUG_SERIAL.print(ids[i]);
-      DEBUG_SERIAL.print(" Status 0x");
-      DEBUG_SERIAL.print(error, HEX);
-      DEBUG_SERIAL.println(" !!");
-      foundError = true;
+    DEBUG_SERIAL.print("Diagnostic Moteur ");
+    DEBUG_SERIAL.print(ids[i]);
+    DEBUG_SERIAL.print(" : ");
+
+    if (dxl.ping(ids[i])) {
+      uint16_t model = dxl.getModelNumber(ids[i]);
+      uint8_t error = dxl.readControlTableItem(ControlTableItem::HARDWARE_ERROR_STATUS, ids[i]);
+      
+      DEBUG_SERIAL.print("Connecté (Modèle: ");
+      DEBUG_SERIAL.print(model);
+      DEBUG_SERIAL.print(") - Erreur: 0x");
+      DEBUG_SERIAL.println(error, HEX);
+
+      if (error > 0) {
+        DEBUG_SERIAL.print("!! ALARM: M");
+        DEBUG_SERIAL.print(ids[i]);
+        DEBUG_SERIAL.println(" !!");
+      }
+    } else {
+      DEBUG_SERIAL.println("NON TROUVÉ sur le bus !");
     }
   }
 }
