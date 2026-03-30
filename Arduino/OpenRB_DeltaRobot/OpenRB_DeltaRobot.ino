@@ -53,6 +53,27 @@ bool lastPince = false;
 bool currentPinceState = false; // État réel actuel de la pince
 bool newCommand = false;
 uint32_t cmdCount = 0;
+uint32_t lastErrorCheck = 0;
+
+// ================================
+// Diagnostic - Lecture des alarmes
+// ================================
+void checkHardErrors() {
+  uint8_t ids[] = {ID_M1, ID_M2, ID_M3};
+  bool foundError = false;
+  
+  for (int i = 0; i < 3; i++) {
+    uint8_t error = dxl.readControlTableItem(ControlTableItem::HARDWARE_ERROR_STATUS, ids[i]);
+    if (error > 0) {
+      DEBUG_SERIAL.print("!! ALARM: M");
+      DEBUG_SERIAL.print(ids[i]);
+      DEBUG_SERIAL.print(" Status 0x");
+      DEBUG_SERIAL.print(error, HEX);
+      DEBUG_SERIAL.println(" !!");
+      foundError = true;
+    }
+  }
+}
 
 // ================================
 // Conversion angle -> ticks
@@ -104,6 +125,9 @@ void setup() {
     dxl.torqueOn(ids[i]);
   }
 
+  // 3) Vérifier si les moteurs sont en alarme (voyant rouge)
+  checkHardErrors();
+
   // 3) Configurer le servo pince (PWM microseconds)
   pinceServo.attach(SERVO_PINCE_PIN, 500, 2500);
   pinceServo.writeMicroseconds(PULSE_OUVERTE);
@@ -123,6 +147,12 @@ void loop() {
   if (newCommand) {
     applyLastCommand();
     newCommand = false;
+  }
+
+  // Vérification périodique des erreurs (toutes les 5 secondes)
+  if (millis() - lastErrorCheck > 5000) {
+    checkHardErrors();
+    lastErrorCheck = millis();
   }
 }
 

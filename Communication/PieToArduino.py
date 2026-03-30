@@ -102,7 +102,11 @@ def stream_commands(ser, commands, dt_s: float = 0.05):
         if ser.in_waiting > 0:
             response = ser.readline().decode('utf-8', errors='ignore').strip()
             if response:
-                print(f"  Arduino: {response}")
+                if "ALARM" in response:
+                    print(f"\n[!!!] ALERTE MATÉRIELLE : {response}")
+                    print("L'alarme rouge s'est déclenchée. Vérifie l'alimentation et la position du robot.")
+                else:
+                    print(f"  Arduino: {response}")
         
         time.sleep(dt_s)
     

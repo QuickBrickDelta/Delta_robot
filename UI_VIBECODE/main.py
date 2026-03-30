@@ -15,7 +15,7 @@ if cinematique_dir not in sys.path:
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFrame,
-                             QDoubleSpinBox, QSizePolicy)
+                             QDoubleSpinBox, QSizePolicy, QPlainTextEdit)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor, QImage, QPixmap
 
@@ -424,6 +424,28 @@ class VibeCodeUI(QMainWindow):
         self.btn_quit.clicked.connect(self.close)
         control_layout.addWidget(self.btn_quit)
 
+        control_layout.addSpacing(20)
+
+        # Console de logs
+        log_title = QLabel("LOGS SYSTÈME :")
+        log_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
+        control_layout.addWidget(log_title)
+
+        self.log_console = QPlainTextEdit()
+        self.log_console.setReadOnly(True)
+        self.log_console.setStyleSheet("""
+            QPlainTextEdit {
+                background-color: #11111B;
+                color: #CDD6F4;
+                border: 1px solid #585B70;
+                border-radius: 8px;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 11px;
+            }
+        """)
+        self.log_console.setMaximumHeight(150)
+        control_layout.addWidget(self.log_console)
+
         control_layout.addStretch()
 
         main_layout.addWidget(self.control_panel)
@@ -702,6 +724,12 @@ class VibeCodeUI(QMainWindow):
 
     def log_output(self, text):
         print(f"[PIE] {text}")
+        # Ajouter à la console UI
+        self.log_console.appendPlainText(text)
+        # Scroll automatique
+        self.log_console.verticalScrollBar().setValue(
+            self.log_console.verticalScrollBar().maximum()
+        )
 
     def robot_finished(self):
         self.status_label.setText("STATUT : TERMINÉ")
