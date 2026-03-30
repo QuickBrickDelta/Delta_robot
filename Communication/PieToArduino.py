@@ -1,3 +1,4 @@
+print(">>> Script de communication PieToArduino lancé")
 import sys
 import os
 import time
@@ -5,8 +6,6 @@ import json
 import argparse
 import serial
 import serial.tools.list_ports
-
-print(">>> Script de communication PieToArduino lancé")
 
 # ===============================
 # PARAMÈTRE — Change le port ici
@@ -132,18 +131,31 @@ def main():
     ser = serial.Serial(port, baudrate=115200, timeout=1)
     time.sleep(2)  # Attendre le reset de l'Arduino après connexion
     
-    # 3) Lire le message de bienvenue (Preuve de communication inverse)
+    # 3) Test de connexion (Ping/Pong)
+    print(">>> Test de connexion (Ping)...")
+    ser.write(b"?\n") # Envoi d'un ping
+    time.sleep(1)
+    
     has_responded = False
     while ser.in_waiting > 0:
         msg = ser.readline().decode('utf-8', errors='ignore').strip()
         if msg:
             print(f"  Arduino: {msg}")
-            has_responded = True
+            if "PONG" in msg or "OpenRB" in msg:
+                has_responded = True
     
     if has_responded:
         print(">>> CONNEXION BIDIRECTIONNELLE ÉTABLIE (Robot -> Python OK)")
     else:
-        print(">>> ATTENTION : Le robot n'a pas encore répondu (Vérifiez le code Arduino)")
+        print(">>> ATTENTION : Le robot n'a pas encore répondu.")
+        print("    Essayez d'appuyer sur le bouton RESET de l'OpenRB maintenant !")
+        # Une deuxième chance après le message
+        time.sleep(2)
+        while ser.in_waiting > 0:
+            msg = ser.readline().decode('utf-8', errors='ignore').strip()
+            if msg:
+                print(f"  Arduino (après reset): {msg}")
+                has_responded = True
     
     # 4) Envoyer les commandes
     if not Motor_command_angles:

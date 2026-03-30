@@ -90,7 +90,10 @@ int32_t thetaToTicks(float theta_rad, int32_t repos_offset) {
 // ================================
 void setup() {
   DEBUG_SERIAL.begin(115200);
-  while (!DEBUG_SERIAL) {
+  DEBUG_SERIAL.begin(115200);
+  // On ne bloque pas indéfiniment si le PC n'est pas prêt
+  uint32_t startWait = millis();
+  while (!DEBUG_SERIAL && (millis() - startWait < 1000)) {
     ;
   }
 
@@ -167,7 +170,11 @@ void readSerialLines() {
 
     if (c == '\n') {
       lineBuf[linePos] = '\0';
-      parseCommandLine(lineBuf);
+      if (lineBuf[0] == '?') {
+        DEBUG_SERIAL.println("PONG");
+      } else {
+        parseCommandLine(lineBuf);
+      }
       linePos = 0;
     } else {
       if (linePos < LINE_BUF_SIZE - 1) {

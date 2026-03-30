@@ -67,17 +67,25 @@ class WorkerThread(QThread):
 
     def run(self):
         script_path = os.path.join(project_root, "Communication", "PieToArduino.py")
-        cmd = [sys.executable, script_path]
+        # -u force le mode "unbuffered" pour voir les logs en temps réel
+        cmd = [sys.executable, "-u", script_path]
         if self.manual_path:
             cmd += ["--manual", self.manual_path]
+        self.output_signal.emit(f">>> Commande: {' '.join(cmd)}")
         try:
             self.process = subprocess.Popen(cmd,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT,
-                                       text=True)
-            for line in self.process.stdout:
-                self.output_signal.emit(line.strip())
+                                       text=True,
+                                       bufsize=1) # Unbuffered line reading
+            if self.process.stdout:
+                for line in self.process.stdout:
+                    self.output_signal.emit(line.strip())
             self.process.wait()
+        except Exception as e:
+            self.output_signal.emit(f"!!! ERREUR CRITIQUE SUBPROCESS : {e}")
+            import traceback
+            self.output_signal.emit(traceback.format_exc())
         except Exception as e:
             self.output_signal.emit(f"Erreur: {e}")
         self.finished_signal.emit()
