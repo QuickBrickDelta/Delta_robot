@@ -175,4 +175,4 @@ Les axes de développement futurs incluent : calibration automatique des axes ca
 
 ---
 
-*Université de Sherbrooke — GRO S4 — 2025*
+*Université de Sherbrooke — GRO S4 — 2025-2026*
