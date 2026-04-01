@@ -313,8 +313,21 @@ def detect_blocks(bgr, color_ranges, h_data=None):
                 continue
             
             rect = cv2.minAreaRect(c)
-            (cx, cy), (w_px, h_px), angle = rect
+            (cx, cy), (w_px, h_px), rect_angle = rect
+            angle = angle_via_pca(c)
             
+            # 1. Identifier le grand côté
+            if w < h:
+                # Si la largeur est plus petite que la hauteur, OpenCV a 
+                # inversé les axes. On corrige de 90 degrés.
+                angle = (angle + 90) % 180
+            else:
+                angle = angle % 180
+
+            # 2. Ramener l'angle dans une plage utile pour ton robot (ex: -90 à 90)
+            if angle > 90:
+                angle -= 180
+
             # (Optionnel) Calcul des dimensions réelles comme tu l'as déjà
             # --- CALCUL DES DIMENSIONS RÉELLES (cm) ---
             dims_cm = None
