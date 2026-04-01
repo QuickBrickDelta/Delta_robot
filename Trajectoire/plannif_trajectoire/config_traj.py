@@ -11,11 +11,13 @@ speed_approach_move_global = 15.0  # cm/s
 # Avec Lc=15 et Lb=32:
 # Zone valide Z approx: [-20, -45] selon l'éloignement du centre.
 
-z_table = -38.0    # Hauteur de la table adaptée pour Lc=15/Lb=32
+z_table = -36.0    # Hauteur de la table adaptée pour Lc=15/Lb=32
 z_drop = z_table + 5
-z_home = -25.0        # Hauteur de sécurité (Home)
+z_home = -19.0        # Hauteur de sécurité (Home - Mise à jour)
+z_home_intermediaire = z_table + 5.0 # Hauteur intermédiaire pour sortie/entrée clean
 
 home_position = (0.0, 0.0, z_home)
+home_intermediaire_position = (0.0, 0.0, z_home_intermediaire)
 
 # Positions de sortie (Drop Bacs)
 # 3 bacs à r=18cm, même disposition que les pignons mais décalé de 90° en XY
@@ -42,8 +44,5 @@ blocs = np.array([
     ("yellow","2x8", -7.0,  8.0, z_table),
     ("green_dark","1x4",   -5.0,  6.0, z_table),
     ("blue","2x2",  5.0,  5.0, z_table),
-    ("red","2x2",  -5.0,   0.0, z_table),
-    ("yellow","2x8", 10.0,  0.5, z_table),
-    ("green_dark","1x4",   2.0,  2.0, z_table),
-    ("blue","2x2",  -5.0,  10.0, z_table)
+    
 ], dtype=object)

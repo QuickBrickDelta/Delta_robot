@@ -338,7 +338,7 @@ class VibeCodeUI(QMainWindow):
         for label_txt, attr, lo, hi, default in [
             ("X", "spin_x", -22.0, 22.0, 0.0),
             ("Y", "spin_y", -22.0, 22.0, 0.0),
-            ("Z", "spin_z", -45.0, -20.0, -25.0),
+            ("Z", "spin_z", -45.0, -18.0, -20.0),
         ]:
             col_widget = QWidget()
             col_layout = QVBoxLayout(col_widget)
@@ -535,6 +535,9 @@ class VibeCodeUI(QMainWindow):
         self.color_timer.timeout.connect(self.update_colors)
         self.color_timer.start(50)
 
+        # État du robot pour les déplacements relatifs
+        self.current_robot_pos = [0.0, 0.0, -20.0]
+
         # Message initial
         self.log_output("--- Système VibeCode Initialisé ---")
         self.log_output("Prêt à démarrer la communication...")
@@ -633,7 +636,7 @@ class VibeCodeUI(QMainWindow):
             self.draw_robot(self.traj_points[0][:3])
         else:
             # Fallback
-            self.draw_robot([0, 0, -25])
+            self.draw_robot([0, 0, -20])
 
     def get_dark_theme(self):
         return """
@@ -751,6 +754,11 @@ class VibeCodeUI(QMainWindow):
         self.btn_start.setDisabled(False)
         self.btn_go_manual.setDisabled(False)
         self.anim_timer.stop()
+
+        # Si c'était un cycle AUTOMATIQUE (MouvementConnecte), le robot finit à Home [0,0,-25]
+        if hasattr(self, 'worker') and self.worker and self.worker.manual_path is None:
+            self.current_robot_pos = [0.0, 0.0, -20.0]
+
         # RÉACTIVE la détection vision maintenant que le robot est arrêté
         self.camera_thread.pause_detection = False
 
@@ -772,29 +780,40 @@ class VibeCodeUI(QMainWindow):
         self.manual_status.setStyleSheet("color: #A6E3A1; font-size: 13px; border: none; padding: 2px;")
         self.manual_status.setText(f"✓ Accessible — envoi en cours...")
 
-        # 2. Générer la trajectoire home → cible
-        home = [0.0, 0.0, -25.0]
+        # 2. Générer la trajectoire
         steps = 40
-        manual_commands = []
+        
+        # --- CALCUL FLUIDE (Joint-Space) ---
+        # On calcule les angles de départ et de fin une seule fois
+        th_start = get_all_thetas(self.current_robot_pos)
+        th_end = get_all_thetas(target_pos)
+        
+        if th_start is None or th_end is None:
+            self.manual_status.setStyleSheet("color: #F38BA8; font-size: 13px; border: none; padding: 2px;")
+            self.manual_status.setText(f"⚠️ Position hors limites")
+            return
 
-        for pts in [interpolate_joint(home, target_pos, steps),
-                    interpolate_joint(target_pos, home, steps)]:
-            for pt in pts:
-                th = get_all_thetas(pt)
-                if th is None:
-                    continue
-                t1, t2, t3 = [float(v) for v in th]
-                manual_commands.append([t1, t2, t3, False])  # pince ouverte
+        # On interpole directement les ANGLES (linspace) : 100% fluide, zéro bruit
+        th_trajectoire = np.linspace(th_start, th_end, num=steps)
+        manual_commands = []
+        for th in th_trajectoire:
+            t1, t2, t3 = [float(v) for v in th]
+            manual_commands.append([t1, t2, t3, False])  # pince ouverte
+
+        # --- CALCUL PREVIEW (XYZ Curve) ---
+        # On garde interpolate_joint uniquement pour l'animation 3D (visuel courbé)
+        pts_preview = interpolate_joint(self.current_robot_pos, target_pos, steps)
+        
+        # Mise à jour de la position courante mémorisée
+        self.current_robot_pos = target_pos
 
         # 3. Sauvegarder en JSON pour PieToArduino
         manual_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "manual_command_angles.json")
         with open(manual_path, "w") as f:
             json.dump(manual_commands, f)
 
-        # 4. Animer le 3D (aller seulement)
-        go_pts = interpolate_joint(home, target_pos, steps)
-        back_pts = interpolate_joint(target_pos, home, steps)
-        self.traj_points = list(go_pts) + list(back_pts)
+        # 4. Animer le 3D
+        self.traj_points = list(pts_preview)
         self.frame_to_pick_idx = [-1] * len(self.traj_points)
         self.current_frame = 0
         self.anim_timer.start(50)
