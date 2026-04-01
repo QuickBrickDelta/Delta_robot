@@ -1,11 +1,11 @@
-# 🤖 Delta Robot — S4 Génie Robotique
+# Delta Robot — S4 Génie Robotique
 
 > Projet de session — Baccalauréat en Génie Robotique, Université de Sherbrooke.  
-> Robot delta à 3 bras capable de **détecter**, **trier** et **déposer** des blocs colorés en temps réel.
+> Robot delta capable de trier des blocs colorés en temps réel.
 
 ---
 
-## 📸 Aperçu
+## Aperçu
 
 <!-- TODO: Ajouter une photo du robot complet monté -->
 | Vue générale | Flux caméra | Interface UI |
@@ -18,28 +18,13 @@
 
 Ce projet intègre plusieurs sous-systèmes qui travaillent ensemble pour réaliser une tâche de tri automatisé :
 
-1. **Une caméra** détecte des blocs colorés sur la surface de travail et calcule leurs positions en centimètres.
-2. **Un planificateur de trajectoire** calcule l'ordre optimal de ramassage et génère un chemin.
+1. **La vision numérique** détecte les blocs et leur associ une couleur, une position et un angle de rotation.
+2. **La de trajectoire** calcule l'ordre optimal de ramassage et génère une séquence de points intermédiaires.
 3. **La cinématique inverse** convertit les positions XYZ en angles pour les 3 servomoteurs.
-4. **Une interface graphique** visualise le robot en 3D et le flux caméra en temps réel.
-5. **Un contrôleur Arduino** reçoit les commandes et pilote les moteurs Dynamixel + la pince.
+4. **Une interface graphique** visualise le robot en 3D, la séquence de tri optimale et le flux caméra en temps réel.
+5. **Le contrôleur OpenRB** reçoit les commandes et pilote les moteurs Dynamixel et les petits servos-moteurs de la pince.
 
-<!-- TODO: Ajouter un diagramme/schéma du flux de données global -->
-```
-Caméra (RPi)
-    │
-    ▼
-VisionNumerique ──→ detected_blocks.json
-                          │
-                          ▼
-              Trajectoire/plannif_trajectoire
-                          │
-                          ▼
-               CinématiqueRobot (angles θ1,θ2,θ3)
-                          │
-                          ▼
-               Communication/PieToArduino ──→ Arduino (Dynamixel)
-```
+![schema_prog](docs/img/schema_prog.jpg)
 
 ---
 
