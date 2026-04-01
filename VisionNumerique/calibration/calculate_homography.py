@@ -90,12 +90,7 @@ def main():
                 clicked = []
                 continue
 
-            # Save H and also save the world coordinate of image center so we can set camera-center (0,0)
-            img_center = np.array([ [W_img/2.0, H_img/2.0] ], dtype=np.float32)
-            one = np.array([[1.0]], dtype=np.float32)
-            ph = H @ np.vstack([img_center.T, one])
-            ph /= ph[2, :]
-            cam_center_world = ph[:2, 0].astype(np.float32)  # (Xc, Yc) in cm
+            cam_center_world = np.array([0.0, 0.0], dtype=np.float32)
 
             np.savez(str(SAVE_PATH), H=H, imgW=W_img, imgH=H_img, cam_center_world=cam_center_world)
             print(f"\nHomography saved to {SAVE_PATH}")
