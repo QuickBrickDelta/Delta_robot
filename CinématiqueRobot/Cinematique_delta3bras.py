@@ -10,13 +10,27 @@ Lc = 15  # Longueur bras supérieur
 Lb = 32.5 # Longueur bras inférieur 
 
 def rotZ(p, phi):
-    """Rotation d'un point p autour de l'axe Z."""
+    """Rotation d'un point p autour de l'axe Z (rad)."""
     R = np.array([
         [np.cos(phi), -np.sin(phi), 0],
         [np.sin(phi),  np.cos(phi), 0],
         [0, 0, 1]
     ])
     return R @ p
+
+# --- Import de la calibration rotation ---
+import math
+ROBOT_ROTATION_OFFSET_DEG = 0.0
+try:
+    import sys, os
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(project_root, "Trajectoire", "plannif_trajectoire")
+    if config_path not in sys.path:
+        sys.path.append(config_path)
+    import config_traj
+    ROBOT_ROTATION_OFFSET_DEG = config_traj.ROBOT_ROTATION_OFFSET_DEG
+except ImportError:
+    pass
 
 def GetAngleMoteur1(x_eff, y_eff, z_eff, phi):
     """
@@ -80,14 +94,15 @@ def GetAngleMoteur1(x_eff, y_eff, z_eff, phi):
 
     if valid_solution:
         theta_phys, y_B, z_B = valid_solution
-        if phi == 0:
+        
+        offset_rad = math.radians(ROBOT_ROTATION_OFFSET_DEG)
+        if math.isclose(phi, 0 + offset_rad, abs_tol=1e-5):
             moteur = 1
-        elif phi == np.radians(120):
+        elif math.isclose(phi, math.radians(120) + offset_rad, abs_tol=1e-5):
             moteur = 2
         else:
             moteur = 3
 
-        #print(f"Angle moteur {moteur} : {np.degrees(theta_phys):.2f}°")
         return theta_phys, y_B, z_B
     else:
         # Solutions mathématiques existent mais sont hors limites (angles négatifs ou > 90)

@@ -10,11 +10,25 @@ import matplotlib.pyplot as plt
 # 1. LOGIQUE D'INTERPOLATION 
 # ==========================================
 
+# --- Import de la calibration rotation ---
+try:
+    import sys, os
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(project_root, "Trajectoire", "plannif_trajectoire")
+    if config_path not in sys.path:
+        sys.path.append(config_path)
+    import config_traj
+    ROBOT_ROTATION_OFFSET_DEG = config_traj.ROBOT_ROTATION_OFFSET_DEG
+except ImportError:
+    ROBOT_ROTATION_OFFSET_DEG = 0.0
+
 def get_all_thetas(pos):
     """ Helper : Récupère les 3 angles pour une position XYZ donnée """
-    phis = [0, np.radians(120), np.radians(240)]
+    offset_rad = np.radians(ROBOT_ROTATION_OFFSET_DEG)
+    phis = [0 + offset_rad, np.radians(120) + offset_rad, np.radians(240) + offset_rad]
     thetas = []
     for phi in phis:
+        # On tourne le point dans le repère local du moteur en question
         p_rot = rotZ(np.array(pos), -phi)
         res = GetAngleMoteur1(p_rot[0], p_rot[1], p_rot[2], phi)
         if res[0] is None: return None # Position impossible

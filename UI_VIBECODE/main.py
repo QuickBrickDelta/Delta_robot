@@ -35,6 +35,8 @@ try:
     from MouvementConnecte import Motor_command_xyz
     from Cinematique_delta3bras import rotZ, GetBrasComplet
     from MouvementRobot import interpolate_linear, interpolate_joint, get_all_thetas
+    import config_traj
+    ROBOT_ROTATION_OFFSET_DEG = config_traj.ROBOT_ROTATION_OFFSET_DEG
 except ImportError as e:
     print(f"Erreur d'importation des modules robot : {e}. Assurez-vous d'exécuter depuis la racine du projet.")
     sys.exit(1)
@@ -50,6 +52,7 @@ try:
         MIN_AREA_PX, COLOR_STD_THRESH, DOMINANT_FRAC_THRESH,
         RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN
     )
+    HAS_VISION = True
 except ImportError as e:
     print(f"Module VisionNumerique non trouvé : la vision des blocs sera désactivée. Erreur: {e}")
     HAS_VISION = False
@@ -651,7 +654,8 @@ class VibeCodeUI(QMainWindow):
         self.ax.set_ylim(-lim, lim)
         self.ax.set_zlim(-45.0, 15.0)  # Limite réduite pour "zoom in" vertical
 
-        angles_phi = [0, np.radians(120), np.radians(240)]
+        offset_rad = np.radians(ROBOT_ROTATION_OFFSET_DEG)
+        angles_phi = [0 + offset_rad, np.radians(120) + offset_rad, np.radians(240) + offset_rad]
         colors = ['#F38BA8', '#A6E3A1', '#89B4FA'] # Vibe colors (Red, Green, Blue)
 
         # Base

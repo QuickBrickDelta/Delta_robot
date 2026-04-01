@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # --- Paramètres globaux ---
+ROBOT_ROTATION_OFFSET_DEG = -45.0    # Ajuster si les axes X/Y sont décalés par rapport au châssis
 MAX_BLOCS_OPTIMAL = 7
 speed_joint_move_global = 40.0  # cm/s
 speed_approach_move_global = 15.0  # cm/s
