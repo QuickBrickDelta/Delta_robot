@@ -22,13 +22,19 @@ def get_all_thetas(pos):
     return np.array(thetas)
 
 def interpolate_linear(p_start, p_end, steps):
-    """ Ligne droite cartésienne (X,Y,Z) """
+    """ Ligne droite cartésienne (X,Y,Z) avec profil de vitesse S-Curve """
+    if steps < 2: return [p_end]
     traj = []
-    xs = np.linspace(p_start[0], p_end[0], steps)
-    ys = np.linspace(p_start[1], p_end[1], steps)
-    zs = np.linspace(p_start[2], p_end[2], steps)
-    for i in range(steps):
-        traj.append([xs[i], ys[i], zs[i]])
+    
+    # 1. Génération du profil S-Curve (vitesse progressive)
+    # i/steps-1 va de 0 à 1 linéairement.
+    # On le transforme en sinusoïde pour une accélération douce.
+    indices = np.arange(steps)
+    t = (1 - np.cos(np.pi * indices / (steps - 1))) / 2
+    
+    for val_t in t:
+        pos = np.array(p_start) + val_t * (np.array(p_end) - np.array(p_start))
+        traj.append(pos.tolist())
     return traj
 
 def interpolate_joint(p_start, p_end, steps):
@@ -43,15 +49,19 @@ def interpolate_joint(p_start, p_end, steps):
         print("Erreur: Point de départ ou d'arrivée hors limite.")
         return [p_start] * steps
 
-    # 2. On interpole les angles linéairement
-    t_interp = np.linspace(angles_start, angles_end, steps)
+    # 2. On génère le profil S-Curve sur les ANGLES
+    indices = np.arange(steps)
+    t = (1 - np.cos(np.pi * indices / (steps - 1))) / 2
+    
+    # On interpole les angles de manière sinusoïdale
+    t_interp = []
+    for val_t in t:
+        t_interp.append(angles_start + val_t * (angles_end - angles_start))
     
     # 3. Solveur : On cherche le XYZ qui correspond aux angles interpolés
     current_pos = p_start # "Guess" initial pour le solveur
     
-    for i in range(steps):
-        target_angles = t_interp[i]
-        
+    for target_angles in t_interp:
         # Fonction d'erreur à minimiser : (Angles_Calculés - Angles_Cibles)
         def error_func(x):
             calc = get_all_thetas(x)
@@ -65,7 +75,7 @@ def interpolate_joint(p_start, p_end, steps):
             traj.append(sol.x)
             current_pos = sol.x # Met à jour le guess pour la prochaine frame (plus rapide)
         else:
-            traj.append(current_pos)
+            traj.append(current_pos.tolist())
             
     return traj
 

@@ -98,8 +98,8 @@ for step in Trajectory:
 # 2) Générer la trajectoire en ANGLES + pince (interpolation)
 # ===============================
 if Motor_command_xyz:
-    # Nombre de pas d'interpolation par segment de mouvement
-    steps_per_move = 30
+    # Fréquence cible : 50Hz (20ms)
+    DEFAULT_DT = 0.02 
 
     current_pos = Motor_command_xyz[0][:3]
 
@@ -108,21 +108,34 @@ if Motor_command_xyz:
         pos_xyz = target_pt[:3]
         mode = target_pt[3]
         pince_seg = pince_states[i]
+        
+        # Récupérer la vitesse depuis la trajectoire d'origine
+        # Note: Trajectory[i] correspond à target_pt
+        speed = float(Trajectory[i][3]) if i < len(Trajectory) else 20.0
+        if speed <= 0: speed = 20.0
 
         if mode == "G":
             # Action pince : maintenir la position actuelle + changer l'état pince
             thetas = get_all_thetas(current_pos)
             if thetas is not None:
                 theta1, theta2, theta3 = [float(t) for t in thetas]
-                for _ in range(GRIPPER_HOLD_STEPS):
+                # Maintenir 0.5s pour la pince (25 steps à 50Hz)
+                for _ in range(25):
                     Motor_command_angles.append([theta1, theta2, theta3, pince_seg])
             continue
 
-        # Sauter les mouvements de distance zéro
+        # Calcul de la distance
         dist = numpy.linalg.norm(numpy.array(pos_xyz) - numpy.array(current_pos))
+        
+        # Sauter les mouvements de distance zéro
         if dist < 0.01:
             current_pos = pos_xyz
             continue
+
+        # CALCUL DYNAMIQUE DU NOMBRE DE POINTS
+        # steps = (Distance / Vitesse) / DT
+        # On assure un minimum de 10 points pour la fluidité même sur petits trajets
+        steps_dynamic = max(10, int((dist / speed) / DEFAULT_DT))
 
         # Choix de l'interpolation (joint avec fallback linéaire)
         if mode == "J":
@@ -130,12 +143,11 @@ if Motor_command_xyz:
             start_ok = get_all_thetas(current_pos) is not None
             end_ok = get_all_thetas(pos_xyz) is not None
             if start_ok and end_ok:
-                traj_points = interpolate_joint(current_pos, pos_xyz, steps_per_move)
+                traj_points = interpolate_joint(current_pos, pos_xyz, steps_dynamic)
             else:
-                # Fallback linéaire si joint échoue
-                traj_points = interpolate_linear(current_pos, pos_xyz, steps_per_move)
+                traj_points = interpolate_linear(current_pos, pos_xyz, steps_dynamic)
         else:
-            traj_points = interpolate_linear(current_pos, pos_xyz, steps_per_move)
+            traj_points = interpolate_linear(current_pos, pos_xyz, steps_dynamic)
 
         for pos in traj_points:
             thetas = get_all_thetas(pos)

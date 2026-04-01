@@ -14,15 +14,15 @@ const uint8_t ID_M3 = 3;
 // ================================
 // CALIBRATION — Auto au démarrage
 // ================================
-// Au boot, le robot doit être en position z_table (0, 0, -40)
+// Au boot, le robot doit être en position HOME (0, 0, -20)
 // L'Arduino lit les positions actuelles comme offsets.
-// THETA_CALIB = angle des moteurs à la position z_table
+// THETA_CALIB = angle des moteurs à la position (0, 0, -20)
 int32_t REPOS_M1 = 0;
 int32_t REPOS_M2 = 0;
 int32_t REPOS_M3 = 0;
 
-// Angle moteurs à la position de calibration z_table (0, 0, -40)
-const float THETA_CALIB = 0.8684f; // rad (~41.6°)
+// Angle moteurs à la position de calibration (0, 0, -20)
+const float THETA_CALIB = 2.2897f; // rad (~131.2°)
 
 // Ticks par radian (4095 ticks / tour complet)
 const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
@@ -33,8 +33,8 @@ const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
 const uint32_t PROFILE_VELOCITY = 120;    // Plus rapide (ancien: 50)
 const uint32_t PROFILE_ACCELERATION = 40; // Lissage accélération/décélération
 const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince (~3)
-const int PULSE_OUVERTE = 1000;           // Pulse ouvert (microsecondes)
-const int PULSE_FERMEE = 2000;            // Pulse fermé (microsecondes)
+const int PULSE_OUVERTE = 1250;           // Pulse ouvert (microsecondes) - Réduit à 90 deg
+const int PULSE_FERMEE = 1750;            // Pulse fermé (microsecondes) - Réduit à 90 deg
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
@@ -149,7 +149,7 @@ void setup() {
   DEBUG_SERIAL.print("Velocity=");
   DEBUG_SERIAL.println(PROFILE_VELOCITY);
   DEBUG_SERIAL.println(
-      "Pret. Place le robot a z_table (0,0,-40) avant de demarrer !");
+      "Pret. Place le robot au HOME (0,0,-20) avant de demarrer !");
 }
 
 // ================================
