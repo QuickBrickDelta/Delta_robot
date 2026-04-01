@@ -24,7 +24,7 @@ Ce projet intègre plusieurs sous-systèmes qui travaillent ensemble pour réali
 4. **Une interface graphique** visualise le robot en 3D, la séquence de tri optimale et le flux caméra en temps réel.
 5. **Le contrôleur OpenRB** reçoit les commandes et pilote les moteurs Dynamixel et les petits servos-moteurs de la pince.
 
-![schema_prog](docs/img/schema_prog.jpg)
+![schema_prog](docs/img/schema_prog.png)
 
 ---
 
