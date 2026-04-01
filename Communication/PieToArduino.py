@@ -7,12 +7,6 @@ import argparse
 import serial
 import serial.tools.list_ports
 
-# ===============================
-# PARAMÈTRE — Change le port ici
-# ===============================
-COM_PORT = "COM3"
-BAUDRATE = 115200
-
 # Configuration des chemins pour les imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
@@ -23,20 +17,25 @@ if project_root not in sys.path:
 if cin_dir not in sys.path:
     sys.path.append(cin_dir)
 
-# Parse les arguments AVANT d'importer MouvementConnecte (qui est lourd)
+# Parse les arguments
 parser = argparse.ArgumentParser(description="Envoi de commandes au robot via port série")
 parser.add_argument("--manual", metavar="JSON_PATH",
                     help="Chemin vers un fichier JSON de commandes manuelles à envoyer directement")
+parser.add_argument("port", nargs="?", help="Port série (ex: COM3). Si omis, recherche automatique.")
 args, _ = parser.parse_known_args()
 
 if args.manual:
     # Mode manuel : lire les angles depuis un fichier JSON
-    print(f"Mode MANUEL — chargement depuis {args.manual}")
+    print(f"[PIE] Mode MANUEL — chargement depuis {args.manual}")
     with open(args.manual, 'r') as f:
         Motor_command_angles = json.load(f)
 else:
     # Mode auto : importer MouvementConnecte (planification complète)
-    from MouvementConnecte import Motor_command_angles
+    try:
+        from MouvementConnecte import Motor_command_angles
+    except ImportError:
+        print("[PIE] ERREUR : Impossible d'importer MouvementConnecte. Vérifie le chemin.")
+        Motor_command_angles = []
 
 
 # ===============================
@@ -45,25 +44,26 @@ else:
 
 def find_openrb_port():
     """Cherche automatiquement le port série de l'OpenRB-150.
-    Priorité : USB Serial > tout le reste. Ignore le Bluetooth."""
-    ports = serial.tools.list_ports.comports()
-    print("Ports série disponibles :")
+    Priorité : Port passé en argument > USB Serial > tout le reste. Ignore le Bluetooth."""
+    
+    # 1. Si un port a été passé explicitement via argparse
+    if args.port:
+        return args.port
+
+    ports = list(serial.tools.list_ports.comports())
+    print("[PIE] Ports série disponibles :")
     for p in ports:
         print(f"  {p.device} — {p.description}")
     
-    # Argument positionnel en ligne de commande ? (ex: python PieToArduino.py COM3)
-    # On ignore les arguments --flag
-    positional_args = [a for a in sys.argv[1:] if not a.startswith('-')]
-    if positional_args:
-        return positional_args[0]
-    
-    # Chercher un port USB (pas Bluetooth)
+    # 2. Chercher un port USB (pas Bluetooth)
     for p in ports:
         desc = p.description.lower()
-        if "usb" in desc or "openrb" in desc:
-            return p.device
+        # On cherche des mots clés typiques des cartes de contrôle
+        if any(kw in desc for kw in ["usb", "openrb", "arduino", "serial"]):
+            if "bluetooth" not in desc:
+                return p.device
     
-    # Fallback : premier port non-Bluetooth
+    # 3. Fallback : premier port non-Bluetooth
     for p in ports:
         if "bluetooth" not in p.description.lower():
             return p.device
