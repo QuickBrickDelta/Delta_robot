@@ -79,7 +79,7 @@ def find_openrb_port():
 # Envoi des commandes via série
 # ===============================
 
-def stream_commands(ser, commands, dt_s: float = 0.05):
+def stream_commands(ser, commands, dt_s: float = 0.02):
     """
     Envoie les commandes sur le port série, une par une,
     espacées de dt_s secondes.

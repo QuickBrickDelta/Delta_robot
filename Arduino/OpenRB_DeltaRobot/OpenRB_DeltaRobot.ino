@@ -33,8 +33,8 @@ const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
 const uint32_t PROFILE_VELOCITY = 120;    // Plus rapide (ancien: 50)
 const uint32_t PROFILE_ACCELERATION = 40; // Lissage accélération/décélération
 const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince (~3)
-const int PULSE_OUVERTE = 1000;           // Pulse ouvert (microsecondes)
-const int PULSE_FERMEE = 2000;            // Pulse fermé (microsecondes)
+const int PULSE_OUVERTE = 1250;           // Pulse ouvert (microsecondes) - Réduit à 90 deg
+const int PULSE_FERMEE = 1750;            // Pulse fermé (microsecondes) - Réduit à 90 deg
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;

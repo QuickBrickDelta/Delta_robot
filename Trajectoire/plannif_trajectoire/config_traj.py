@@ -11,9 +11,9 @@ speed_approach_move_global = 15.0  # cm/s
 # Avec Lc=15 et Lb=32:
 # Zone valide Z approx: [-20, -45] selon l'éloignement du centre.
 
-z_table = -36.0    # Hauteur de la table adaptée pour Lc=15/Lb=32
+z_table = -35.0    # Hauteur de la table adaptée pour Lc=15/Lb=32
 z_drop = z_table + 5
-z_home = -19.0        # Hauteur de sécurité (Home - Mise à jour)
+z_home = -17.0        # Hauteur de sécurité (Home - Mise à jour)
 z_home_intermediaire = z_table + 5.0 # Hauteur intermédiaire pour sortie/entrée clean
 
 home_position = (0.0, 0.0, z_home)
