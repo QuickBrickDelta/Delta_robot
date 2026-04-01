@@ -14,7 +14,8 @@ if cinematique_dir not in sys.path:
     sys.path.append(cinematique_dir)
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QHBoxLayout, QPushButton, QLabel, QFrame)
+                             QHBoxLayout, QPushButton, QLabel, QFrame,
+                             QDoubleSpinBox, QSizePolicy, QPlainTextEdit)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor, QImage, QPixmap
 
@@ -33,7 +34,7 @@ except ImportError:
 try:
     from MouvementConnecte import Motor_command_xyz
     from Cinematique_delta3bras import rotZ, GetBrasComplet
-    from MouvementRobot import interpolate_linear, interpolate_joint
+    from MouvementRobot import interpolate_linear, interpolate_joint, get_all_thetas
 except ImportError as e:
     print(f"Erreur d'importation des modules robot : {e}. Assurez-vous d'exécuter depuis la racine du projet.")
     sys.exit(1)
@@ -58,18 +59,31 @@ class WorkerThread(QThread):
     finished_signal = pyqtSignal()
     output_signal = pyqtSignal(str)
 
+    def __init__(self, manual_path=None):
+        super().__init__()
+        self.manual_path = manual_path  # None = mode auto (MouvementConnecte), sinon JSON manuel
+
     def run(self):
-        # Lancer le script PieToArduino
         script_path = os.path.join(project_root, "Communication", "PieToArduino.py")
+        # -u force le mode "unbuffered" pour voir les logs en temps réel
+        cmd = [sys.executable, "-u", script_path]
+        if self.manual_path:
+            cmd += ["--manual", self.manual_path]
+        self.output_signal.emit(f">>> Commande: {' '.join(cmd)}")
         try:
-            # Exécution silencieuse (les prints vont dans la console)
-            self.process = subprocess.Popen([sys.executable, script_path], 
-                                       stdout=subprocess.PIPE, 
+            self.process = subprocess.Popen(cmd,
+                                       stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT,
-                                       text=True)
-            for line in self.process.stdout:
-                self.output_signal.emit(line.strip())
+                                       text=True,
+                                       bufsize=1) # Unbuffered line reading
+            if self.process.stdout:
+                for line in self.process.stdout:
+                    self.output_signal.emit(line.strip())
             self.process.wait()
+        except Exception as e:
+            self.output_signal.emit(f"!!! ERREUR CRITIQUE SUBPROCESS : {e}")
+            import traceback
+            self.output_signal.emit(traceback.format_exc())
         except Exception as e:
             self.output_signal.emit(f"Erreur: {e}")
         self.finished_signal.emit()
@@ -87,6 +101,11 @@ class CameraThread(QThread):
         super().__init__()
         self._run_flag = True
         self.latest_blocks = []
+        self.pause_detection = False  # Désactive la vision pendant le mouvement du robot
+
+        # Pour l'auto-calibration avec le bloc jaune
+        self.calibr_offset_x = 0.0
+        self.calibr_offset_y = 0.0
         
         # Charger z_table pour les coordonnées physiques des blocs
         self.z_table = -38.0
@@ -101,12 +120,14 @@ class CameraThread(QThread):
             # Environnement local Windows: Webcam standard
             cap = cv2.VideoCapture(0)
         else:
-            # Environnement Raspberry Pi: Pipeline GStreamer (libcamera)
+            # Environnement Raspberry Pi: Pipeline GStreamer — IDENTIQUE à bloc_detection_w_filter.py
+            # IMPORTANT: l'homographie a été calibrée avec ce pipeline (1920x1080 plein capteur)
             pipeline = (
-                "libcamerasrc ! "
-                "video/x-raw,format=NV12,width=1280,height=720,framerate=15/1 ! "
-                "videoconvert ! video/x-raw,format=BGR ! "
-                "appsink drop=true max-buffers=1 sync=false"
+                'libcamerasrc af-mode=manual lens-position=3.4 ! '
+                'video/x-raw,format=NV12,width=4608,height=2592,framerate=2/1 ! '
+                'videoscale ! video/x-raw,width=1920,height=1080 ! '
+                'videoconvert ! video/x-raw,format=BGR ! '
+                'appsink drop=true max-buffers=1 sync=false'
             )
             cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
 
@@ -132,14 +153,11 @@ class CameraThread(QThread):
             if not ret:
                 continue
 
-            # Inverser l'image pour un effet miroir plus naturel
-            frame = cv2.flip(frame, 1)
-
-            # Conversion pour Qt/Mediapipe (RGB)
+            # Conversion pour Qt/Mediapipe (RGB) — PAS de flip (même comportement que bloc_detection_w_filter.py)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # 1. Overlay Computer Vision (Blocs)
-            if HAS_VISION:
+            # 1. Overlay Computer Vision (Blocs) — SEULEMENT si le robot ne bouge pas
+            if HAS_VISION and not self.pause_detection:
                 if not hasattr(self, 'H_cam'):
                     loaded = load_homography()
                     if loaded:
@@ -152,6 +170,17 @@ class CameraThread(QThread):
                 # Il utilise ses propres variables globales pour les seuils
                 detections = detect_blocks(frame, COLOR_RANGES, h_data=None)
                 
+                # RECHERCHE DU BLOC JAUNE POUR AUTO-CALIBRATION
+                """for det in detections:
+                    if det["color"] == "yellow":
+                        cx, cy = det["center"]
+                        if self.H_cam is not None:
+                            xy_world = pix_to_world_cm((cx, cy), self.H_cam)
+                            if xy_world:
+                                self.calibr_offset_x = float(xy_world[0] - self.cam_center[0])
+                                self.calibr_offset_y = float(xy_world[1] - self.cam_center[1])
+                        break # Un seul bloc jaune suffit"""
+                
                 current_blocks = []
                 for det in detections:
                     box = np.array(det["box"], dtype=np.int32)
@@ -160,11 +189,10 @@ class CameraThread(QThread):
                     
                     # Couleurs en RGB pour dessiner sur l'image Qt
                     color_rgb = {
-                        "red": (255, 0, 0), "green": (0, 255, 0),
+                        "red": (255, 0, 0),
                         "green_dark": (0, 150, 0), "green_light": (144, 238, 144),
                         "blue": (0, 0, 255), "yellow": (255, 255, 0),
-                        "orange": (255, 165, 0), "purple": (255, 0, 255),
-                        "white": (220, 220, 220),
+                        "orange": (255, 165, 0),
                     }.get(col, (255, 255, 255))
 
                     cv2.drawContours(rgb, [box], 0, color_rgb, 2)
@@ -174,13 +202,14 @@ class CameraThread(QThread):
                     if self.H_cam is not None:
                         xy_world = pix_to_world_cm((cx, cy), self.H_cam)
                         if xy_world:
-                            Xcm = float(xy_world[0] - self.cam_center[0])
-                            Ycm = float(xy_world[1] - self.cam_center[1])
+                            raw_Xcm = float(xy_world[0] - self.cam_center[0])
+                            raw_Ycm = float(xy_world[1] - self.cam_center[1])
+                            
+                            # C'est ICI qu'on applique la calibration dynamique du jaune :
+                            Xcm = raw_Xcm - self.calibr_offset_x
+                            Ycm = raw_Ycm - self.calibr_offset_y
                             
                             # --- SÉCURITÉ : CLAMP MÉCANIQUE ---
-                            # On limite physiquement la portée maximale de ramassage.
-                            # Le robot peut déposer à r=25, mais on restreint le ramassage à r=22 max
-                            # pour éviter que les moteurs forcent sur des détections éloignées ou mal calibrées.
                             R_MAX = 22.0
                             r_current = (Xcm**2 + Ycm**2)**0.5
                             if r_current > R_MAX:
@@ -190,19 +219,14 @@ class CameraThread(QThread):
                                 
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
                             
-                            # Normaliser la couleur pour le planificateur de trajectoire
-                            # ex: "green_dark" -> "green"
-                            base_color = col.split('_')[0] if '_' in col else col
-                            
-                            # Ajouter le bloc détecté à la liste partagée (format final MouvementConnecte)
-                            current_blocks.append([base_color, "2x4", round(Xcm, 2), round(Ycm, 2), float(self.z_table)])
+                            current_blocks.append([col, "2x4", round(-Xcm, 2), round(Ycm, 2), float(self.z_table)])
                             
                     cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
                                 
                 self.latest_blocks = current_blocks
 
-            # 2. Overlay Mediapipe (Mains)
+            # 2. Overlay Mediapipe (Mains)..
             if hands:
                 result = hands.process(rgb)
                 # Dessin des points de repère de la main
@@ -283,6 +307,83 @@ class VibeCodeUI(QMainWindow):
 
         control_layout.addSpacing(20)
 
+        # ====== MODE MANUEL ======
+        manual_title = QLabel("POSITION MANUELLE :")
+        manual_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
+        control_layout.addWidget(manual_title)
+
+        spin_style = """
+            QDoubleSpinBox {
+                background-color: #313244;
+                color: #CDD6F4;
+                border: 1px solid #585B70;
+                border-radius: 6px;
+                padding: 4px 30px 4px 6px;
+                font-size: 13px;
+                font-family: monospace;
+            }
+            QDoubleSpinBox:focus { border: 1px solid #89B4FA; }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 16px;
+                background-color: #45475A;
+                border-radius: 3px;
+            }
+            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+                background-color: #585B70;
+            }
+        """
+        xyz_row = QHBoxLayout()
+        for label_txt, attr, lo, hi, default in [
+            ("X", "spin_x", -22.0, 22.0, 0.0),
+            ("Y", "spin_y", -22.0, 22.0, 0.0),
+            ("Z", "spin_z", -45.0, -20.0, -25.0),
+        ]:
+            col_widget = QWidget()
+            col_layout = QVBoxLayout(col_widget)
+            col_layout.setContentsMargins(0, 0, 0, 0)
+            col_layout.setSpacing(2)
+            lbl = QLabel(label_txt)
+            lbl.setStyleSheet("color: #89B4FA; font-size: 13px; font-weight: bold; border: none;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            spin = QDoubleSpinBox()
+            spin.setRange(lo, hi)
+            spin.setValue(default)
+            spin.setSingleStep(0.5)
+            spin.setDecimals(1)
+            spin.setStyleSheet(spin_style)
+            setattr(self, attr, spin)
+            col_layout.addWidget(lbl)
+            col_layout.addWidget(spin)
+            xyz_row.addWidget(col_widget)
+        control_layout.addLayout(xyz_row)
+
+        self.btn_go_manual = QPushButton("→ ALLER")
+        self.btn_go_manual.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_go_manual.setStyleSheet("""
+            QPushButton {
+                background-color: #CBA6F7;
+                color: #11111B;
+                font-size: 16px;
+                font-weight: bold;
+                border-radius: 8px;
+                padding: 10px;
+                border: none;
+            }
+            QPushButton:hover { background-color: #B4BEFE; }
+            QPushButton:pressed { background-color: #89DCEB; }
+            QPushButton:disabled { background-color: #585B70; color: #A6ADC8; }
+        """)
+        self.btn_go_manual.clicked.connect(self.go_manual)
+        control_layout.addWidget(self.btn_go_manual)
+
+        self.manual_status = QLabel("")
+        self.manual_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.manual_status.setWordWrap(True)
+        self.manual_status.setStyleSheet("color: #A6ADC8; font-size: 13px; border: none; padding: 2px;")
+        control_layout.addWidget(self.manual_status)
+
+        control_layout.addSpacing(10)
+
         # Bouton Démarrer
         self.btn_start = QPushButton("▶ DÉMARRER")
         self.btn_start.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -329,6 +430,28 @@ class VibeCodeUI(QMainWindow):
         self.btn_quit.clicked.connect(self.close)
         control_layout.addWidget(self.btn_quit)
 
+        control_layout.addSpacing(20)
+
+        # Console de logs
+        log_title = QLabel("LOGS SYSTÈME :")
+        log_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
+        control_layout.addWidget(log_title)
+
+        self.log_console = QPlainTextEdit()
+        self.log_console.setReadOnly(True)
+        self.log_console.setStyleSheet("""
+            QPlainTextEdit {
+                background-color: #11111B;
+                color: #CDD6F4;
+                border: 1px solid #585B70;
+                border-radius: 8px;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 11px;
+            }
+        """)
+        self.log_console.setMaximumHeight(150)
+        control_layout.addWidget(self.log_console)
+
         control_layout.addStretch()
 
         main_layout.addWidget(self.control_panel)
@@ -359,6 +482,15 @@ class VibeCodeUI(QMainWindow):
         self.ax.set_axis_off()
         
         plot_layout.addWidget(self.canvas)
+
+        # Label position XYZ temps réel
+        self.xyz_label = QLabel("X: —     Y: —     Z: —")
+        self.xyz_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.xyz_label.setStyleSheet(
+            "color: #CBA6F7; font-size: 16px; font-family: monospace; "
+            "font-weight: bold; border: none; padding: 4px;"
+        )
+        plot_layout.addWidget(self.xyz_label)
         right_layout.addWidget(plot_frame, stretch=2) # Le plot prend 2/3 de l'espace
 
         # -- Bas : Caméra
@@ -401,6 +533,10 @@ class VibeCodeUI(QMainWindow):
         self.color_timer.timeout.connect(self.update_colors)
         self.color_timer.start(50)
 
+        # Message initial
+        self.log_output("--- Système VibeCode Initialisé ---")
+        self.log_output("Prêt à démarrer la communication...")
+
     def update_colors(self):
         self.hue += 0.005
         if self.hue >= 1.0:
@@ -418,7 +554,7 @@ class VibeCodeUI(QMainWindow):
         text = ""
         for i, col in enumerate(self.pick_sequence):
             # Formater joliment (ex: [1] vert, [2] rouge, etc.)
-            emoji = {"red": "🔴", "green": "🟢", "blue": "🔵", "yellow": "🟡", "orange": "🟠"}.get(col, "⚫")
+            emoji = {"red": "🔴", "green_dark": "🟢", "green_light": "🟢", "blue": "🔵", "yellow": "🟡", "orange": "🟠"}.get(col, "⚫")
             item = f"{emoji} {col.upper()}"
             if i == current_idx:
                 text += f"<span style='color: #F9E2AF; font-size: 20px;'>➜ {item}</span><br>"
@@ -546,11 +682,15 @@ class VibeCodeUI(QMainWindow):
         if not self.traj_points or self.current_frame >= len(self.traj_points):
             self.anim_timer.stop()
             self.is_animating = False
+            self.xyz_label.setText("X: —     Y: —     Z: —")
             return
             
         pos = self.traj_points[self.current_frame][:3]
         idx = self.frame_to_pick_idx[self.current_frame] if self.current_frame < len(self.frame_to_pick_idx) else -1
         self.update_pick_sequence_ui(idx)
+        
+        # Mise à jour du label XYZ
+        self.xyz_label.setText(f"X: {pos[0]:+.1f} cm     Y: {pos[1]:+.1f} cm     Z: {pos[2]:+.1f} cm")
         
         self.draw_robot(pos)
         self.current_frame += 1
@@ -565,6 +705,20 @@ class VibeCodeUI(QMainWindow):
         QApplication.processEvents() # MàJ de l'UI
         self.rebuild_trajectory()
 
+        # PAUSE la détection lourde pendant le mouvement pour libérer le CPU
+        self.camera_thread.pause_detection = True
+
+        self.status_label.setText("STATUT : PRÊT DANS 2s...")
+        self.log_output("Calcul de la trajectoire terminé.")
+        self.log_output("Lancement de la communication avec l'OpenRB...")
+        QApplication.processEvents()
+
+        # Délai de 2 secondes pour laisser le temps au système de finir tous les calculs
+        # avant d'envoyer la première commande aux moteurs
+        QTimer.singleShot(2000, self._launch_robot_movement)
+
+    def _launch_robot_movement(self):
+        """Appelé après le délai de 2s — lance le mouvement physique + animation"""
         self.status_label.setText("STATUT : EN MOUVEMENT")
         
         # Redémarrer l'animation de 0
@@ -582,12 +736,76 @@ class VibeCodeUI(QMainWindow):
 
     def log_output(self, text):
         print(f"[PIE] {text}")
+        # Ajouter à la console UI
+        self.log_console.appendPlainText(text)
+        # Scroll automatique
+        self.log_console.verticalScrollBar().setValue(
+            self.log_console.verticalScrollBar().maximum()
+        )
 
     def robot_finished(self):
         self.status_label.setText("STATUT : TERMINÉ")
         self.status_label.setStyleSheet("color: #A6E3A1; font-size: 18px; font-weight: bold; border: none;")
         self.btn_start.setDisabled(False)
+        self.btn_go_manual.setDisabled(False)
         self.anim_timer.stop()
+        # RÉACTIVE la détection vision maintenant que le robot est arrêté
+        self.camera_thread.pause_detection = False
+
+    def go_manual(self):
+        """Mode manuel : vérifie la portée et envoie le robot à la position X,Y,Z saisie."""
+        import json
+        x = self.spin_x.value()
+        y = self.spin_y.value()
+        z = self.spin_z.value()
+        target_pos = [x, y, z]
+
+        # 1. Vérifier la cinématique inverse
+        thetas = get_all_thetas(target_pos)
+        if thetas is None:
+            self.manual_status.setStyleSheet("color: #F38BA8; font-size: 13px; border: none; padding: 2px;")
+            self.manual_status.setText(f"⚠️ Hors portée ({x:+.1f}, {y:+.1f}, {z:+.1f})")
+            return
+
+        self.manual_status.setStyleSheet("color: #A6E3A1; font-size: 13px; border: none; padding: 2px;")
+        self.manual_status.setText(f"✓ Accessible — envoi en cours...")
+
+        # 2. Générer la trajectoire home → cible
+        home = [0.0, 0.0, -25.0]
+        steps = 40
+        manual_commands = []
+
+        for pts in [interpolate_joint(home, target_pos, steps),
+                    interpolate_joint(target_pos, home, steps)]:
+            for pt in pts:
+                th = get_all_thetas(pt)
+                if th is None:
+                    continue
+                t1, t2, t3 = [float(v) for v in th]
+                manual_commands.append([t1, t2, t3, False])  # pince ouverte
+
+        # 3. Sauvegarder en JSON pour PieToArduino
+        manual_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "manual_command_angles.json")
+        with open(manual_path, "w") as f:
+            json.dump(manual_commands, f)
+
+        # 4. Animer le 3D (aller seulement)
+        go_pts = interpolate_joint(home, target_pos, steps)
+        back_pts = interpolate_joint(target_pos, home, steps)
+        self.traj_points = list(go_pts) + list(back_pts)
+        self.frame_to_pick_idx = [-1] * len(self.traj_points)
+        self.current_frame = 0
+        self.anim_timer.start(50)
+
+        # 5. Lancer PieToArduino (mode manuel via arg)
+        self.btn_go_manual.setDisabled(True)
+        self.btn_start.setDisabled(True)
+        self.status_label.setText("STATUT : MODE MANUEL")
+        self.status_label.setStyleSheet("color: #CBA6F7; font-size: 18px; font-weight: bold; border: none;")
+        self.worker = WorkerThread(manual_path=manual_path)
+        self.worker.output_signal.connect(self.log_output)
+        self.worker.finished_signal.connect(self.robot_finished)
+        self.worker.start()
 
     def closeEvent(self, event):
         # Kill OpenCV Camera thread

@@ -1,6 +1,9 @@
+print(">>> Script de communication PieToArduino lancé")
 import sys
 import os
 import time
+import json
+import argparse
 import serial
 import serial.tools.list_ports
 
@@ -17,12 +20,23 @@ cin_dir = os.path.join(project_root, "CinématiqueRobot")
 
 if project_root not in sys.path:
     sys.path.append(project_root)
-
 if cin_dir not in sys.path:
     sys.path.append(cin_dir)
 
-# Import du module de génération des commandes moteurs
-from MouvementConnecte import Motor_command_angles
+# Parse les arguments AVANT d'importer MouvementConnecte (qui est lourd)
+parser = argparse.ArgumentParser(description="Envoi de commandes au robot via port série")
+parser.add_argument("--manual", metavar="JSON_PATH",
+                    help="Chemin vers un fichier JSON de commandes manuelles à envoyer directement")
+args, _ = parser.parse_known_args()
+
+if args.manual:
+    # Mode manuel : lire les angles depuis un fichier JSON
+    print(f"Mode MANUEL — chargement depuis {args.manual}")
+    with open(args.manual, 'r') as f:
+        Motor_command_angles = json.load(f)
+else:
+    # Mode auto : importer MouvementConnecte (planification complète)
+    from MouvementConnecte import Motor_command_angles
 
 
 # ===============================
@@ -37,9 +51,11 @@ def find_openrb_port():
     for p in ports:
         print(f"  {p.device} — {p.description}")
     
-    # Argument en ligne de commande ? (ex: python PieToArduino.py COM3)
-    if len(sys.argv) > 1:
-        return sys.argv[1]
+    # Argument positionnel en ligne de commande ? (ex: python PieToArduino.py COM3)
+    # On ignore les arguments --flag
+    positional_args = [a for a in sys.argv[1:] if not a.startswith('-')]
+    if positional_args:
+        return positional_args[0]
     
     # Chercher un port USB (pas Bluetooth)
     for p in ports:
@@ -87,7 +103,11 @@ def stream_commands(ser, commands, dt_s: float = 0.05):
         if ser.in_waiting > 0:
             response = ser.readline().decode('utf-8', errors='ignore').strip()
             if response:
-                print(f"  Arduino: {response}")
+                if "ALARM" in response:
+                    print(f"\n[!!!] ALERTE MATÉRIELLE : {response}")
+                    print("L'alarme rouge s'est déclenchée. Vérifie l'alimentation et la position du robot.")
+                else:
+                    print(f"  Arduino: {response}")
         
         time.sleep(dt_s)
     
@@ -111,9 +131,31 @@ def main():
     ser = serial.Serial(port, baudrate=115200, timeout=1)
     time.sleep(2)  # Attendre le reset de l'Arduino après connexion
     
-    # 3) Lire le message de bienvenue
+    # 3) Test de connexion (Ping/Pong)
+    print(">>> Test de connexion (Ping)...")
+    ser.write(b"?\n") # Envoi d'un ping
+    time.sleep(1)
+    
+    has_responded = False
     while ser.in_waiting > 0:
-        print(f"  Arduino: {ser.readline().decode('utf-8', errors='ignore').strip()}")
+        msg = ser.readline().decode('utf-8', errors='ignore').strip()
+        if msg:
+            print(f"  Arduino: {msg}")
+            if "PONG" in msg or "OpenRB" in msg:
+                has_responded = True
+    
+    if has_responded:
+        print(">>> CONNEXION BIDIRECTIONNELLE ÉTABLIE (Robot -> Python OK)")
+    else:
+        print(">>> ATTENTION : Le robot n'a pas encore répondu.")
+        print("    Essayez d'appuyer sur le bouton RESET de l'OpenRB maintenant !")
+        # Une deuxième chance après le message
+        time.sleep(2)
+        while ser.in_waiting > 0:
+            msg = ser.readline().decode('utf-8', errors='ignore').strip()
+            if msg:
+                print(f"  Arduino (après reset): {msg}")
+                has_responded = True
     
     # 4) Envoyer les commandes
     if not Motor_command_angles:

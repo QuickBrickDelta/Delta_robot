@@ -20,3 +20,4 @@ calib_flash/
 
 # Fichiers générés dynamiquement
 detected_blocks.json
+manual_command_angles.json

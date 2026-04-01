@@ -53,6 +53,38 @@ bool lastPince = false;
 bool currentPinceState = false; // État réel actuel de la pince
 bool newCommand = false;
 uint32_t cmdCount = 0;
+uint32_t lastErrorCheck = 0;
+
+// ================================
+// Diagnostic - Lecture des alarmes
+// ================================
+void checkHardErrors() {
+  uint8_t ids[] = {ID_M1, ID_M2, ID_M3};
+  
+  for (int i = 0; i < 3; i++) {
+    DEBUG_SERIAL.print("Diagnostic Moteur ");
+    DEBUG_SERIAL.print(ids[i]);
+    DEBUG_SERIAL.print(" : ");
+
+    if (dxl.ping(ids[i])) {
+      uint16_t model = dxl.getModelNumber(ids[i]);
+      uint8_t error = dxl.readControlTableItem(ControlTableItem::HARDWARE_ERROR_STATUS, ids[i]);
+      
+      DEBUG_SERIAL.print("Connecté (Modèle: ");
+      DEBUG_SERIAL.print(model);
+      DEBUG_SERIAL.print(") - Erreur: 0x");
+      DEBUG_SERIAL.println(error, HEX);
+
+      if (error > 0) {
+        DEBUG_SERIAL.print("!! ALARM: M");
+        DEBUG_SERIAL.print(ids[i]);
+        DEBUG_SERIAL.println(" !!");
+      }
+    } else {
+      DEBUG_SERIAL.println("NON TROUVÉ sur le bus !");
+    }
+  }
+}
 
 // ================================
 // Conversion angle -> ticks
@@ -69,7 +101,10 @@ int32_t thetaToTicks(float theta_rad, int32_t repos_offset) {
 // ================================
 void setup() {
   DEBUG_SERIAL.begin(115200);
-  while (!DEBUG_SERIAL) {
+  DEBUG_SERIAL.begin(115200);
+  // On ne bloque pas indéfiniment si le PC n'est pas prêt
+  uint32_t startWait = millis();
+  while (!DEBUG_SERIAL && (millis() - startWait < 1000)) {
     ;
   }
 
@@ -104,6 +139,9 @@ void setup() {
     dxl.torqueOn(ids[i]);
   }
 
+  // 3) Vérifier si les moteurs sont en alarme (voyant rouge)
+  checkHardErrors();
+
   // 3) Configurer le servo pince (PWM microseconds)
   pinceServo.attach(SERVO_PINCE_PIN, 500, 2500);
   pinceServo.writeMicroseconds(PULSE_OUVERTE);
@@ -124,6 +162,12 @@ void loop() {
     applyLastCommand();
     newCommand = false;
   }
+
+  // Vérification périodique des erreurs (toutes les 5 secondes)
+  if (millis() - lastErrorCheck > 5000) {
+    checkHardErrors();
+    lastErrorCheck = millis();
+  }
 }
 
 // ================================
@@ -137,7 +181,11 @@ void readSerialLines() {
 
     if (c == '\n') {
       lineBuf[linePos] = '\0';
-      parseCommandLine(lineBuf);
+      if (lineBuf[0] == '?') {
+        DEBUG_SERIAL.println("PONG");
+      } else {
+        parseCommandLine(lineBuf);
+      }
       linePos = 0;
     } else {
       if (linePos < LINE_BUF_SIZE - 1) {

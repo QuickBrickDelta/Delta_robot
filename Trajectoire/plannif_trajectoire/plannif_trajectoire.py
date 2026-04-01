@@ -13,8 +13,10 @@ blocs = config_traj.blocs
 home_position = config_traj.home_position
 red_output_position = config_traj.red_output_position
 blue_output_position = config_traj.blue_output_position
-green_output_position = config_traj.green_output_position
+green_dark_output_position = config_traj.green_dark_output_position
+green_light_output_position = config_traj.green_light_output_position
 yellow_output_position = config_traj.yellow_output_position
+orange_output_position = config_traj.orange_output_position
 speed_joint_move_global = config_traj.speed_joint_move_global
 speed_approach_move_global = config_traj.speed_approach_move_global
 

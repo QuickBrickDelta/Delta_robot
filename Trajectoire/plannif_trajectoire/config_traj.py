@@ -29,8 +29,10 @@ drop_bac3_position = ( math.sin(math.radians(60))*r_drop, -math.cos(math.radians
 # Mapping couleur → bac (3 bacs, 4 couleurs)
 red_output_position    = drop_bac1_position   # Bac 1
 blue_output_position   = drop_bac2_position   # Bac 2
-green_output_position  = drop_bac3_position   # Bac 3
+green_dark_output_position  = drop_bac3_position   # Bac 3
+green_light_output_position = drop_bac1_position   # Bac 1 (partagé avec red)
 yellow_output_position = drop_bac1_position   # Bac 1 (partagé avec red)
+orange_output_position = drop_bac2_position   # Bac 2 (partagé avec blue)
 
 # --- Blocs ---
 
@@ -38,10 +40,10 @@ yellow_output_position = drop_bac1_position   # Bac 1 (partagé avec red)
 blocs = np.array([
     ("red","2x4",  4.0,  -5.0, z_table),
     ("yellow","2x8", -7.0,  8.0, z_table),
-    ("green","1x4",   -5.0,  6.0, z_table),
+    ("green_dark","1x4",   -5.0,  6.0, z_table),
     ("blue","2x2",  5.0,  5.0, z_table),
     ("red","2x2",  -5.0,   0.0, z_table),
     ("yellow","2x8", 10.0,  0.5, z_table),
-    ("green","1x4",   2.0,  2.0, z_table),
+    ("green_dark","1x4",   2.0,  2.0, z_table),
     ("blue","2x2",  -5.0,  10.0, z_table)
 ], dtype=object)
