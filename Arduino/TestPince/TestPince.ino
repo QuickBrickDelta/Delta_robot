@@ -19,12 +19,18 @@ const uint32_t PROFILE_VELOCITY = 80;
 const uint32_t PROFILE_ACCELERATION = 30;
 
 // Servo pince
-const int SERVO_PIN = 3;
-const int PULSE_OUVERT = 1500;
-const int PULSE_FERME = 1700;
+int pinPince = 3;
+int pulsePinceOuvert = 1500;
+int pulsePinceFerme = 1700;
+
+// Servo poignet (Wrist)
+int pinWrist = 5;
+int pulseWristOuvert = 1500;
+int pulseWristFerme = 1700;
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
+Servo wristServo;
 
 void setup() {
   DEBUG_SERIAL.begin(115200);
@@ -47,19 +53,27 @@ void setup() {
     dxl.torqueOn(ids[i]);
   }
 
-  pinceServo.attach(SERVO_PIN, 500, 2500);
-  pinceServo.writeMicroseconds(PULSE_OUVERT);
+  pinceServo.attach(pinPince, 500, 2500);
+  pinceServo.writeMicroseconds(pulsePinceOuvert);
+
+  wristServo.attach(pinWrist, 500, 2500);
+  wristServo.writeMicroseconds(pulseWristOuvert);
 
   // Lire position initiale
   int32_t m1 = dxl.getPresentPosition(ID_M1);
   int32_t m2 = dxl.getPresentPosition(ID_M2);
   int32_t m3 = dxl.getPresentPosition(ID_M3);
 
-  DEBUG_SERIAL.println("=== TEST MOTEURS + PINCE ===");
+  DEBUG_SERIAL.println("=== TEST MOTEURS + PINCE + POIGNET ===");
   DEBUG_SERIAL.println("Commandes :");
   DEBUG_SERIAL.println("  M1,M2,M3  -> Aller a cette position (ticks)");
   DEBUG_SERIAL.println("  r         -> Lire position actuelle");
-  DEBUG_SERIAL.println("  o / f     -> Ouvrir / Fermer pince");
+  DEBUG_SERIAL.println("  o / p     -> Ouvrir / Fermer pince (Pin 3)");
+  DEBUG_SERIAL.println("  g / f     -> Ouvrir / Fermer poignet (Pin 5)");
+  DEBUG_SERIAL.println("  OP:val    -> Changer valeur Pince Ouvert");
+  DEBUG_SERIAL.println("  FP:val    -> Changer valeur Pince Ferme");
+  DEBUG_SERIAL.println("  OW:val    -> Changer valeur Poignet Ouvert");
+  DEBUG_SERIAL.println("  FW:val    -> Changer valeur Poignet Ferme");
   DEBUG_SERIAL.println("  t         -> Torque OFF (libre)");
   DEBUG_SERIAL.println("  e         -> Torque ON (verrouille)");
   DEBUG_SERIAL.print("Position actuelle: ");
@@ -94,13 +108,43 @@ void loop() {
       DEBUG_SERIAL.println(m3);
       DEBUG_SERIAL.println("--------------------------");
     }
-    // Pince (PWM)
+    // Pince (PWM Pin 3)
     else if (c == 'o' || c == 'O') {
-      pinceServo.writeMicroseconds(PULSE_OUVERT);
-      DEBUG_SERIAL.println(">> PINCE PWM OUVERTE (Pin 3)");
+      pinceServo.writeMicroseconds(pulsePinceOuvert);
+      DEBUG_SERIAL.print(">> PINCE OUVERTE: ");
+      DEBUG_SERIAL.println(pulsePinceOuvert);
+    } else if (c == 'p' || c == 'P') {
+      pinceServo.writeMicroseconds(pulsePinceFerme);
+      DEBUG_SERIAL.print(">> PINCE FERMEE: ");
+      DEBUG_SERIAL.println(pulsePinceFerme);
+    }
+    // Poignet (PWM Pin 5)
+    else if (c == 'g' || c == 'G') {
+      wristServo.writeMicroseconds(pulseWristOuvert);
+      DEBUG_SERIAL.print(">> POIGNET OUVERT: ");
+      DEBUG_SERIAL.println(pulseWristOuvert);
     } else if (c == 'f' || c == 'F') {
-      pinceServo.writeMicroseconds(PULSE_FERME);
-      DEBUG_SERIAL.println(">> PINCE PWM FERMEE (Pin 3)");
+      wristServo.writeMicroseconds(pulseWristFerme);
+      DEBUG_SERIAL.print(">> POIGNET FERME: ");
+      DEBUG_SERIAL.println(pulseWristFerme);
+    }
+    // Configuration des pulses (Format OP:1500, etc.)
+    else if (input.startsWith("OP:")) {
+      pulsePinceOuvert = input.substring(3).toInt();
+      DEBUG_SERIAL.print("OK: pulsePinceOuvert = ");
+      DEBUG_SERIAL.println(pulsePinceOuvert);
+    } else if (input.startsWith("FP:")) {
+      pulsePinceFerme = input.substring(3).toInt();
+      DEBUG_SERIAL.print("OK: pulsePinceFerme = ");
+      DEBUG_SERIAL.println(pulsePinceFerme);
+    } else if (input.startsWith("OW:")) {
+      pulseWristOuvert = input.substring(3).toInt();
+      DEBUG_SERIAL.print("OK: pulseWristOuvert = ");
+      DEBUG_SERIAL.println(pulseWristOuvert);
+    } else if (input.startsWith("FW:")) {
+      pulseWristFerme = input.substring(3).toInt();
+      DEBUG_SERIAL.print("OK: pulseWristFerme = ");
+      DEBUG_SERIAL.println(pulseWristFerme);
     }
     // Torque OFF
     else if (c == 't' || c == 'T') {
@@ -124,7 +168,7 @@ void loop() {
 
       if (dxl.ping(motorId)) {
         dxl.setGoalPosition(motorId, ticks);
-        DEBUG_SERIAL.print(">> Moteut ");
+        DEBUG_SERIAL.print(">> Moteur ");
         DEBUG_SERIAL.print(motorId);
         DEBUG_SERIAL.print(" -> GO: ");
         DEBUG_SERIAL.println(ticks);
@@ -156,7 +200,7 @@ void loop() {
       }
     } else {
       DEBUG_SERIAL.print(
-          "Commande inconnue (Aide: r, t, e, o, f, 1:2048, 2048,2048,2048): ");
+          "Commande inconnue (Aide: r, t, e, o, f, w, x, OP:1500, ...): ");
       DEBUG_SERIAL.println(input);
     }
   }
