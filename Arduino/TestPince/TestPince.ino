@@ -25,7 +25,7 @@ int pulsePinceFerme = 1700;
 
 // Servo poignet (Wrist)
 int pinWrist = 5;
-int pulseWristOuvert = 1500;
+int pulseWristOuvert = 550;
 int pulseWristFerme = 1700;
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
