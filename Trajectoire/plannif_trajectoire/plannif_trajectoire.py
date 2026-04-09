@@ -54,11 +54,11 @@ def plan_full_trajectory(blocs):
         blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
 
     # 1) Départ au home (Haut)
-    path.append((None, None, "home", speed_joint,
+    path.append((None, None, "home", speed_approach,
                  home_position[0], home_position[1], home_position[2], 0.0, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
-    path.append((None, None, "joint", speed_joint,
+    path.append((None, None, "joint", speed_approach,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
@@ -101,7 +101,7 @@ def plan_full_trajectory(blocs):
                  0, False))
 
     # 9) Retour final au home
-    path.append((None, None, "joint", speed_joint,
+    path.append((None, None, "joint", speed_approach,
                  home_position[0], home_position[1], home_position[2], 0, False))
 
     return path
