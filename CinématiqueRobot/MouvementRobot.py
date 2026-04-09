@@ -19,25 +19,17 @@ try:
         sys.path.append(config_path)
     import config_traj
     ROBOT_ROTATION_OFFSET_DEG = config_traj.ROBOT_ROTATION_OFFSET_DEG
-    ROBOT_SCALE_X = getattr(config_traj, 'ROBOT_SCALE_X', 1.0)
-    ROBOT_SCALE_Y = getattr(config_traj, 'ROBOT_SCALE_Y', 1.0)
 except ImportError:
     ROBOT_ROTATION_OFFSET_DEG = 0.0
-    ROBOT_SCALE_X = 1.0
-    ROBOT_SCALE_Y = 1.0
 
 def get_all_thetas(pos):
     """ Helper : Récupère les 3 angles pour une position XYZ donnée """
-    # --- Application du scaling (calibration vision) ---
-    x, y, z = pos
-    pos_scaled = [x * ROBOT_SCALE_X, y * ROBOT_SCALE_Y, z]
-
     offset_rad = np.radians(ROBOT_ROTATION_OFFSET_DEG)
     phis = [0 + offset_rad, np.radians(120) + offset_rad, np.radians(240) + offset_rad]
     thetas = []
     for phi in phis:
         # On tourne le point dans le repère local du moteur en question
-        p_rot = rotZ(np.array(pos_scaled), -phi)
+        p_rot = rotZ(np.array(pos), -phi)
         res = GetAngleMoteur1(p_rot[0], p_rot[1], p_rot[2], phi)
         if res[0] is None: return None # Position impossible
         thetas.append(res[0])
