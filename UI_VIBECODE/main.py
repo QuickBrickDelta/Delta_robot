@@ -13,6 +13,8 @@ if project_root not in sys.path:
 if cinematique_dir not in sys.path:
     sys.path.append(cinematique_dir)
 
+os.environ["QT_QPA_PLATFORM"] = "xcb"
+
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFrame,
                              QDoubleSpinBox, QSizePolicy, QPlainTextEdit)
@@ -119,12 +121,11 @@ class CameraThread(QThread):
             pass
 
     def run(self):
+        print("[CAM] Thread démarré (OS:", os.name, ")")
+
         if os.name == 'nt':
-            # Environnement local Windows: Webcam standard
             cap = cv2.VideoCapture(0)
         else:
-            # Environnement Raspberry Pi: Pipeline GStreamer — IDENTIQUE à bloc_detection_w_filter.py
-            # IMPORTANT: l'homographie a été calibrée avec ce pipeline (1920x1080 plein capteur)
             pipeline = (
                 'libcamerasrc af-mode=manual lens-position=3.4 ! '
                 'video/x-raw,format=NV12,width=4608,height=2592,framerate=2/1 ! '
@@ -132,11 +133,17 @@ class CameraThread(QThread):
                 'videoconvert ! video/x-raw,format=BGR ! '
                 'appsink drop=true max-buffers=1 sync=false'
             )
+
+            print("[CAM] Pipeline GStreamer utilisé :")
+            print("      ", pipeline)
             cap = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
 
         if not cap.isOpened():
+            print("[CAM] ÉCHEC ouverture caméra")
             self.status_signal.emit("Caméra introuvable")
             return
+
+        print("[CAM] Caméra ouverte avec succès")
 
         if HAS_MEDIAPIPE:
             mp_hands = mp.solutions.hands
@@ -154,12 +161,11 @@ class CameraThread(QThread):
         while self._run_flag:
             ret, frame = cap.read()
             if not ret:
+                print("[CAM] Frame non lue (ret=False)")
                 continue
 
-            # Conversion pour Qt/Mediapipe (RGB) — PAS de flip (même comportement que bloc_detection_w_filter.py)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
-            # 1. Overlay Computer Vision (Blocs) — SEULEMENT si le robot ne bouge pas
+
             if HAS_VISION and not self.pause_detection:
                 if not hasattr(self, 'H_cam'):
                     loaded = load_homography()
@@ -169,28 +175,13 @@ class CameraThread(QThread):
                     else:
                         self.H_cam = None
 
-                # Appel du NOUVEAU détecteur ("_w_filter")
-                # Il utilise ses propres variables globales pour les seuils
                 detections = detect_blocks(frame, COLOR_RANGES, h_data=None)
-                
-                # RECHERCHE DU BLOC JAUNE POUR AUTO-CALIBRATION
-                """for det in detections:
-                    if det["color"] == "yellow":
-                        cx, cy = det["center"]
-                        if self.H_cam is not None:
-                            xy_world = pix_to_world_cm((cx, cy), self.H_cam)
-                            if xy_world:
-                                self.calibr_offset_x = float(xy_world[0] - self.cam_center[0])
-                                self.calibr_offset_y = float(xy_world[1] - self.cam_center[1])
-                        break # Un seul bloc jaune suffit"""
-                
                 current_blocks = []
                 for det in detections:
                     box = np.array(det["box"], dtype=np.int32)
                     cx, cy = det["center"]
                     col = det["color"]
-                    
-                    # Couleurs en RGB pour dessiner sur l'image Qt
+
                     color_rgb = {
                         "red": (255, 0, 0),
                         "green_dark": (0, 150, 0), "green_light": (144, 238, 144),
@@ -200,60 +191,54 @@ class CameraThread(QThread):
 
                     cv2.drawContours(rgb, [box], 0, color_rgb, 2)
                     cv2.circle(rgb, (int(cx), int(cy)), 5, color_rgb, -1)
-                    
+
                     label = f"{col}"
                     if self.H_cam is not None:
                         xy_world = pix_to_world_cm((cx, cy), self.H_cam)
                         if xy_world:
                             raw_Xcm = float(xy_world[0] - self.cam_center[0])
                             raw_Ycm = float(xy_world[1] - self.cam_center[1])
-                            
-                            # C'est ICI qu'on applique la calibration dynamique du jaune :
+
                             Xcm = raw_Xcm - self.calibr_offset_x
                             Ycm = raw_Ycm - self.calibr_offset_y
-                            
-                            # --- SÉCURITÉ : CLAMP MÉCANIQUE ---
+
                             R_MAX = 22.0
                             r_current = (Xcm**2 + Ycm**2)**0.5
                             if r_current > R_MAX:
                                 Xcm = Xcm * (R_MAX / r_current)
                                 Ycm = Ycm * (R_MAX / r_current)
                                 label += " [LIMITE]"
-                                
+
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
-                            
                             current_blocks.append([col, "2x4", round(-Xcm, 2), round(Ycm, 2), float(self.z_table)])
-                            
+
                     cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
-                                
+
                 self.latest_blocks = current_blocks
 
-            # 2. Overlay Mediapipe (Mains)..
             if hands:
                 result = hands.process(rgb)
-                # Dessin des points de repère de la main
                 if result.multi_hand_landmarks:
                     for hand_landmarks in result.multi_hand_landmarks:
                         mp_drawing.draw_landmarks(
                             rgb, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-            
-            # Convertir pour PyQt
+
             h, w, ch = rgb.shape
             bytes_per_line = ch * w
             qt_image = QImage(rgb.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
-            
-            # Redimensionner l'image pour l'UI
             p = qt_image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
             self.change_pixmap_signal.emit(p)
 
         if hands:
             hands.close()
         cap.release()
+        print("[CAM] Thread caméra terminé proprement")
 
     def stop(self):
         self._run_flag = False
         self.wait()
+
 
 class VibeCodeUI(QMainWindow):
     def __init__(self):
