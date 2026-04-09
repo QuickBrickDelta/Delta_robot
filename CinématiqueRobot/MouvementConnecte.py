@@ -90,7 +90,8 @@ for step in Trajectory:
         code_mouv = "G"  # Gripper action — maintenir position + changer pince
 
     if code_mouv:
-        Motor_command_xyz.append([x, y, z, code_mouv])
+        angle = float(step[7])  # Récupérer l'angle depuis la trajectoire
+        Motor_command_xyz.append([x, y, z, code_mouv, angle])
         pince_states.append(pince_fermee)
 
 
@@ -155,7 +156,7 @@ if Motor_command_xyz:
                 continue
 
             theta1, theta2, theta3 = [float(t) for t in thetas]
-            Motor_command_angles.append([theta1, theta2, theta3, pince_seg])
+            Motor_command_angles.append([theta1, theta2, theta3, pince_seg, angle])
 
         current_pos = pos_xyz
 
