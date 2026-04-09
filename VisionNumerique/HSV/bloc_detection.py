@@ -306,7 +306,8 @@ def detect_blocks(bgr, color_ranges, h_data=None):
             if not _is_rectangle_approx(c, RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN):
                 continue
                 
-            if _region_uniformity_lab(bgr, c) > COLOR_STD_THRESH:
+            std_ab, coverage = _region_uniformity_lab(bgr, c)
+            if std_ab > COLOR_STD_THRESH:
                 continue
             
             if _dominant_fraction(bgr, c, ranges) < DOMINANT_FRAC_THRESH:

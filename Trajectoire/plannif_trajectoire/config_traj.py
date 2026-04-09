@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # --- Paramètres globaux ---
-ROBOT_ROTATION_OFFSET_DEG = -38.0    # Ajuster si les axes X/Y sont décalés par rapport au châssis
+ROBOT_ROTATION_OFFSET_DEG = -30.0    # Ajuster si les axes X/Y sont décalés par rapport au châssis
 MAX_BLOCS_OPTIMAL = 7
 speed_joint_move_global = 40.0  # cm/s
 speed_approach_move_global = 15.0  # cm/s
@@ -14,7 +14,7 @@ speed_approach_move_global = 15.0  # cm/s
 
 z_table = -35.0    # Hauteur de la table adaptée pour Lc=15/Lb=32
 z_drop = z_table + 5
-z_home = -17.0        # Hauteur de sécurité (Home - Mise à jour)
+z_home = -19.0        # Hauteur de sécurité (Home - Mise à jour)
 z_home_intermediaire = z_table + 5.0 # Hauteur intermédiaire pour sortie/entrée clean
 
 home_position = (0.0, 0.0, z_home)
