@@ -106,12 +106,12 @@ if Motor_command_xyz:
 
     for i in range(1, len(Motor_command_xyz)):
         target_pt = Motor_command_xyz[i]
-        pos_xyz = target_pt[:3]
+        pos_xyz = target_pt[0:3]
         mode = target_pt[3]
+        angle = target_pt[4] # Récupérer l'angle
         pince_seg = pince_states[i]
         
         # Récupérer la vitesse depuis la trajectoire d'origine
-        # Note: Trajectory[i] correspond à target_pt
         speed = float(Trajectory[i][3]) if i < len(Trajectory) else 20.0
         if speed <= 0: speed = 20.0
 
@@ -122,7 +122,7 @@ if Motor_command_xyz:
                 theta1, theta2, theta3 = [float(t) for t in thetas]
                 # Maintenir 0.5s pour la pince (25 steps à 50Hz)
                 for _ in range(25):
-                    Motor_command_angles.append([theta1, theta2, theta3, pince_seg])
+                    Motor_command_angles.append([theta1, theta2, theta3, pince_seg, angle])
             continue
 
         # Calcul de la distance
