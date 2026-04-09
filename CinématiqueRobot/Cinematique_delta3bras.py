@@ -3,11 +3,32 @@ import matplotlib.pyplot as plt
 
 
 # --- Paramètres du robot ---
-f = 5.5  # Rayon base moteur
-e = 4   # Rayon effecteur
-r_parralelogramme = 5 
-Lc = 15  # Longueur bras supérieur
-Lb = 32.5 # Longueur bras inférieur 
+# --- Paramètres du robot ---
+f_base = 5.5  # Rayon base moteur
+e_eff  = 4    # Rayon effecteur
+Lc_arm = 15   # Longueur bras supérieur
+Lb_arm = 32.5 # Longueur bras inférieur 
+r_par  = 5    # Rayon parallélogramme
+
+# On récupère l'échelle de calibration
+try:
+    import sys, os
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(project_root, "Trajectoire", "plannif_trajectoire")
+    if config_path not in sys.path: sys.path.append(config_path)
+    import config_traj
+    scale = getattr(config_traj, 'ROBOT_CALIBRATION_SCALE', 1.0)
+except:
+    scale = 1.0
+
+# On divise les dimensions par l'échelle. 
+# Si scale = 1.5, le robot "mathématique" est plus petit, 
+# donc il commandera des angles plus grands, ce qui fera aller le robot réel plus loin.
+f = f_base / scale
+e = e_eff  / scale
+Lc = Lc_arm / scale
+Lb = Lb_arm / scale
+r_parralelogramme = r_par / scale
 
 def rotZ(p, phi):
     """Rotation d'un point p autour de l'axe Z (rad)."""
