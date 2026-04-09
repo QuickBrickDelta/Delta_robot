@@ -158,6 +158,10 @@ if Motor_command_xyz:
             theta1, theta2, theta3 = [float(t) for t in thetas]
             Motor_command_angles.append([theta1, theta2, theta3, pince_seg, angle])
 
+        # Diagnostic léger toutes les 50 commandes générées
+        if len(Motor_command_angles) % 50 == 0:
+            print(f"  [DEBUG] Cmd #{len(Motor_command_angles)}: XYZ=({pos_xyz[0]:.1f}, {pos_xyz[1]:.1f}, {pos_xyz[2]:.1f}) P={pince_seg} W={angle:.1f}°")
+
         current_pos = pos_xyz
 
     # Debug : afficher les transitions de pince

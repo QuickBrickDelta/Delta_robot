@@ -25,7 +25,7 @@ int32_t REPOS_M3 = 0;
 const float THETA_CALIB = 2.2897f; // rad (~131.2°)
 
 // Ticks par radian (4095 ticks / tour complet)
-const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
+const float TICKS_PER_RAD = 4096.0f / (2.0f * PI); // 4096 pour Dynamixel (0-4095)
 
 // ================================
 // Vitesse et pince (servo PWM)
@@ -36,8 +36,8 @@ const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince
 const int SERVO_WRIST_PIN = 5;            // Pin PWM du servo poignet
 const int PULSE_OUVERTE = 1500;
 const int PULSE_FERMEE = 1750;
-const int PULSE_WRIST_MIN = 550;          // Valeur TestPince (0 deg)
-const int PULSE_WRIST_MAX = 1700;         // Valeur TestPince (90 deg)
+const int PULSE_WRIST_0_DEG  = 1700;        // Valeur pour 0 deg (Ouvert)
+const int PULSE_WRIST_90_DEG = 550;         // Valeur pour 90 deg
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
@@ -46,7 +46,7 @@ Servo wristServo;
 // ================================
 // Variables
 // ================================
-const size_t LINE_BUF_SIZE = 64;
+const size_t LINE_BUF_SIZE = 128; // Augmenté pour éviter les débordements
 char lineBuf[LINE_BUF_SIZE];
 size_t linePos = 0;
 
@@ -101,6 +101,8 @@ void checkHardErrors() {
 // Au boot (theta == THETA_CALIB) → delta = 0 → position = REPOS ✓
 
 int32_t thetaToTicks(float theta_rad, int32_t repos_offset) {
+  // theta_rad est en RADIANS (reçu du Python)
+  // tick = REPOS - (theta - THETA_CALIB) * TICKS_PER_RAD
   return repos_offset - (int32_t)((theta_rad - THETA_CALIB) * TICKS_PER_RAD);
 }
 
@@ -212,9 +214,9 @@ void readSerialLines() {
 // Parsing CSV
 // ================================
 void parseCommandLine(const char *line) {
-  char buf[LINE_BUF_SIZE];
-  strncpy(buf, line, LINE_BUF_SIZE);
-  buf[LINE_BUF_SIZE - 1] = '\0';
+  char buf[128];
+  strncpy(buf, line, 128);
+  buf[127] = '\0';
 
   float vals[5];
   int count = 0;
@@ -272,11 +274,16 @@ void applyLastCommand() {
   if (abs(lastWristAngle - currentWristAngle) > 0.5f) {
     currentWristAngle = lastWristAngle;
     
-    // Mapping : 0 deg -> PULSE_WRIST_MIN (550), 90 deg -> PULSE_WRIST_MAX (1700)
-    // On peut ajuster ce ratio selon la rotation réelle nécessaire.
-    float pulse = PULSE_WRIST_MIN + (currentWristAngle * (float)(PULSE_WRIST_MAX - PULSE_WRIST_MIN) / 90.0f);
+    // Mapping INVERSÉ : 0 deg -> 1700 (PULSE_WRIST_0_DEG), 90 deg -> 550 (PULSE_WRIST_90_DEG)
+    float angle_clamped = currentWristAngle;
+    if (angle_clamped < 0) angle_clamped = 0.0f;
+    if (angle_clamped > 90.0f) angle_clamped = 90.0f;
+
+    // Calcul : On part de 1700 et on retire proportionnellement à l'angle
+    float range = (float)(PULSE_WRIST_0_DEG - PULSE_WRIST_90_DEG);
+    float pulse = (float)PULSE_WRIST_0_DEG - (angle_clamped * (range / 90.0f));
     
-    // Sécurité : bornes du servo
+    // Sécurité : bornes physiques du servo
     int finalPulse = constrain((int)pulse, 500, 2500);
     wristServo.writeMicroseconds(finalPulse);
   }

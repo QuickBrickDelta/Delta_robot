@@ -12,8 +12,8 @@ OFFSET_MULTIPLICATOR = 1.2
 # --- Calibration Servos PWM ---
 PULSE_PINCE_OUVERTE = 1500
 PULSE_PINCE_FERMEE  = 1750
-PULSE_WRIST_0_DEG   = 550   # Valeur calibrée pour rotation 0° (Ouvert)
-PULSE_WRIST_90_DEG  = 1700  # Valeur calibrée pour rotation 90° (Fermé)
+PULSE_WRIST_0_DEG   = 1700  # Valeur calibrée pour 0° (Ouvert)
+PULSE_WRIST_90_DEG  = 550   # Valeur calibrée pour 90°
 # --- Coordonnées du Robot (Centimètres) ---
 # Le robot travaille en Z NEGATIF (sous les moteurs).
 # Avec Lc=15 et Lb=32:
