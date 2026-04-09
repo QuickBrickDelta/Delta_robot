@@ -65,8 +65,15 @@ def plan_full_trajectory(blocs):
                  0.0, False))
 
     for bloc in blocs_sorted:
-        couleur, bloc_type, x, y, angle = bloc
-        p_bloc = (float(x), float(y), config_traj.z_table)
+        # bloc format: (couleur, bloc_type, x, y, z, angle)
+        if len(bloc) >= 6:
+            couleur, bloc_type, x, y, z_ignored, angle = bloc
+            p_bloc = (float(x), float(y), config_traj.z_table)
+        else:
+            # Fallback pour compatibilité ancienne
+            couleur, bloc_type, x, y, angle = bloc
+            p_bloc = (float(x), float(y), config_traj.z_table)
+            
         p_out  = output_pos_for_color(couleur)
 
         # 2) Aller au-dessus du bloc (pince ouverte)

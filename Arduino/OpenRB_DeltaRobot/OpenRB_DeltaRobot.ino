@@ -32,13 +32,16 @@ const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
 // ================================
 const uint32_t PROFILE_VELOCITY = 120;    // Plus rapide (ancien: 50)
 const uint32_t PROFILE_ACCELERATION = 40; // Lissage accélération/décélération
-const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince (~3)
-const int PULSE_OUVERTE =
-    1500;                      // Pulse ouvert (microsecondes) - Réduit à 90 deg
-const int PULSE_FERMEE = 1750; // Pulse fermé (microsecondes) - Réduit à 90 deg
+const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince
+const int SERVO_WRIST_PIN = 5;            // Pin PWM du servo poignet
+const int PULSE_OUVERTE = 1500;
+const int PULSE_FERMEE = 1750;
+const int PULSE_WRIST_MIN = 550;          // Valeur TestPince (0 deg)
+const int PULSE_WRIST_MAX = 1700;         // Valeur TestPince (90 deg)
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
+Servo wristServo;
 
 // ================================
 // Variables
@@ -51,7 +54,10 @@ float lastTheta1 = 0.0f;
 float lastTheta2 = 0.0f;
 float lastTheta3 = 0.0f;
 bool lastPince = false;
+float lastWristAngle = 0.0f; // Nouvel angle en degrés
+
 bool currentPinceState = false; // État réel actuel de la pince
+float currentWristAngle = -999.0f; // Pour ne bouger que sur changement
 bool newCommand = false;
 uint32_t cmdCount = 0;
 uint32_t lastErrorCheck = 0;
@@ -144,14 +150,17 @@ void setup() {
   // 3) Vérifier si les moteurs sont en alarme (voyant rouge)
   checkHardErrors();
 
-  // 3) Configurer le servo pince (PWM microseconds)
+  // 3) Configurer les servos (PWM microseconds)
   pinceServo.attach(SERVO_PINCE_PIN, 500, 2500);
   pinceServo.writeMicroseconds(PULSE_OUVERTE);
+
+  wristServo.attach(SERVO_WRIST_PIN, 500, 2500);
+  wristServo.writeMicroseconds(PULSE_WRIST_MIN);
 
   DEBUG_SERIAL.print("Velocity=");
   DEBUG_SERIAL.println(PROFILE_VELOCITY);
   DEBUG_SERIAL.println(
-      "Pret. Place le robot au HOME (0,0,-20) avant de demarrer !");
+      "Pret. Poignet actif sur PIN 5. Place le robot au HOME !");
 }
 
 // ================================
@@ -207,26 +216,25 @@ void parseCommandLine(const char *line) {
   strncpy(buf, line, LINE_BUF_SIZE);
   buf[LINE_BUF_SIZE - 1] = '\0';
 
-  float vals[4];
+  float vals[5];
   int count = 0;
 
   char *token = strtok(buf, ",");
-  while (token != NULL && count < 4) {
+  while (token != NULL && count < 5) {
     vals[count] = atof(token);
     count++;
     token = strtok(NULL, ",");
   }
 
-  if (count < 4) {
-    DEBUG_SERIAL.print("ERR: ");
-    DEBUG_SERIAL.println(line);
-    return;
+  if (count < 5) {
+    return; // Ignorer les lignes incomplètes
   }
 
   lastTheta1 = vals[0];
   lastTheta2 = vals[1];
   lastTheta3 = vals[2];
   lastPince = (vals[3] >= 0.5f);
+  lastWristAngle = vals[4];
 
   newCommand = true;
   cmdCount++;
@@ -235,29 +243,41 @@ void parseCommandLine(const char *line) {
   if (cmdCount % 30 == 0) {
     DEBUG_SERIAL.print("#");
     DEBUG_SERIAL.print(cmdCount);
-    DEBUG_SERIAL.print(" [");
+    DEBUG_SERIAL.print(" [Ticks=");
     DEBUG_SERIAL.print(thetaToTicks(lastTheta1, REPOS_M1));
     DEBUG_SERIAL.print(",");
     DEBUG_SERIAL.print(thetaToTicks(lastTheta2, REPOS_M2));
     DEBUG_SERIAL.print(",");
     DEBUG_SERIAL.print(thetaToTicks(lastTheta3, REPOS_M3));
     DEBUG_SERIAL.print("] P=");
-    DEBUG_SERIAL.println(lastPince ? "FERME" : "OUVERT");
+    DEBUG_SERIAL.print(lastPince ? "F" : "O");
+    DEBUG_SERIAL.print(" W=");
+    DEBUG_SERIAL.println(lastWristAngle);
   }
 }
 
 void applyLastCommand() {
-  // 1) Moteurs Dynamixel — toujours appliqués
+  // 1) Moteurs Dynamixel
   dxl.setGoalPosition(ID_M1, thetaToTicks(lastTheta1, REPOS_M1));
   dxl.setGoalPosition(ID_M2, thetaToTicks(lastTheta2, REPOS_M2));
   dxl.setGoalPosition(ID_M3, thetaToTicks(lastTheta3, REPOS_M3));
 
-  // 2) Servo pince — actionner UNIQUEMENT sur changement d'état
+  // 2) Servo pince — uniquement sur changement
   if (lastPince != currentPinceState) {
     currentPinceState = lastPince;
-    pinceServo.writeMicroseconds(currentPinceState ? PULSE_FERMEE
-                                                   : PULSE_OUVERTE);
-    DEBUG_SERIAL.print(">> PINCE ");
-    DEBUG_SERIAL.println(currentPinceState ? "FERMEE" : "OUVERTE");
+    pinceServo.writeMicroseconds(currentPinceState ? PULSE_FERMEE : PULSE_OUVERTE);
+  }
+
+  // 3) Servo Poignet — uniquement sur changement significatif (> 0.5 deg)
+  if (abs(lastWristAngle - currentWristAngle) > 0.5f) {
+    currentWristAngle = lastWristAngle;
+    
+    // Mapping : 0 deg -> PULSE_WRIST_MIN (550), 90 deg -> PULSE_WRIST_MAX (1700)
+    // On peut ajuster ce ratio selon la rotation réelle nécessaire.
+    float pulse = PULSE_WRIST_MIN + (currentWristAngle * (float)(PULSE_WRIST_MAX - PULSE_WRIST_MIN) / 90.0f);
+    
+    // Sécurité : bornes du servo
+    int finalPulse = constrain((int)pulse, 500, 2500);
+    wristServo.writeMicroseconds(finalPulse);
   }
 }
