@@ -13,7 +13,8 @@ if project_root not in sys.path:
 if cinematique_dir not in sys.path:
     sys.path.append(cinematique_dir)
 
-os.environ["QT_QPA_PLATFORM"] = "xcb"
+if sys.platform != "win32":
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFrame,

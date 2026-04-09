@@ -11,7 +11,11 @@ orange_output_position = config_traj.orange_output_position
 
 ## Get position functions
 def bloc_pos(bloc):
-    couleur,bloc_type, x, y, angle = bloc
+    # Supporte 5 ou 6 éléments [couleur, type, x, y, z, angle] ou [couleur, type, x, y, angle]
+    if len(bloc) >= 6:
+        couleur, bloc_type, x, y, z, angle = bloc
+    else:
+        couleur, bloc_type, x, y, angle = bloc
     return (float(x), float(y), 0.0)
 
 def output_pos_for_color(color):
@@ -26,7 +30,10 @@ def output_pos_for_color(color):
 
 ## Cost calculation functions
 def cost_do_bloc_from(pos, bloc):
-    c, bloc_type, x, y, angle = bloc
+    if len(bloc) >= 6:
+        c, bloc_type, x, y, z, angle = bloc
+    else:
+        c, bloc_type, x, y, angle = bloc
     p_bloc = (float(x), float(y), 0.0)
     p_out  = output_pos_for_color(c)
     return distance_between_3_points(pos, p_bloc, p_out)
@@ -34,8 +41,11 @@ def cost_do_bloc_from(pos, bloc):
 ## Distance calculation functions
 def distance_from_output(bloc):
     """Calcule la distance entre un bloc et sa position de sortie."""
-    couleur, bloc_type, x, y, angle = bloc
-    z = 0  # Tous les blocs sont au niveau z=0
+    if len(bloc) >= 6:
+        couleur, bloc_type, x, y, z, angle = bloc
+    else:
+        couleur, bloc_type, x, y, angle = bloc
+    z = 0  # Tous les blocs sont au niveau z=0 pour le calcul 2D
     if couleur == 'red':
         output_pos = red_output_position
     elif couleur == 'blue':
