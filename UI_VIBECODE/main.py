@@ -568,11 +568,12 @@ class VibeCodeUI(QMainWindow):
             raw_blocks = self.camera_thread.latest_blocks if hasattr(self, 'camera_thread') else []
             # Appliquer l'offset X de calibration (défini dans config_traj)
             x_offset = getattr(config_traj, 'DETECTION_X_OFFSET_CM', 0.0)
+            x_offset_multiplicator = getattr(config_traj, 'OFFSET_MULTIPLICATOR', 0.0)
             adjusted_blocks = []
             for bloc in raw_blocks:
                 # bloc = [couleur, type, x, y, z]
                 adjusted = list(bloc)
-                adjusted[2] = round(float(adjusted[2]) + x_offset, 2)
+                adjusted[2] = round(float(adjusted[2])*x_offset_multiplicator + x_offset, 2)
                 adjusted_blocks.append(adjusted)
             json.dump(adjusted_blocks, f)
                 
