@@ -19,8 +19,8 @@ const uint32_t PROFILE_VELOCITY = 80;
 const uint32_t PROFILE_ACCELERATION = 30;
 
 // Servo pince
-const int SERVO_PIN = 5;
-const int PULSE_OUVERT = 1350;
+const int SERVO_PIN = 3;
+const int PULSE_OUVERT = 1500;
 const int PULSE_FERME = 1700;
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
