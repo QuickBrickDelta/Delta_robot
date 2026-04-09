@@ -3,10 +3,8 @@ import matplotlib.pyplot as plt
 
 # --- Paramètres globaux ---
 ROBOT_ROTATION_OFFSET_DEG = -30.0    # Ajuster si les axes X/Y sont décalés par rapport au châssis
-ROBOT_CALIBRATION_SCALE = 1.0       # Échelle de mouvement (ex: 1.1 = +10% de portée). Corrige X, Y et Z.
 MAX_BLOCS_OPTIMAL = 7
-speed_joint_move_global = 40.0  # cm/s (Vitesse normale entre les blocs)
-speed_homing_global = 12.0     # cm/s (Vitesse lente pour départ/retour sécurité)
+speed_joint_move_global = 40.0  # cm/s
 speed_approach_move_global = 15.0  # cm/s
 
 # --- Coordonnées du Robot (Centimètres) ---

@@ -18,7 +18,6 @@ green_light_output_position = config_traj.green_light_output_position
 yellow_output_position = config_traj.yellow_output_position
 orange_output_position = config_traj.orange_output_position
 speed_joint_move_global = config_traj.speed_joint_move_global
-speed_homing_global = getattr(config_traj, 'speed_homing_global', 12.0)
 speed_approach_move_global = config_traj.speed_approach_move_global
 
 # Importer les fonctions depuis animation_and_plot_traj.py
@@ -43,7 +42,6 @@ def plan_full_trajectory(blocs):
     # path: [(bloc_carried, bloc_type, movement_type, speed, x, y, z, angle, pince_fermee), ...]
     path = []
     speed_joint = speed_joint_move_global
-    speed_homing = speed_homing_global
     speed_approach = speed_approach_move_global
     distance_approach = 10.0
 
@@ -60,7 +58,7 @@ def plan_full_trajectory(blocs):
                  home_position[0], home_position[1], home_position[2], 0.0, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
-    path.append((None, None, "joint", speed_homing,
+    path.append((None, None, "joint", speed_joint,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
@@ -96,14 +94,14 @@ def plan_full_trajectory(blocs):
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
 
     # 8) Point de passage centre table (rentrée smooth)
-    path.append((None, None, "joint", speed_homing,
+    path.append((None, None, "joint", speed_joint,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
                  0, False))
 
     # 9) Retour final au home
-    path.append((None, None, "joint", speed_homing,
+    path.append((None, None, "joint", speed_joint,
                  home_position[0], home_position[1], home_position[2], 0, False))
 
     return path
