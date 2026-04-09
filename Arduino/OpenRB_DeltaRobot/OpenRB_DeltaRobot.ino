@@ -33,8 +33,9 @@ const float TICKS_PER_RAD = 4095.0f / (2.0f * PI);
 const uint32_t PROFILE_VELOCITY = 120;    // Plus rapide (ancien: 50)
 const uint32_t PROFILE_ACCELERATION = 40; // Lissage accélération/décélération
 const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince (~3)
-const int PULSE_OUVERTE = 1250;           // Pulse ouvert (microsecondes) - Réduit à 90 deg
-const int PULSE_FERMEE = 1750;            // Pulse fermé (microsecondes) - Réduit à 90 deg
+const int PULSE_OUVERTE =
+    1500;                      // Pulse ouvert (microsecondes) - Réduit à 90 deg
+const int PULSE_FERMEE = 1750; // Pulse fermé (microsecondes) - Réduit à 90 deg
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
@@ -60,7 +61,7 @@ uint32_t lastErrorCheck = 0;
 // ================================
 void checkHardErrors() {
   uint8_t ids[] = {ID_M1, ID_M2, ID_M3};
-  
+
   for (int i = 0; i < 3; i++) {
     DEBUG_SERIAL.print("Diagnostic Moteur ");
     DEBUG_SERIAL.print(ids[i]);
@@ -68,8 +69,9 @@ void checkHardErrors() {
 
     if (dxl.ping(ids[i])) {
       uint16_t model = dxl.getModelNumber(ids[i]);
-      uint8_t error = dxl.readControlTableItem(ControlTableItem::HARDWARE_ERROR_STATUS, ids[i]);
-      
+      uint8_t error = dxl.readControlTableItem(
+          ControlTableItem::HARDWARE_ERROR_STATUS, ids[i]);
+
       DEBUG_SERIAL.print("Connecté (Modèle: ");
       DEBUG_SERIAL.print(model);
       DEBUG_SERIAL.print(") - Erreur: 0x");
