@@ -210,7 +210,9 @@ class CameraThread(QThread):
                                 label += " [LIMITE]"
 
                             label += f" | X={Xcm:+.1f} Y={Ycm:+.1f}"
-                            current_blocks.append([col, "2x4", round(-Xcm, 2), round(Ycm, 2), float(self.z_table)])
+                            angle_deg = det.get("angle", 0.0)   # si ton détecteur fournit un angle
+                            current_blocks.append([col, "2x4", round(-Xcm, 2), round(Ycm, 2), float(self.z_table), angle_deg])
+
 
                     cv2.putText(rgb, label, (int(cx) + 8, int(cy) - 8),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.55, color_rgb, 2, cv2.LINE_AA)
@@ -571,7 +573,7 @@ class VibeCodeUI(QMainWindow):
             x_offset_multiplicator = getattr(config_traj, 'OFFSET_MULTIPLICATOR', 0.0)
             adjusted_blocks = []
             for bloc in raw_blocks:
-                # bloc = [couleur, type, x, y, z]
+                # bloc = [couleur, type, x, y, z, angle]
                 adjusted = list(bloc)
                 adjusted[2] = round(float(adjusted[2])*x_offset_multiplicator + x_offset, 2)
                 adjusted_blocks.append(adjusted)

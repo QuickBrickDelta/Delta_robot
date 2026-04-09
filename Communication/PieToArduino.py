@@ -89,13 +89,20 @@ def stream_commands(ser, commands, dt_s: float = 0.02):
     print(f"\nEnvoi de {len(commands)} commandes (dt = {dt_s}s)...")
     
     for idx, cmd in enumerate(commands):
-        if len(cmd) != 4:
-            print(f"Commande #{idx} invalide (attendu 4 éléments) : {cmd}")
+        if len(cmd) != 5:
+            print(f"Commande #{idx} invalide (attendu 5 éléments) : {cmd}")
             continue
 
-        theta1, theta2, theta3, pince_fermee = cmd
-        # Ligne CSV identique au format attendu par l'Arduino
-        line = f"{float(theta1)},{float(theta2)},{float(theta3)},{1 if pince_fermee else 0}\n"
+        theta1, theta2, theta3, pince_fermee, angle_deg = cmd
+
+        line = (
+            f"{float(theta1)},"
+            f"{float(theta2)},"
+            f"{float(theta3)},"
+            f"{1 if pince_fermee else 0},"
+            f"{float(angle_deg)}\n"
+        )
+
         
         ser.write(line.encode('utf-8'))
         
