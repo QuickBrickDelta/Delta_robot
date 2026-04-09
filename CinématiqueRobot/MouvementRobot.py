@@ -24,12 +24,20 @@ except ImportError:
 
 def get_all_thetas(pos):
     """ Helper : Récupère les 3 angles pour une position XYZ donnée """
+    # --- Compensation du Z lié au scale ---
+    # Le scale réduit les dimensions virtuelles du robot. Sans compensation,
+    # Z est aussi affecté et le robot descend trop bas.
+    # On divise Z par le scale pour annuler cet effet : Z_physique = Z_cible.
+    scale = getattr(config_traj, 'ROBOT_CALIBRATION_SCALE', 1.0)
+    x, y, z = pos
+    pos_comp = [x, y, z / scale]
+
     offset_rad = np.radians(ROBOT_ROTATION_OFFSET_DEG)
     phis = [0 + offset_rad, np.radians(120) + offset_rad, np.radians(240) + offset_rad]
     thetas = []
     for phi in phis:
         # On tourne le point dans le repère local du moteur en question
-        p_rot = rotZ(np.array(pos), -phi)
+        p_rot = rotZ(np.array(pos_comp), -phi)
         res = GetAngleMoteur1(p_rot[0], p_rot[1], p_rot[2], phi)
         if res[0] is None: return None # Position impossible
         thetas.append(res[0])
