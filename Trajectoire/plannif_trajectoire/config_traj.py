@@ -6,6 +6,7 @@ ROBOT_ROTATION_OFFSET_DEG = -30.0    # Ajuster si les axes X/Y sont décalés pa
 MAX_BLOCS_OPTIMAL = 7
 speed_joint_move_global = 40.0  # cm/s
 speed_approach_move_global = 15.0  # cm/s
+DETECTION_X_OFFSET_CM = 2.0  # Offset X (cm) appliqué aux positions détectées → valeur écrite dans detected_blocks.json
 
 # --- Coordonnées du Robot (Centimètres) ---
 # Le robot travaille en Z NEGATIF (sous les moteurs).
