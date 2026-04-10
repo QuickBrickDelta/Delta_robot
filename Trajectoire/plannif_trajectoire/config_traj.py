@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 # --- Paramètres globaux ---
 ROBOT_ROTATION_OFFSET_DEG = -30.0    # Ajuster si les axes X/Y sont décalés par rapport au châssis
 MAX_BLOCS_OPTIMAL = 7
-speed_joint_move_global = 40.0  # cm/s
-speed_approach_move_global = 15.0  # cm/s
+speed_joint_move_global = 55.0  # cm/s
+speed_approach_move_global = 25.0  # cm/s
+speed_approach_hub = 10.0
 DETECTION_X_OFFSET_CM = 2.0  # Offset X (cm) appliqué aux positions détectées → valeur écrite dans detected_blocks.json
 OFFSET_MULTIPLICATOR = 1.2
 
@@ -48,9 +49,8 @@ orange_output_position = drop_bac2_position   # Bac 2 (partagé avec blue)
 
 # Fixed Z values within [z_table, z_home] (no randomness)
 blocs = np.array([
-    ("red","2x4",  4.0,  -5.0, z_table),
-    ("yellow","2x8", -7.0,  8.0, z_table),
-    ("green_dark","1x4",   -5.0,  6.0, z_table),
-    ("blue","2x2",  5.0,  5.0, z_table),
-    
+    ("red", "2x4", 4.0, -5.0, z_table, 0.0),
+    ("yellow", "2x8", -7.0, 8.0, z_table, 45.0),
+    ("green_dark", "1x4", -5.0, 6.0, z_table, 90.0),
+    ("blue", "2x2", 5.0, 5.0, z_table, -45.0),
 ], dtype=object)

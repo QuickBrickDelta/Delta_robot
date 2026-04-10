@@ -67,8 +67,8 @@ pince_states = []
 Motor_command_angles = []
 
 # Nombre de commandes de pause pour laisser la pince s'ouvrir/fermer
-# 20 steps × 50ms = 1.0s de délai
-GRIPPER_HOLD_STEPS = 20
+# 8 steps × 50ms = 0.4s de délai (Divisé par ~3)
+GRIPPER_HOLD_STEPS = 8
 
 # ===============================
 # 1) Construire les waypoints XYZ + mode + pince
@@ -120,8 +120,8 @@ if Motor_command_xyz:
             thetas = get_all_thetas(current_pos)
             if thetas is not None:
                 theta1, theta2, theta3 = [float(t) for t in thetas]
-                # Maintenir 0.5s pour la pince (25 steps à 50Hz)
-                for _ in range(25):
+                # Délai réduit pour la pince
+                for _ in range(GRIPPER_HOLD_STEPS):
                     Motor_command_angles.append([theta1, theta2, theta3, pince_seg, angle])
             continue
 

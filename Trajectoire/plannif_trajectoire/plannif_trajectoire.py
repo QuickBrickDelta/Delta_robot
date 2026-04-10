@@ -19,6 +19,7 @@ yellow_output_position = config_traj.yellow_output_position
 orange_output_position = config_traj.orange_output_position
 speed_joint_move_global = config_traj.speed_joint_move_global
 speed_approach_move_global = config_traj.speed_approach_move_global
+speed_approach_hub = config_traj.speed_approach_hub
 
 # Importer les fonctions depuis animation_and_plot_traj.py
 plot_blocks_2D = animation_and_plot_traj.plot_blocks_2D
@@ -54,11 +55,11 @@ def plan_full_trajectory(blocs):
         blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
 
     # 1) Départ au home (Haut)
-    path.append((None, None, "home", speed_approach,
+    path.append((None, None, "home", speed_approach_hub,
                  home_position[0], home_position[1], home_position[2], 0.0, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
-    path.append((None, None, "joint", speed_approach,
+    path.append((None, None, "joint", speed_approach_hub,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
@@ -108,7 +109,7 @@ def plan_full_trajectory(blocs):
                  0, False))
 
     # 9) Retour final au home
-    path.append((None, None, "joint", speed_approach,
+    path.append((None, None, "joint", speed_approach_hub,
                  home_position[0], home_position[1], home_position[2], 0, False))
 
     return path
