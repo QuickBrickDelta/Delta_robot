@@ -25,7 +25,8 @@ int32_t REPOS_M3 = 0;
 const float THETA_CALIB = 2.2897f; // rad (~131.2°)
 
 // Ticks par radian (4095 ticks / tour complet)
-const float TICKS_PER_RAD = 4096.0f / (2.0f * PI); // 4096 pour Dynamixel (0-4095)
+const float TICKS_PER_RAD =
+    4096.0f / (2.0f * PI); // 4096 pour Dynamixel (0-4095)
 
 // ================================
 // Vitesse et pince (servo PWM)
@@ -34,10 +35,10 @@ const uint32_t PROFILE_VELOCITY = 120;    // Plus rapide (ancien: 50)
 const uint32_t PROFILE_ACCELERATION = 40; // Lissage accélération/décélération
 const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince
 const int SERVO_WRIST_PIN = 5;            // Pin PWM du servo poignet
-const int PULSE_OUVERTE = 1500;
-const int PULSE_FERMEE = 1750;
-const int PULSE_WRIST_0_DEG  = 1700;        // Valeur pour 0 deg (Ouvert)
-const int PULSE_WRIST_90_DEG = 550;         // Valeur pour 90 deg
+const int PULSE_OUVERTE = 1650;
+const int PULSE_FERMEE = 1850;
+const int PULSE_WRIST_0_DEG = 1700; // Valeur pour 0 deg (Ouvert)
+const int PULSE_WRIST_90_DEG = 550; // Valeur pour 90 deg
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
@@ -56,7 +57,7 @@ float lastTheta3 = 0.0f;
 bool lastPince = false;
 float lastWristAngle = 0.0f; // Nouvel angle en degrés
 
-bool currentPinceState = false; // État réel actuel de la pince
+bool currentPinceState = false;    // État réel actuel de la pince
 float currentWristAngle = -999.0f; // Pour ne bouger que sur changement
 bool newCommand = false;
 uint32_t cmdCount = 0;
@@ -157,7 +158,7 @@ void setup() {
   pinceServo.writeMicroseconds(PULSE_OUVERTE);
 
   wristServo.attach(SERVO_WRIST_PIN, 500, 2500);
-  wristServo.writeMicroseconds(PULSE_WRIST_MIN);
+  wristServo.writeMicroseconds(PULSE_WRIST_0_DEG);
 
   DEBUG_SERIAL.print("Velocity=");
   DEBUG_SERIAL.println(PROFILE_VELOCITY);
@@ -267,22 +268,26 @@ void applyLastCommand() {
   // 2) Servo pince — uniquement sur changement
   if (lastPince != currentPinceState) {
     currentPinceState = lastPince;
-    pinceServo.writeMicroseconds(currentPinceState ? PULSE_FERMEE : PULSE_OUVERTE);
+    pinceServo.writeMicroseconds(currentPinceState ? PULSE_FERMEE
+                                                   : PULSE_OUVERTE);
   }
 
   // 3) Servo Poignet — uniquement sur changement significatif (> 0.5 deg)
   if (abs(lastWristAngle - currentWristAngle) > 0.5f) {
     currentWristAngle = lastWristAngle;
-    
-    // Mapping INVERSÉ : 0 deg -> 1700 (PULSE_WRIST_0_DEG), 90 deg -> 550 (PULSE_WRIST_90_DEG)
+
+    // Mapping INVERSÉ : 0 deg -> 1700 (PULSE_WRIST_0_DEG), 90 deg -> 550
+    // (PULSE_WRIST_90_DEG)
     float angle_clamped = currentWristAngle;
-    if (angle_clamped < 0) angle_clamped = 0.0f;
-    if (angle_clamped > 90.0f) angle_clamped = 90.0f;
+    if (angle_clamped < 0)
+      angle_clamped = 0.0f;
+    if (angle_clamped > 90.0f)
+      angle_clamped = 90.0f;
 
     // Calcul : On part de 1700 et on retire proportionnellement à l'angle
     float range = (float)(PULSE_WRIST_0_DEG - PULSE_WRIST_90_DEG);
     float pulse = (float)PULSE_WRIST_0_DEG - (angle_clamped * (range / 90.0f));
-    
+
     // Sécurité : bornes physiques du servo
     int finalPulse = constrain((int)pulse, 500, 2500);
     wristServo.writeMicroseconds(finalPulse);
