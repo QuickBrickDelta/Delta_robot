@@ -47,7 +47,7 @@ COLOR_MAP = {
 # 2. FONCTIONS GÉOMÉTRIQUES DE BASE
 # =============================================================================
 
-def get_triangle_vertices(side_length=30):
+def get_triangle_vertices(side_length=37):
     """
     Calcule les sommets du triangle équilatéral de la zone de travail.
     Le triangle est centré à (0,0) avec un sommet sur l'axe X positif.
@@ -58,7 +58,7 @@ def get_triangle_vertices(side_length=30):
     v3 = np.array([-r/2, -r*np.sqrt(3)/2])
     return np.array([v1, v2, v3])
 
-def plot_triangle(side_length=30):
+def plot_triangle(side_length=37):
     """Dessine le triangle de la zone de travail."""
     vertices = get_triangle_vertices(side_length)
     triangle = np.vstack([vertices, vertices[0]])
@@ -71,7 +71,7 @@ def plot_triangle(side_length=30):
 def plot_blocks_2D(blocs):
     """Affiche les blocs détectés en 2D avec leurs angles."""
     plt.figure(figsize=(8, 8))
-    plot_triangle(30)
+    plot_triangle(37)
     
     for bloc in blocs:
         # Déballage flexible avec *_ pour ignorer les données supplémentaires
@@ -123,7 +123,8 @@ def plot_blocks_3D(blocs, home_position):
         'blue': blue_output_position,
         'green_dark': green_dark_output_position,
         'green_light': green_light_output_position,
-        'yellow': yellow_output_position
+        'yellow': yellow_output_position,
+        'orange': orange_output_position
     }
     
     for color_key, pos in outputs.items():
@@ -132,7 +133,7 @@ def plot_blocks_3D(blocs, home_position):
         ax.text(pos[0], pos[1], pos[2] + 1, f" {color_key}", fontsize=8)
 
     # Dessin du triangle au niveau de la table
-    vertices = get_triangle_vertices(side_length=30)
+    vertices = get_triangle_vertices(side_length=37)
     triangle = np.vstack([vertices, vertices[0]])
     ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k--', alpha=0.3)
     
@@ -143,7 +144,7 @@ def plot_blocks_3D(blocs, home_position):
 def plot_route_2D(order, start_pos):
     """Affiche le trajet complet : Home -> Bloc -> Sortie -> Bloc..."""
     plt.figure(figsize=(9, 9))
-    plot_triangle(30)
+    plot_triangle(37)
     
     cur_x, cur_y = start_pos[0], start_pos[1]
     plt.scatter(cur_x, cur_y, c='black', s=150, marker='^', label='Home')
@@ -206,7 +207,7 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
             frames.append((pos[0], pos[1], bool(g2), mt2, c_col2))
 
     fig, ax = plt.subplots(figsize=(8, 8))
-    plot_triangle(30)
+    plot_triangle(37)
     
     # Affichage des blocs statiques en arrière-plan (fantômes)
     if blocs:
@@ -256,7 +257,7 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     ax = fig.add_subplot(111, projection='3d')
     
     # --- ÉLÉMENTS STATIQUES ---
-    vertices = get_triangle_vertices(side_length=30)
+    vertices = get_triangle_vertices(side_length=37)
     triangle = np.vstack([vertices, vertices[0]])
     ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k--', alpha=0.3)
 
@@ -269,7 +270,7 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
             ax.scatter(bx, by, config_traj.z_table, c=c_draw, s=60, edgecolors='black', alpha=0.4)
 
     outputs = {'red': red_output_position, 'blue': blue_output_position, 
-               'green_dark': green_dark_output_position, 'yellow': yellow_output_position}
+               'green_dark': green_dark_output_position, 'yellow': yellow_output_position, 'green_light': green_light_output_position, 'orange': orange_output_position}
     for color_key, pos in outputs.items():
         c_out = COLOR_MAP.get(color_key, color_key)
         ax.scatter(pos[0], pos[1], pos[2], c=c_out, s=150, marker='s', edgecolors='black')

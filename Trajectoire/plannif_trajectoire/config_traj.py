@@ -33,7 +33,7 @@ home_intermediaire_position = (0.0, 0.0, z_home_intermediaire)
 # Pignons: 0°, 120°, 240°  →  Drops: 90°, 210°, 330°
 
 # --- Paramètres de géométrie ---
-r_drop = 22    # Distance du centre au milieu de chaque face
+r_drop = 20    # Distance du centre au milieu de chaque face
 r_next = 10.5  # Décalage entre les bacs sur une même face
 
 # --- Fonctions utilitaires pour la clarté ---
@@ -77,6 +77,8 @@ blocs = np.array([
     ("yellow", -7.0, 8.0, z_table, 45.0),
     ("green_dark", -5.0, 6.0, z_table, 90.0),
     ("blue", 5.0, 5.0, z_table, -45.0),
+    ("green_light", 0.0, -10.0, z_table, 30.0),
+    ("orange", -3.0, -4.0, z_table, -30.0)
 ], dtype=object)
 
 
