@@ -94,7 +94,18 @@ def plot_blocks_3D(blocs, home_position):
     """Visualisation 3D de l'espace de travail complet."""
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
-    
+    # Affichage des blocs sur la table (z_table)
+    if blocs is not None:
+        for b in blocs:
+            # Unpacking flexible pour supporter tes données (couleur, x, y, angle, ...)
+            c_name, *rest = b
+            # On récupère x et y dynamiquement
+            coords = [val for val in rest if isinstance(val, (int, float))]
+            bx, by = coords[0], coords[1]
+            
+            # Utilisation du mapping pour éviter le crash sur 'green_dark'
+            c_draw = COLOR_MAP.get(c_name, 'gray')
+            ax.scatter(bx, by, config_traj.z_table, c=c_draw, s=80, edgecolors='black', alpha=0.6)
     # Blocs sur la table
     for bloc in blocs:
         z = config_traj.z_table
@@ -106,19 +117,24 @@ def plot_blocks_3D(blocs, home_position):
     # Position de repos du robot (Home)
     ax.scatter(home_position[0], home_position[1], home_position[2], c='black', s=200, marker='^', label='Home')
 
-    # Boîtes de sortie
+    # Affichage des positions de sortie (Dépôts)
     outputs = {
-        'red': red_output_position, 'blue': blue_output_position,
-        'green_dark': green_dark_output_position, 'yellow': yellow_output_position
+        'red': red_output_position, 
+        'blue': blue_output_position,
+        'green_dark': green_dark_output_position,
+        'green_light': green_light_output_position,
+        'yellow': yellow_output_position
     }
-    for key, pos in outputs.items():
-        c_out = COLOR_MAP.get(key, key)
+    
+    for color_key, pos in outputs.items():
+        c_out = COLOR_MAP.get(color_key, color_key)
         ax.scatter(pos[0], pos[1], pos[2], c=c_out, s=150, marker='s', edgecolors='black')
+        ax.text(pos[0], pos[1], pos[2] + 1, f" {color_key}", fontsize=8)
 
-    # Triangle au sol
-    vertices = get_triangle_vertices(30)
-    tri = np.vstack([vertices, vertices[0]])
-    ax.plot(tri[:, 0], tri[:, 1], [config_traj.z_table]*len(tri), 'k--', alpha=0.4)
+    # Dessin du triangle au niveau de la table
+    vertices = get_triangle_vertices(side_length=30)
+    triangle = np.vstack([vertices, vertices[0]])
+    ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k--', alpha=0.3)
     
     ax.set_zlim(config_traj.z_table - 2, 5)
     ax.set_title('Environnement 3D du Delta Robot')
@@ -224,12 +240,11 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
     return ani
 
 def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.05, show_trace=True):
-    # AJOUT DE show_trace=True pour corriger le TypeError
     frames = []
     for i in range(len(full_path) - 1):
-        # Unpacking des 9 colonnes de ta trajectoire
-        c1, ct1, mt1, sp1, x1, y1, z1, a1, g1 = full_path[i]
-        c2, ct2, mt2, sp2, x2, y2, z2, a2, g2 = full_path[i+1]
+        # Unpacking des 8 colonnes
+        c1, mt1, sp1, x1, y1, z1, a1, g1 = full_path[i]
+        c2, mt2, sp2, x2, y2, z2, a2, g2 = full_path[i+1]
         p1, p2 = np.array([x1, y1, z1]), np.array([x2, y2, z2])
         dist = np.linalg.norm(p2 - p1)
         steps = max(1, int(np.ceil((dist / max(float(sp2), 0.1)) / dt)))
@@ -237,30 +252,64 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
             p = (1 - (s+1)/steps) * p1 + ((s+1)/steps) * p2
             frames.append((p[0], p[1], p[2], g2, c2))
 
-    fig = plt.figure(); ax = fig.add_subplot(111, projection='3d')
-    robot = ax.scatter([], [], [], s=140, marker='o')
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
     
-    if show_trace:
-        line, = ax.plot([], [], [], 'b-', alpha=0.3)
-        history = []
+    # --- ÉLÉMENTS STATIQUES ---
+    vertices = get_triangle_vertices(side_length=30)
+    triangle = np.vstack([vertices, vertices[0]])
+    ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k--', alpha=0.3)
 
+    if blocs is not None:
+        for b in blocs:
+            c_name, *rest = b
+            coords = [val for val in rest if isinstance(val, (int, float))]
+            bx, by = coords[0], coords[1]
+            c_draw = COLOR_MAP.get(c_name, 'gray')
+            ax.scatter(bx, by, config_traj.z_table, c=c_draw, s=60, edgecolors='black', alpha=0.4)
+
+    outputs = {'red': red_output_position, 'blue': blue_output_position, 
+               'green_dark': green_dark_output_position, 'yellow': yellow_output_position}
+    for color_key, pos in outputs.items():
+        c_out = COLOR_MAP.get(color_key, color_key)
+        ax.scatter(pos[0], pos[1], pos[2], c=c_out, s=150, marker='s', edgecolors='black')
+
+    # --- ÉLÉMENTS MOBILES ---
+    robot = ax.scatter([], [], [], s=140, marker='o', edgecolors='white', zorder=10)
+    
+    # Initialisation de la trace
+    history = [] 
+    line, = ax.plot([], [], [], 'b-', alpha=0.3)
+
+    def init():
+        # C'EST ICI QUE ÇA SE PASSE : On vide la liste history
+        history.clear() 
+        line.set_data([], [])
+        line.set_3d_properties([])
+        
+        x, y, z, grip, carried = frames[0]
+        robot._offsets3d = ([x], [y], [z])
+        robot.set_color(COLOR_MAP.get(carried, 'black') if (grip and carried) else 'black')
+        return robot, line
+    
     def update(k):
         x, y, z, grip, carried = frames[k]
         robot._offsets3d = ([x], [y], [z])
-        c_robot = COLOR_MAP.get(carried, 'black') if (grip and carried) else 'black'
-        robot.set_color(c_robot)
+        robot.set_color(COLOR_MAP.get(carried, 'black') if (grip and carried) else 'black')
+        
         if show_trace:
-            history.append([x, y, z]); h = np.array(history)
-            line.set_data(h[:,0], h[:,1]); line.set_3d_properties(h[:,2])
-        return robot,
+            history.append([x, y, z])
+            h = np.array(history)
+            line.set_data(h[:, 0], h[:, 1])
+            line.set_3d_properties(h[:, 2])
+        return robot, line
 
-    ani = FuncAnimation(fig, update, frames=len(frames), interval=int(dt*1000))
+    # L'argument repeat=True appellera init() à chaque cycle
+    ani = FuncAnimation(fig, update, frames=len(frames), init_func=init, 
+                        interval=int(dt*1000), blit=False, repeat=True)
+    
     ax.set_xlim(-20, 20)
     ax.set_ylim(-20, 20)
-    ax.set_zlim(config_traj.z_table - 2, 10) # Force la vue sur la table et le robot
-
-    ax.set_xlabel("X (cm)")
-    ax.set_ylabel("Y (cm)")
-    ax.set_zlabel("Z (cm)")
+    ax.set_zlim(config_traj.z_table - 2, 10)
     plt.show()
     return ani

@@ -55,61 +55,61 @@ def plan_full_trajectory(blocs):
         blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
 
     # 1) Départ au home (Haut)
-    path.append((None, None, "home", speed_approach_hub,
+    path.append((None, "home", speed_approach_hub,
                  home_position[0], home_position[1], home_position[2], 0.0, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
-    path.append((None, None, "joint", speed_approach_hub,
+    path.append((None, "joint", speed_approach_hub,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
                  0.0, False))
 
     for bloc in blocs_sorted:
-        # bloc format: (couleur, bloc_type, x, y, z, angle)
+        # bloc format: (couleur x, y, z, angle)
         if len(bloc) >= 6:
-            couleur, bloc_type, x, y, z_ignored, angle = bloc
+            couleur, x, y, z_ignored, angle = bloc
             p_bloc = (float(x), float(y), config_traj.z_table)
         else:
             # Fallback pour compatibilité ancienne
-            couleur, bloc_type, x, y, angle = bloc
+            couleur, x, y, z_ignored, angle = bloc
             p_bloc = (float(x), float(y), config_traj.z_table)
             
         p_out  = output_pos_for_color(couleur)
 
         # 2) Aller au-dessus du bloc (pince ouverte)
-        path.append((None, None, "joint", speed_joint,
+        path.append((None, "joint", speed_joint,
                      p_bloc[0], p_bloc[1], p_bloc[2] + distance_approach, angle, False))
 
         # 3) Descendre sur le bloc
-        path.append((None, None, "joint", speed_approach,
+        path.append((None, "joint", speed_approach,
                      p_bloc[0], p_bloc[1], p_bloc[2], angle, False))
 
         # 4) Fermer la pince
-        path.append((couleur, bloc_type, "closeGripper", 0.0,
+        path.append((couleur, "closeGripper", 0.0,
                      p_bloc[0], p_bloc[1], p_bloc[2], angle, True))
 
         # 5) Remonter avec le bloc
-        path.append((couleur, bloc_type, "joint", speed_approach,
+        path.append((couleur, "joint", speed_approach,
                      p_bloc[0], p_bloc[1], p_bloc[2] + distance_approach, angle, True))
 
         # 6) Aller au-dessus du bac de sortie
-        path.append((couleur, bloc_type, "joint", speed_joint,
+        path.append((couleur, "joint", speed_joint,
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, True))
 
         # 7) Ouvrir la pince (drop)
-        path.append((None, None, "openGripper", 0.0,
+        path.append((None, "openGripper", 0.0,
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
 
     # 8) Point de passage centre table (rentrée smooth)
-    path.append((None, None, "joint", speed_joint,
+    path.append((None, "joint", speed_joint,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
                  0, False))
 
     # 9) Retour final au home
-    path.append((None, None, "joint", speed_approach_hub,
+    path.append((None, "joint", speed_approach_hub,
                  home_position[0], home_position[1], home_position[2], 0, False))
 
     return path
