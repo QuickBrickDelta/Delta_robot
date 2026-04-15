@@ -35,10 +35,11 @@ const uint32_t PROFILE_VELOCITY = 120;    // Plus rapide (ancien: 50)
 const uint32_t PROFILE_ACCELERATION = 40; // Lissage accélération/décélération
 const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince
 const int SERVO_WRIST_PIN = 5;            // Pin PWM du servo poignet
-const int PULSE_OUVERTE = 1650;
-const int PULSE_FERMEE = 1850;
-const int PULSE_WRIST_0_DEG = 1700; // Valeur pour 0 deg (Ouvert)
-const int PULSE_WRIST_90_DEG = 550; // Valeur pour 90 deg
+const int PULSE_OUVERTE = 1845;
+const int PULSE_FERMEE = 2030;
+const int PULSE_WRIST_0_DEG = 1800; // Valeur pour 0 deg (Ouvert)
+const int PULSE_WRIST_90_DEG =
+    0; // Valeur pour 90 deg et la valeur pour -90 deg est 3600
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
@@ -157,7 +158,7 @@ void setup() {
   pinceServo.attach(SERVO_PINCE_PIN, 500, 2500);
   pinceServo.writeMicroseconds(PULSE_OUVERTE);
 
-  wristServo.attach(SERVO_WRIST_PIN, 500, 2500);
+  wristServo.attach(SERVO_WRIST_PIN, 0, 3600);
   wristServo.writeMicroseconds(PULSE_WRIST_0_DEG);
 
   DEBUG_SERIAL.print("Velocity=");
@@ -279,8 +280,8 @@ void applyLastCommand() {
     // Mapping INVERSÉ : 0 deg -> 1700 (PULSE_WRIST_0_DEG), 90 deg -> 550
     // (PULSE_WRIST_90_DEG)
     float angle_clamped = currentWristAngle;
-    if (angle_clamped < 0)
-      angle_clamped = 0.0f;
+    if (angle_clamped < -90.0f)
+      angle_clamped = -90.0f;
     if (angle_clamped > 90.0f)
       angle_clamped = 90.0f;
 
@@ -289,7 +290,7 @@ void applyLastCommand() {
     float pulse = (float)PULSE_WRIST_0_DEG - (angle_clamped * (range / 90.0f));
 
     // Sécurité : bornes physiques du servo
-    int finalPulse = constrain((int)pulse, 500, 2500);
+    int finalPulse = constrain((int)pulse, 0, 3600);
     wristServo.writeMicroseconds(finalPulse);
   }
 }
