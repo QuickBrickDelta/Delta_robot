@@ -56,7 +56,7 @@ if os.path.exists(detected_path):
     except Exception as e:
         print(f"Erreur de lecture des blocs: {e}")
 
-Trajectory = plannif_trajectoire.plan_full_trajectory(blocs)
+Trajectory, blocs_sorted = plannif_trajectoire.plan_full_trajectory(blocs)
 
 # Commandes pour la simulation (XYZ + mode L/J/G)
 Motor_command_xyz = []

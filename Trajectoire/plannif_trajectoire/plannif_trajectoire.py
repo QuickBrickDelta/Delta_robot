@@ -120,7 +120,7 @@ def plan_full_trajectory(blocs):
     path.append((None, None, "joint", speed_approach_hub,
                  home_position[0], home_position[1], home_position[2], 0, False))
 
-    return path
+    return path, blocs_sorted
 
 def main():
     #plot_blocks_2D(blocs)
@@ -149,7 +149,7 @@ def main():
     plot_route_2D(blocs_sorted, home_position)
 
     # Full trajectory
-    full_path = plan_full_trajectory(blocs_sorted)
+    full_path, _ = plan_full_trajectory(blocs_sorted)
     print("Trajectoire complète:")
     for step in full_path:
         print(step)

@@ -18,7 +18,8 @@ if sys.platform != "win32":
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFrame,
-                             QDoubleSpinBox, QSizePolicy, QPlainTextEdit)
+                             QDoubleSpinBox, QSizePolicy, QPlainTextEdit,
+                             QStackedLayout)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor, QImage, QPixmap
 
@@ -484,7 +485,12 @@ class VibeCodeUI(QMainWindow):
         plot_layout.addWidget(self.xyz_label)
         right_layout.addWidget(plot_frame, stretch=2) # Le plot prend 2/3 de l'espace
 
-        # -- Bas : Caméra
+        # -- Bas : Caméra ou 2D Plot (empilés)
+        self.bottom_stack_widget = QWidget()
+        self.bottom_stack = QStackedLayout(self.bottom_stack_widget)
+        self.bottom_stack.setContentsMargins(0, 0, 0, 0)
+        
+        # Index 0 : Caméra
         cam_frame = QFrame()
         cam_frame.setStyleSheet("""
             QFrame {
@@ -495,13 +501,33 @@ class VibeCodeUI(QMainWindow):
         """)
         cam_layout = QVBoxLayout(cam_frame)
         cam_layout.setContentsMargins(5, 5, 5, 5)
-        
         self.cam_label = QLabel("INITIALISATION DE LA CAMÉRA...")
         self.cam_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.cam_label.setStyleSheet("color: #A6ADC8; font-size: 16px; font-weight: bold; border: none;")
         cam_layout.addWidget(self.cam_label)
+        self.bottom_stack.addWidget(cam_frame)
+
+        # Index 1 : Matplotlib 2D Graph
+        plot_2d_frame = QFrame()
+        plot_2d_frame.setStyleSheet("""
+            QFrame {
+                background-color: #1E1E2E;
+                border-radius: 15px;
+                border: 2px solid #89B4FA;
+            }
+        """)
+        plot_2d_layout = QVBoxLayout(plot_2d_frame)
+        plot_2d_layout.setContentsMargins(0, 0, 0, 0)
+        self.fig_2d = plt.figure(facecolor='#1E1E2E')
+        self.fig_2d.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95)
+        self.canvas_2d = FigureCanvas(self.fig_2d)
+        self.ax_2d = self.fig_2d.add_subplot(111)
+        self.ax_2d.set_facecolor('#1E1E2E')
+        self.ax_2d.tick_params(colors='#CDD6F4')
+        plot_2d_layout.addWidget(self.canvas_2d)
+        self.bottom_stack.addWidget(plot_2d_frame)
         
-        right_layout.addWidget(cam_frame, stretch=1) # La caméra prend 1/3 de l'espace
+        right_layout.addWidget(self.bottom_stack_widget, stretch=1) # Le bas prend 1/3 de l'espace
 
         main_layout.addWidget(right_panel)
 
@@ -586,9 +612,22 @@ class VibeCodeUI(QMainWindow):
         # 2. Recharger le script qui planifie la trajectoire physiquement (MouvementConnecte)
         import importlib
         import MouvementConnecte
+        import animation_and_plot_traj
+        
+        importlib.reload(animation_and_plot_traj)
         importlib.reload(MouvementConnecte)
         Motor_command_xyz = MouvementConnecte.Motor_command_xyz
-
+        
+        # --- Dessin de la Route 2D ---
+        self.ax_2d.clear() # On efface l'ancien graphe si existant
+        self.ax_2d.set_facecolor('#1E1E2E')
+        blocs_sorted = getattr(MouvementConnecte, 'blocs_sorted', [])
+        if len(blocs_sorted) > 0:
+            animation_and_plot_traj.draw_route_2D_on_ax(self.ax_2d, blocs_sorted, config_traj.home_position)
+            # Rafraîchissement des ticks pour qu'ils restent visibles après le clear
+            self.ax_2d.tick_params(colors='#CDD6F4')
+        self.canvas_2d.draw()
+        
         # 3. Recalculer l'animation matplotlib 3D pour l'interface
         self.traj_points = []
         self.frame_to_pick_idx = []
@@ -716,6 +755,10 @@ class VibeCodeUI(QMainWindow):
         self.status_label.setText("STATUT : PRÊT DANS 2s...")
         self.log_output("Calcul de la trajectoire terminé.")
         self.log_output("Lancement de la communication avec l'OpenRB...")
+        
+        # Basculer l'interface de la caméra vers le graphe 2D
+        self.bottom_stack.setCurrentIndex(1)
+        
         QApplication.processEvents()
 
         # Délai de 2 secondes pour laisser le temps au système de finir tous les calculs

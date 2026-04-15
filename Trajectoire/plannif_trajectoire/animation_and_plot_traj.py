@@ -88,44 +88,64 @@ def plot_triangle(side_length=30):
     plt.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
 ## Trajectory plotting function
-def plot_route_2D(order, start_pos):
+def draw_route_2D_on_ax(ax, order, start_pos):
     x0, y0, _ = start_pos
 
-    plt.figure()
-
     # Dessiner le triangle de travail
-    plot_triangle(side_length=30)
+    vertices = get_triangle_vertices(side_length=30)
+    triangle = np.vstack([vertices, vertices[0]])
+    ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
     # Point home
-    plt.scatter(x0, y0, c='black', s=120, marker='^', label='Home')
+    ax.scatter(x0, y0, c='black', s=120, marker='^', label='Home')
 
     # Trajet segment par segment (avec flèches)
     cur = start_pos
     for i, b in enumerate(order, 1):
-        c, bloc_type, x, y, angle = b
+        if len(b) >= 6:
+            c, bloc_type, x, y, z_ignored, angle, *_ = b
+        else:
+            c, bloc_type, x, y, angle = b[:5]
+            
         p_bloc = (float(x), float(y), config_traj.z_table)  # Z fixe pour les blocs
         p_out  = output_pos_for_color(c)
 
+        # Mapping des couleurs custom vers les couleurs Matplotlib valides
+        color_map = {
+            "red": "red",
+            "green_dark": "darkgreen",
+            "green_light": "lightgreen",
+            "blue": "blue",
+            "yellow": "yellow",
+            "orange": "orange"
+        }
+        mpl_color = color_map.get(c, "black")
+
         # cur -> bloc
-        plt.annotate("", xy=(p_bloc[0], p_bloc[1]), xytext=(cur[0], cur[1]),
-                     arrowprops=dict(arrowstyle="->"))
-        plt.scatter(p_bloc[0], p_bloc[1], c=c, s=100)
-        plt.text(p_bloc[0], p_bloc[1], f"B{i}", ha='left', va='bottom')
+        ax.annotate("", xy=(p_bloc[0], p_bloc[1]), xytext=(cur[0], cur[1]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color))
+        ax.scatter(p_bloc[0], p_bloc[1], c=mpl_color, s=100)
+        ax.text(p_bloc[0], p_bloc[1], f"B{i}", ha='left', va='bottom')
 
         # bloc -> output (inclut le dernier bloc aussi)
-        plt.annotate("", xy=(p_out[0], p_out[1]), xytext=(p_bloc[0], p_bloc[1]),
-                     arrowprops=dict(arrowstyle="->"))
-        plt.scatter(p_out[0], p_out[1], c=c, s=150, marker='s')
-        plt.text(p_out[0], p_out[1], f"O{i}", ha='left', va='bottom')
+        ax.annotate("", xy=(p_out[0], p_out[1]), xytext=(p_bloc[0], p_bloc[1]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color, linestyle='dashed'))
+        ax.scatter(p_out[0], p_out[1], c=mpl_color, s=150, marker='s')
+        ax.text(p_out[0], p_out[1], f"O{i}", ha='left', va='bottom')
 
         cur = p_out  # prochaine position = sortie
 
-    plt.xlim(-15, 20)
-    plt.ylim(-18, 18)
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.grid(True)
-    plt.title("Trajectoire (projection 2D) – bloc → output inclus")
-    plt.legend()
+    ax.set_xlim(-15, 20)
+    ax.set_ylim(-18, 18)
+    ax.set_aspect('equal', adjustable='box')
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.set_title("Trajectoire calculée par le planificateur")
+    # ax.legend()
+
+def plot_route_2D(order, start_pos):
+    """Fonction originale pour un affichage en fenêtre popup autonome."""
+    fig, ax = plt.subplots()
+    draw_route_2D_on_ax(ax, order, start_pos)
     plt.show()
 
 ## animation function
