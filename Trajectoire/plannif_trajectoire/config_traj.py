@@ -49,8 +49,8 @@ orange_output_position = drop_bac2_position   # Bac 2 (partagé avec blue)
 
 # Fixed Z values within [z_table, z_home] (no randomness)
 blocs = np.array([
-    ("red", "2x4", 4.0, -5.0, z_table, 0.0),
-    ("yellow", "2x8", -7.0, 8.0, z_table, 45.0),
-    ("green_dark", "1x4", -5.0, 6.0, z_table, 90.0),
-    ("blue", "2x2", 5.0, 5.0, z_table, -45.0),
+    ("red", 4.0, -5.0, z_table, 0.0),
+    ("yellow", -7.0, 8.0, z_table, 45.0),
+    ("green_dark", -5.0, 6.0, z_table, 90.0),
+    ("blue", 5.0, 5.0, z_table, -45.0),
 ], dtype=object)
