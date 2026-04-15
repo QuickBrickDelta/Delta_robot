@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./Trajectoire/plannif_trajectoire"
+    ]
+}

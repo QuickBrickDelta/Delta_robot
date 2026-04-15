@@ -1,0 +1,39 @@
+Lego vert:
+Inside (dark):
+R: 25
+G: 39
+B: 22
+Border (light):
+R: 62
+G: 114
+B: 59
+
+Lego bleu:
+Inside (dark):
+R: 31
+G: 39
+B: 49
+Border (light):
+R: 50
+G: 77
+B: 91
+
+Lego jaune:
+Inside (dark):
+R: 205
+G: 167
+B: 0
+Border (light):
+R: 211
+G: 196
+B: 1
+
+Lego rouge:
+Inside (dark):
+R: 169
+G: 51
+B: 39
+Border (light):
+R: 206
+G: 89
+B: 41
