@@ -76,6 +76,13 @@ def plan_full_trajectory(blocs):
             bloc_type = "None"
             p_bloc = (float(x), float(y), config_traj.z_table)
             
+        # Application de l'offset du poignet et wrap arithmétique pour rester entre -90 et 90
+        angle = float(angle) + getattr(config_traj, 'WRIST_ANGLE_OFFSET_DEG', 0.0)
+        while angle > 90.0:
+            angle -= 180.0
+        while angle < -90.0:
+            angle += 180.0
+            
         p_out  = output_pos_for_color(couleur)
 
         # 2) Aller au-dessus du bloc (pince ouverte)
