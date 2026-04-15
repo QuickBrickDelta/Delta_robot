@@ -31,14 +31,15 @@ const float TICKS_PER_RAD =
 // ================================
 // Vitesse et pince (servo PWM)
 // ================================
-const uint32_t PROFILE_VELOCITY = 120;    // Plus rapide (ancien: 50)
-const uint32_t PROFILE_ACCELERATION = 40; // Lissage accélération/décélération
-const int SERVO_PINCE_PIN = 3;            // Pin PWM du servo pince
-const int SERVO_WRIST_PIN = 5;            // Pin PWM du servo poignet
-const int PULSE_OUVERTE = 1650;
-const int PULSE_FERMEE = 1850;
-const int PULSE_WRIST_0_DEG = 1700; // Valeur pour 0 deg (Ouvert)
-const int PULSE_WRIST_90_DEG = 550; // Valeur pour 90 deg
+const uint32_t PROFILE_VELOCITY = 0; // 0 = Vitesse max (suivi pur Python)
+const uint32_t PROFILE_ACCELERATION =
+    0;                         // 0 = Accélération max (suivi pur Python)
+const int SERVO_PINCE_PIN = 3; // Pin PWM du servo pince
+const int SERVO_WRIST_PIN = 5; // Pin PWM du servo poignet
+const int PULSE_OUVERTE = 1845;
+const int PULSE_FERMEE = 2030;
+const int PULSE_WRIST_0_DEG = 1800; // Valeur pour 0 deg
+const int PULSE_WRIST_90_DEG = 0;   // Valeur pour 90 deg (donc -90 deg = 3600) et la valeur pour -90 deg est 3600
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
@@ -157,7 +158,7 @@ void setup() {
   pinceServo.attach(SERVO_PINCE_PIN, 500, 2500);
   pinceServo.writeMicroseconds(PULSE_OUVERTE);
 
-  wristServo.attach(SERVO_WRIST_PIN, 500, 2500);
+  wristServo.attach(SERVO_WRIST_PIN, 0, 3600);
   wristServo.writeMicroseconds(PULSE_WRIST_0_DEG);
 
   DEBUG_SERIAL.print("Velocity=");
@@ -279,17 +280,17 @@ void applyLastCommand() {
     // Mapping INVERSÉ : 0 deg -> 1700 (PULSE_WRIST_0_DEG), 90 deg -> 550
     // (PULSE_WRIST_90_DEG)
     float angle_clamped = currentWristAngle;
-    if (angle_clamped < 0)
-      angle_clamped = 0.0f;
-    if (angle_clamped > 90.0f)
-      angle_clamped = 90.0f;
+    if (angle_clamped < -90.0f)
+      angle_clamped = -90.0f;
+    if (angle_clamped < -90.0f)
+      angle_clamped = -90.0f;
 
     // Calcul : On part de 1700 et on retire proportionnellement à l'angle
     float range = (float)(PULSE_WRIST_0_DEG - PULSE_WRIST_90_DEG);
     float pulse = (float)PULSE_WRIST_0_DEG - (angle_clamped * (range / 90.0f));
 
-    // Sécurité : bornes physiques du servo
-    int finalPulse = constrain((int)pulse, 500, 2500);
+    // Sécurité : bornes physiques du servo modifiées (0 à 3600 pour -90)
+    int finalPulse = constrain((int)pulse, 0, 3600);
     wristServo.writeMicroseconds(finalPulse);
   }
 }

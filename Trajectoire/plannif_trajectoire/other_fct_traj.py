@@ -15,7 +15,7 @@ def bloc_pos(bloc):
     if len(bloc) >= 6:
         couleur, bloc_type, x, y, z, angle = bloc
     else:
-        couleur, bloc_type, x, y, angle = bloc
+        couleur, x, y, z, angle = bloc
     return (float(x), float(y), 0.0)
 
 def output_pos_for_color(color):
@@ -33,7 +33,7 @@ def cost_do_bloc_from(pos, bloc):
     if len(bloc) >= 6:
         c, bloc_type, x, y, z, angle = bloc
     else:
-        c, bloc_type, x, y, angle = bloc
+        c, x, y, z, angle = bloc
     p_bloc = (float(x), float(y), 0.0)
     p_out  = output_pos_for_color(c)
     return distance_between_3_points(pos, p_bloc, p_out)
@@ -42,9 +42,9 @@ def cost_do_bloc_from(pos, bloc):
 def distance_from_output(bloc):
     """Calcule la distance entre un bloc et sa position de sortie."""
     if len(bloc) >= 6:
-        couleur, bloc_type, x, y, z, angle = bloc
+        couleur, bloc_type, x, y, z_val, angle = bloc
     else:
-        couleur, bloc_type, x, y, angle = bloc
+        couleur, x, y, z_val, angle = bloc
     z = 0  # Tous les blocs sont au niveau z=0 pour le calcul 2D
     if couleur == 'red':
         output_pos = red_output_position
