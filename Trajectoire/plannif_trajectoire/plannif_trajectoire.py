@@ -40,7 +40,7 @@ from shortest_path_algorithms import plan_bnb_basic, plan_exact_tsp, plan_cheape
 
 ## full trajectoire function
 def plan_full_trajectory(blocs):
-    # path: [(bloc_carried, bloc_type, movement_type, speed, x, y, z, angle, pince_fermee), ...]
+    # path: [(bloc_carried, movement_type, speed, x, y, z, angle, pince_fermee), ...]
     path = []
     speed_joint = speed_joint_move_global
     speed_approach = speed_approach_move_global
@@ -67,16 +67,18 @@ def plan_full_trajectory(blocs):
 
     for bloc in blocs_sorted:
         # bloc format: [couleur, type, x, y, z, angle]
-        if len(bloc) >= 6:
-            couleur, type_b, x, y, z_ignored, angle, *_ = bloc
-            p_bloc = (float(x), float(y), config_traj.z_table)
+        # On vérifie si on a 6 éléments (avec type) ou 5 (sans type)
+        if len(bloc) == 6:
+            # Format: [couleur, type, x, y, z, angle]
+            couleur, _, x, y, z_val, angle = bloc
         else:
-            # Fallback pour compatibilité ancienne
-            couleur, x, y, z_ignored, angle = bloc[:5]
-            p_bloc = (float(x), float(y), config_traj.z_table)
-            
-        p_out  = output_pos_for_color(couleur)
+            # Format: [couleur, x, y, z, angle]
+            couleur, x, y, z_val, angle, *_ = bloc
 
+            # Maintenant on est SUR que x et y sont les bons
+        p_bloc = (float(x), float(y), config_traj.z_table)
+        p_out = output_pos_for_color(couleur)
+            
         # 2) Aller au-dessus du bloc (pince ouverte)
         path.append((None, "joint", speed_joint,
                      p_bloc[0], p_bloc[1], p_bloc[2] + distance_approach, angle, False))
