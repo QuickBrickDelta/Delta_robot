@@ -25,6 +25,7 @@ from PyQt6.QtGui import QFont, QPalette, QColor, QImage, QPixmap
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from mpl_toolkits.mplot3d import Axes3D
+from config_traj import bacs
 
 import cv2
 try:
@@ -528,7 +529,7 @@ class VibeCodeUI(QMainWindow):
         self.current_robot_pos = [0.0, 0.0, -20.0]
 
         # Message initial
-        self.log_output("--- Système VibeCode Initialisé ---")
+        self.log_output("--- Système Initialisé ---")
         self.log_output("Prêt à démarrer la communication...")
 
     def update_colors(self):
