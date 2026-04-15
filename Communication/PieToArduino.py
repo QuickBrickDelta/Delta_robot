@@ -168,7 +168,7 @@ def main():
     if not Motor_command_angles:
         print("Aucune commande à envoyer (Motor_command_angles est vide).")
     else:
-        stream_commands(ser, Motor_command_angles, dt_s=0.05)
+        stream_commands(ser, Motor_command_angles, dt_s=0.02)
     
     # 5) Fermer proprement
     ser.close()
