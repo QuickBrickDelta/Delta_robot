@@ -9,7 +9,8 @@ speed_approach_move_global = 25.0  # cm/s
 speed_approach_hub = 10.0
 DETECTION_X_OFFSET_CM = 0  # Offset X (cm) appliqué aux positions détectées → valeur écrite dans detected_blocks.json
 DETECTION_Y_OFFSET_CM = 0  # Offset Y (cm) appliqué aux positions détectées
-OFFSET_MULTIPLICATOR = 1.1
+OFFSET_X_MULTIPLICATOR = 1.0  # Multiplicateur X (Correction d'échelle)
+OFFSET_Y_MULTIPLICATOR = 1.0  # Multiplicateur Y (Correction d'échelle)
 WRIST_ANGLE_OFFSET_DEG = 85.0  # Décalage en degrés de la pince par rapport à la vue caméra
 
 # --- Calibration Servos PWM ---
