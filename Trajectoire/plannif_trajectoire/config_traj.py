@@ -61,7 +61,7 @@ drop_bac6_position, drop_bac5_position, drop_bac4_position = calc_bac_face(180)
 # Face 3 (Bacs 7,8,9) à 60°
 drop_bac9_position, drop_bac8_position, drop_bac7_position = calc_bac_face(60)
 
-# Mapping couleur → bac (3 bacs, 4 couleurs)
+# Mapping couleur de base → bac (3 bacs, 4 couleurs)
 red_output_position    = drop_bac1_position   # Bac 1
 blue_output_position   = drop_bac2_position   # Bac 2
 green_dark_output_position  = drop_bac3_position   # Bac 3
@@ -82,15 +82,16 @@ blocs = np.array([
 ], dtype=object)
 
 
-import matplotlib.pyplot as plt
-
-def main():
-    # Liste pour l'affichage
-    bacs = [
+bacs = [
         drop_bac1_position, drop_bac2_position, drop_bac3_position,
         drop_bac4_position, drop_bac5_position, drop_bac6_position,
         drop_bac7_position, drop_bac8_position, drop_bac9_position
     ]
+
+
+import matplotlib.pyplot as plt
+
+def main():
 
     plt.figure(figsize=(10, 10))
     plt.axhline(0, color='black', alpha=0.3)
