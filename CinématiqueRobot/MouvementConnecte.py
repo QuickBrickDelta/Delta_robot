@@ -75,11 +75,10 @@ GRIPPER_HOLD_STEPS = 8
 # ===============================
 for step in Trajectory:
     # step structure:
-    # (bloc_carried, bloc_type, movement_type, speed,
-    #  x, y, z, angle, pince_fermee)
-    move_type = step[2]
-    x, y, z = float(step[4]), float(step[5]), float(step[6])
-    pince_fermee = bool(step[8])
+    # (bloc_carried, movement_type, speed, x, y, z, angle, pince_fermee)
+    move_type = step[1]
+    x, y, z = float(step[3]), float(step[4]), float(step[5])
+    pince_fermee = bool(step[7])
 
     code_mouv = None
     if move_type in ["home", "joint"]:
@@ -87,10 +86,13 @@ for step in Trajectory:
     elif move_type == "linear":
         code_mouv = "L"
     elif move_type in ["closeGripper", "openGripper"]:
-        code_mouv = "G"  # Gripper action — maintenir position + changer pince
+        code_mouv = "G"  # Gripper action
 
     if code_mouv:
-        angle = float(step[7])  # Récupérer l'angle depuis la trajectoire
+        if move_type == "home":
+            angle = 0.0
+        else:
+            angle = float(step[6])  # Récupérer l'angle depuis la trajectoire
         Motor_command_xyz.append([x, y, z, code_mouv, angle])
         pince_states.append(pince_fermee)
 

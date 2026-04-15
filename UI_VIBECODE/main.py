@@ -12,6 +12,9 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 if cinematique_dir not in sys.path:
     sys.path.append(cinematique_dir)
+traj_dir = os.path.join(project_root, "Trajectoire", "plannif_trajectoire")
+if traj_dir not in sys.path:
+    sys.path.append(traj_dir)
 
 if sys.platform != "win32":
     os.environ["QT_QPA_PLATFORM"] = "xcb"
@@ -796,7 +799,7 @@ class VibeCodeUI(QMainWindow):
         manual_commands = []
         for th in th_trajectoire:
             t1, t2, t3 = [float(v) for v in th]
-            manual_commands.append([t1, t2, t3, False])  # pince ouverte
+            manual_commands.append([t1, t2, t3, False, 0.0])  # pince ouverte, poignet 0
 
         # --- CALCUL PREVIEW (XYZ Curve) ---
         # On garde interpolate_joint uniquement pour l'animation 3D (visuel courbé)
