@@ -155,7 +155,7 @@ def plot_route_2D(order, start_pos):
 
         # Mouvement à vide
         plt.annotate("", xy=(x, y), xytext=(cur_x, cur_y),
-                     arrowprops=dict(arrowstyle="->", color='gray', linestyle=':', alpha=0.5))
+                     arrowprops=dict(arrowstyle="->", color='darkgray', linestyle='-', alpha=0.5))
         
         # Le bloc
         plt.scatter(x, y, c=c_plot, s=120, edgecolors='black')
