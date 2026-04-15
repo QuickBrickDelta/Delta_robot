@@ -66,13 +66,13 @@ def plan_full_trajectory(blocs):
                  0.0, False))
 
     for bloc in blocs_sorted:
-        # bloc format: (couleur x, y, z, angle)
+        # bloc format: [couleur, type, x, y, z, angle]
         if len(bloc) >= 6:
-            couleur, x, y, z_ignored, angle = bloc
+            couleur, type_b, x, y, z_ignored, angle, *_ = bloc
             p_bloc = (float(x), float(y), config_traj.z_table)
         else:
             # Fallback pour compatibilité ancienne
-            couleur, x, y, z_ignored, angle = bloc
+            couleur, x, y, z_ignored, angle = bloc[:5]
             p_bloc = (float(x), float(y), config_traj.z_table)
             
         p_out  = output_pos_for_color(couleur)
