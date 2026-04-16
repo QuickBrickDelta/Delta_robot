@@ -24,7 +24,7 @@ PULSE_WRIST_90_DEG  = 550   # Valeur calibrée pour 90°
 # Zone valide Z approx: [-20, -45] selon l'éloignement du centre.
 
 z_table = -33.0    # Hauteur de la table adaptée pour Lc=15/Lb=32
-z_drop = z_table + 5
+z_drop = z_table + 3
 z_home = -17.0        # Hauteur de sécurité (Home - Mise à jour)
 z_home_intermediaire = z_table + 5.0 # Hauteur intermédiaire pour sortie/entrée clean
 
@@ -47,7 +47,7 @@ drop_bac1_position = (r_drop * math.cos(math.radians(ang1)), r_drop * math.sin(m
 drop_bac2_position = (r_drop * math.cos(math.radians(ang2)), r_drop * math.sin(math.radians(ang2)), z_drop)
 drop_bac3_position = (r_drop * math.cos(math.radians(ang3)), r_drop * math.sin(math.radians(ang3)), z_drop)
 
-s_offset = 5.0 # Décalage entre les slots
+s_offset = 13.0 # Décalage entre les slots
 
 def get_tangent(angle_deg):
     rad = math.radians(angle_deg + 90) # Tangente = Normale + 90°
