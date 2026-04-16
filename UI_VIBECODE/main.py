@@ -254,7 +254,7 @@ class ColorPill(QLabel):
             QLabel {{
                 background-color: {bg_color};
                 border: 2px solid rgba(255, 255, 255, 0.2);
-                border-radius: 16px;
+                border-radius: 30px;
             }}
         """)
         self.setToolTip(color_name)
@@ -297,7 +297,7 @@ class DropBin(QFrame):
             QFrame {{
                 background-color: transparent;
                 border: 2px solid #585B70;
-                border-radius: 30px;
+                border-radius: 15px;
             }}
         """)
         
