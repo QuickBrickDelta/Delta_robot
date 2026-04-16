@@ -66,15 +66,42 @@ pince_states = []
 # liste dense de [angle1, angle2, angle3, pince_fermee] après interpolation
 Motor_command_angles = []
 
-# Nombre de commandes de pause pour laisser la pince s'ouvrir/fermer
-# 8 steps × 50ms = 0.4s de délai
-GRIPPER_HOLD_STEPS = 2  # 2 steps × 50ms = 0.10s (minimum pour laisser le servo agir)
+# ===============================
+# Mode CHILL / RAPIDE (lu depuis l'UI)
+# ===============================
+_mode_file = os.path.join(project_root, "UI_VIBECODE", "mode_robot.json")
+_robot_mode = "rapide"
+try:
+    with open(_mode_file, "r") as _f:
+        _robot_mode = json.load(_f).get("mode", "rapide")
+except Exception:
+    pass
 
-# Délais au point de dépôt (drop)
-# Avant l'ouverture : délai IMPORTANT pour stabiliser le robot
-DROP_PRE_HOLD_STEPS  = int(0.25 / 0.05)  # 5 steps = 0.25s
-# Après l'ouverture : minimal, juste le temps que le bloc quitte la pince
-DROP_POST_HOLD_STEPS = 1  # 1 step × 50ms = 0.05s
+print(f"[MODE] Mode robot : {_robot_mode.upper()}")
+
+if _robot_mode == "chill":
+    GRIPPER_HOLD_STEPS   = config_traj.CHILL_GRIPPER_HOLD_STEPS
+    DROP_PRE_HOLD_STEPS  = config_traj.CHILL_DROP_PRE_HOLD_STEPS
+    DROP_POST_HOLD_STEPS = config_traj.CHILL_DROP_POST_STEPS
+    # Mapping vitesse nominale → vitesse chill pour chaque type de mouvement
+    _SPEED_MAP = {
+        config_traj.speed_joint_move_global:    config_traj.CHILL_SPEED_JOINT,
+        config_traj.speed_approach_move_global: config_traj.CHILL_SPEED_APPROACH,
+        config_traj.speed_approach_hub:         config_traj.CHILL_SPEED_HUB,
+    }
+else:  # rapide (défaut)
+    GRIPPER_HOLD_STEPS   = config_traj.RAPIDE_GRIPPER_HOLD_STEPS
+    DROP_PRE_HOLD_STEPS  = config_traj.RAPIDE_DROP_PRE_HOLD_STEPS
+    DROP_POST_HOLD_STEPS = config_traj.RAPIDE_DROP_POST_STEPS
+    _SPEED_MAP = {
+        config_traj.speed_joint_move_global:    config_traj.RAPIDE_SPEED_JOINT,
+        config_traj.speed_approach_move_global: config_traj.RAPIDE_SPEED_APPROACH,
+        config_traj.speed_approach_hub:         config_traj.RAPIDE_SPEED_HUB,
+    }
+
+def _get_speed(raw_speed):
+    """Retourne la vitesse corrigée selon le mode actif."""
+    return _SPEED_MAP.get(float(raw_speed), float(raw_speed))
 
 # ===============================
 # 1) Construire les waypoints XYZ + mode + pince
@@ -119,8 +146,8 @@ if Motor_command_xyz:
         angle = target_pt[4] # Récupérer l'angle
         pince_seg = pince_states[i]
         
-        # Récupérer la vitesse depuis la trajectoire d'origine
-        speed = float(Trajectory[i][3]) if i < len(Trajectory) else 20.0
+        # Récupérer la vitesse depuis la trajectoire d'origine, convertie selon le mode
+        speed = _get_speed(Trajectory[i][3]) if i < len(Trajectory) else 20.0
         if speed <= 0: speed = 20.0
 
         if mode == "G":

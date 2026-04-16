@@ -498,6 +498,33 @@ class VibeCodeUI(QMainWindow):
 
         control_layout.addSpacing(10)
 
+        # Toggle CHILL / RAPIDE
+        self.robot_mode = "rapide"  # Mode par défaut
+        self.btn_mode = QPushButton("MODE : RAPIDE")
+        self.btn_mode.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_mode.setCheckable(True)
+        self.btn_mode.setStyleSheet("""
+            QPushButton {
+                background-color: #313244;
+                color: #A6E3A1;
+                font-size: 14px;
+                font-weight: bold;
+                border: 2px solid #A6E3A1;
+                border-radius: 8px;
+                padding: 8px;
+            }
+            QPushButton:checked {
+                background-color: #313244;
+                color: #89B4FA;
+                border: 2px solid #89B4FA;
+            }
+            QPushButton:hover { background-color: #45475A; }
+        """)
+        self.btn_mode.clicked.connect(self.toggle_robot_mode)
+        control_layout.addWidget(self.btn_mode)
+
+        control_layout.addSpacing(10)
+
         # Bouton Démarrer
         self.btn_start = QPushButton("▶ DÉMARRER")
         self.btn_start.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -804,6 +831,24 @@ class VibeCodeUI(QMainWindow):
         with open(map_file, "w") as f:
             json.dump(current_mapping, f, indent=2)
         self.log_output(f"[BACS] Mapping sauvegardé : {current_mapping}")
+
+    def toggle_robot_mode(self):
+        """Bascule entre le mode RAPIDE et CHILL et sauvegarde dans mode_robot.json."""
+        import json, os
+        if self.robot_mode == "rapide":
+            self.robot_mode = "chill"
+            self.btn_mode.setText("MODE : CHILL")
+            self.btn_mode.setChecked(True)
+            self.log_output("[MODE] Passé en mode CHILL — vitesses réduites, délais augmentés.")
+        else:
+            self.robot_mode = "rapide"
+            self.btn_mode.setText("MODE : RAPIDE")
+            self.btn_mode.setChecked(False)
+            self.log_output("[MODE] Passé en mode RAPIDE.")
+
+        mode_file = os.path.join(os.path.dirname(__file__), "mode_robot.json")
+        with open(mode_file, "w") as f:
+            json.dump({"mode": self.robot_mode}, f)
 
     def update_colors(self):
         self.hue += 0.005

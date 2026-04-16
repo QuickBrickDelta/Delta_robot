@@ -4,9 +4,31 @@ import matplotlib.pyplot as plt
 # --- Paramètres globaux ---
 ROBOT_ROTATION_OFFSET_DEG = -30.0    # Ajuster si les axes X/Y sont décalés par rapport au châssis
 MAX_BLOCS_OPTIMAL = 7
-speed_joint_move_global = 80.0  # cm/s
-speed_approach_move_global = 40.0  # cm/s
-speed_approach_hub = 10.0
+speed_joint_move_global = 80.0  # cm/s — vitesse de déplacement entre les blocs
+speed_approach_move_global = 40.0  # cm/s — vitesse d'approche/remontée au-dessus des blocs
+speed_approach_hub = 10.0  # cm/s — vitesse de retour au home
+
+# ============================================================
+# Parametres Mode RAPIDE (défaut)
+# ============================================================
+RAPIDE_SPEED_JOINT         = 80.0  # cm/s — déplacement inter-blocs
+RAPIDE_SPEED_APPROACH      = 40.0  # cm/s — approche/remontée au-dessus des blocs
+RAPIDE_SPEED_HUB           = 10.0  # cm/s — retour au home
+RAPIDE_GRIPPER_HOLD_STEPS  = 2     # Steps de maintien pince (×50ms) → 0.10s
+RAPIDE_DROP_PRE_HOLD_STEPS = 5     # Steps de stabilisation avant drop → 0.25s
+RAPIDE_DROP_POST_STEPS     = 1     # Steps après drop → 0.05s
+
+# ============================================================
+# Parametres Mode CHILL
+# ============================================================
+CHILL_SPEED_JOINT         = 40.0  # cm/s — déplacement inter-blocs
+CHILL_SPEED_APPROACH      = 20.0  # cm/s — approche/remontée au-dessus des blocs
+CHILL_SPEED_HUB           = 5.0   # cm/s — retour au home
+CHILL_GRIPPER_HOLD_STEPS  = 8     # Steps de maintien pince (×50ms) → 0.40s
+CHILL_DROP_PRE_HOLD_STEPS = 5     # Steps de stabilisation avant drop → 0.25s
+CHILL_DROP_POST_STEPS     = 2     # Steps après drop → 0.10s
+
+
 DETECTION_X_OFFSET_CM = 1  # Offset X (cm) appliqué aux positions détectées → valeur écrite dans detected_blocks.json
 DETECTION_Y_OFFSET_CM = 0.8  # Offset Y (cm) appliqué aux positions détectées
 OFFSET_X_MULTIPLICATOR = 1.1  # Multiplicateur X (Correction d'échelle)
