@@ -249,12 +249,12 @@ class ColorPill(QLabel):
     def __init__(self, color_id, color_name, bg_color, parent=None):
         super().__init__("", parent) # No text
         self.color_id = color_id
-        self.setFixedSize(25, 25)
+        self.setFixedSize(35, 35)
         self.setStyleSheet(f"""
             QLabel {{
                 background-color: {bg_color};
-                border: 2px solid rgba(255, 255, 255, 0.2);
-                border-radius: 30px;
+                border: 2px solid rgba(255, 255, 255, 0.4);
+                border-radius: 17.5px;
             }}
         """)
         self.setToolTip(color_name)
@@ -290,14 +290,14 @@ class DropBin(QFrame):
         self.bin_id = bin_id
         self.on_drop_callback = None  # Sera assigné par VibeCodeUI
         self.setAcceptDrops(True)
-        self.setFixedSize(60, 60)
+        self.setFixedSize(85, 85)
         
-        # Style circulaire épuré comme le dessin
+        # Style circulaire épuré
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: transparent;
+                background-color: #1E1E2E;
                 border: 2px solid #585B70;
-                border-radius: 15px;
+                border-radius: 20px;
             }}
         """)
         
@@ -308,7 +308,7 @@ class DropBin(QFrame):
         # Label discret au centre (Numéro)
         self.name_label = QLabel(str(bin_id) if bin_id != 0 else "B")
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.name_label.setStyleSheet("color: #585B70; font-size: 14px; font-weight: bold; border: none;")
+        self.name_label.setStyleSheet("color: #89B4FA; font-size: 24px; font-weight: bold; border: none;")
         main_layout.addWidget(self.name_label)
 
         # Layout pour les pastilles (Overlay au centre)
@@ -647,60 +647,52 @@ class VibeCodeUI(QMainWindow):
                 border: 2px solid #A6ADC8;
             }
         """)
-        # Set a fixed width for the bins panel so it doesn't take 50% randomly
-        config_bacs_frame.setFixedWidth(350)
+        # Set a fixed size for the bins panel (Zoom in)
+        config_bacs_frame.setFixedWidth(500)
+        config_bacs_frame.setFixedHeight(500)
         config_layout = QVBoxLayout(config_bacs_frame)
-        config_layout.setContentsMargins(20, 20, 20, 20)
-
-        bin_title = QLabel("CONFIGURATION DES BACS:")
-        bin_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bin_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
-        config_layout.addWidget(bin_title)
-        
-        hint_lbl = QLabel("(Glisser-Déposer)")
-        hint_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hint_lbl.setStyleSheet("color: #585B70; font-size: 11px; border: none;")
-        config_layout.addWidget(hint_lbl)
-        
-        config_layout.addSpacing(10)
+        config_layout.setContentsMargins(0, 0, 0, 0)
+        config_layout.setSpacing(0)
 
 
-        # Création des 9 Bacs de tri (Plus petits)
+        # Création des 9 Bacs de tri
         self.bins = {}
         for i in range(1, 10):
             self.bins[i] = DropBin(i, f"S{i}", layout_dir='V')
-            self.bins[i].setFixedSize(50, 50)
-            self.bins[i].setStyleSheet(self.bins[i].styleSheet() + "font-size: 8px;")
+            self.bins[i].setFixedSize(85, 85)
+            self.bins[i].setStyleSheet(self.bins[i].styleSheet() + "font-size: 10px;")
 
-        # Création du Layout Triangulaire selon schéma utilisateur:
+        # Création du Layout Triangulaire
         triangle_layout = QGridLayout()
-        triangle_layout.setSpacing(2)
+        triangle_layout.setSpacing(8)
 
-        # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 3, 3)
-        triangle_layout.addWidget(self.bins[5], 3, 5)
-        triangle_layout.addWidget(self.bins[6], 3, 7)
+        # Ligne du haut
+        triangle_layout.addWidget(self.bins[4], 1, 1)
+        triangle_layout.addWidget(self.bins[5], 1, 4)
+        triangle_layout.addWidget(self.bins[6], 1, 7)
 
         # Diagonale Gauche
-        triangle_layout.addWidget(self.bins[3], 4, 2) # Décalé un peu vers l'extérieur
-        triangle_layout.addWidget(self.bins[2], 5, 3)
-        triangle_layout.addWidget(self.bins[1], 6, 4)
+        triangle_layout.addWidget(self.bins[3], 3, 0)
+        triangle_layout.addWidget(self.bins[2], 5, 1)
+        triangle_layout.addWidget(self.bins[1], 7, 2)
 
         # Diagonale Droite
-        triangle_layout.addWidget(self.bins[7], 4, 8)
+        triangle_layout.addWidget(self.bins[7], 3, 8)
         triangle_layout.addWidget(self.bins[8], 5, 7)
-        triangle_layout.addWidget(self.bins[9], 6, 6) 
+        triangle_layout.addWidget(self.bins[9], 7, 6)
 
-        # Force chaque "unité" de ta grille à avoir une taille minimale
-        for i in range(11): # Pour 11 colonnes
+        # Taille fixe des colonnes et lignes — PAS de stretch
+        for i in range(11):
             triangle_layout.setColumnMinimumWidth(i, 20)
-            triangle_layout.setColumnStretch(i, 1)
-        for i in range(10): # Pour 10 lignes
+        for i in range(10):
             triangle_layout.setRowMinimumHeight(i, 20)
-            triangle_layout.setRowStretch(i, 1)
-        
-        config_layout.addLayout(triangle_layout)
-        config_layout.addStretch()
+
+        # Envelopper dans un QWidget à taille fixe
+        triangle_widget = QWidget()
+        triangle_widget.setFixedSize(480, 480)
+        triangle_widget.setLayout(triangle_layout)
+
+        config_layout.addWidget(triangle_widget, alignment=Qt.AlignmentFlag.AlignCenter)
         
         import json
         import os
@@ -713,12 +705,12 @@ class VibeCodeUI(QMainWindow):
             except: pass
             
         color_props = {
-            "red": ("🔴 Roug", "#BE1142"),
-            "blue": ("🔵 Bleu", "#1357C5"),
-            "green_dark": ("🟢 VF.", "#24701E"),
-            "green_light": ("🟢 VC.", "#5BF65B"),
-            "yellow": ("🟡 Jaun", "#F8E813"),
-            "orange": ("🟠 Oran", "#FD6D13"),
+            "red": ("Rouge", "#BE1142"),
+            "blue": ("Bleu", "#1357C5"),
+            "green_dark": ("Vert F.", "#24701E"),
+            "green_light": ("Vert C.", "#5BF65B"),
+            "yellow": ("Jaune", "#F8E813"),
+            "orange": ("Orange", "#FD6D13"),
         }
         
         self.pills = []
@@ -735,8 +727,8 @@ class VibeCodeUI(QMainWindow):
             b.on_drop_callback = self.save_color_mapping
 
         # Ajout des deux moitiés (plot et config bacs) dans le layout HAUT
-        top_right_layout.addWidget(plot_frame, stretch=1)
-        top_right_layout.addWidget(config_bacs_frame)
+        top_right_layout.addWidget(plot_frame, stretch=1)         # Le plot prend tout l'espace restant
+        top_right_layout.addWidget(config_bacs_frame, stretch=0)  # Le panneau de bacs est fixe
         
         # Le haut prend 2/3 de l'espace global du panneau de droite
         right_layout.addLayout(top_right_layout, stretch=2)
@@ -866,11 +858,10 @@ class VibeCodeUI(QMainWindow):
             
         text = ""
         for i, col in enumerate(self.pick_sequence):
-            # Formater joliment (ex: [1] vert, [2] rouge, etc.)
-            emoji = {"red": "🔴", "green_dark": "🟢", "green_light": "🟢", "blue": "🔵", "yellow": "🟡", "orange": "🟠"}.get(col, "⚫")
-            item = f"{emoji} {col.upper()}"
+            color_abbr = {"red": "RG", "green_dark": "VF", "green_light": "VC", "blue": "BL", "yellow": "JN", "orange": "OR"}.get(col, col[:2].upper())
+            item = f"[{i+1}] {color_abbr} — {col.upper()}"
             if i == current_idx:
-                text += f"<span style='color: #F9E2AF; font-size: 20px;'>➜ {item}</span><br>"
+                text += f"<span style='color: #F9E2AF; font-size: 20px;'>→ {item}</span><br>"
             elif i < current_idx:
                 text += f"<span style='color: #585B70; text-decoration: line-through;'>{item}</span><br>"
             else:
