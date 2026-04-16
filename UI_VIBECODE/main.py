@@ -1040,9 +1040,8 @@ class VibeCodeUI(QMainWindow):
         
         QApplication.processEvents()
 
-        # Délai de 2 secondes pour laisser le temps au système de finir tous les calculs
-        # avant d'envoyer la première commande aux moteurs
-        QTimer.singleShot(2000, self._launch_robot_movement)
+        # Lancement immédiat du mouvement (sans délai artificiel)
+        self._launch_robot_movement()
 
     def _launch_robot_movement(self):
         """Appelé après le délai de 2s — lance le mouvement physique + animation"""
