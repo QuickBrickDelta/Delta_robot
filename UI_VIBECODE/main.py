@@ -1088,7 +1088,7 @@ class VibeCodeUI(QMainWindow):
             
             # On laisse le temps à la caméra d'analyser les nouveaux blocs restants 
             self.status_label.setText("NOUVELLE VÉRIFICATION...")
-            QTimer.singleShot(1500, self.check_and_restart)
+            QTimer.singleShot(1000, self.check_and_restart)
         else:
             self.camera_thread.pause_detection = False
 

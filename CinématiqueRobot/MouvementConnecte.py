@@ -68,11 +68,13 @@ Motor_command_angles = []
 
 # Nombre de commandes de pause pour laisser la pince s'ouvrir/fermer
 # 8 steps × 50ms = 0.4s de délai
-GRIPPER_HOLD_STEPS = 8
+GRIPPER_HOLD_STEPS = 2  # 2 steps × 50ms = 0.10s (minimum pour laisser le servo agir)
 
-# Minimum de points par segment pour éviter les saccades
-MIN_STEPS = 20
-MIN_STEPS_SLOW = 30  # Pour les mouvements lents (hub speed) qui couvrent peu de distance
+# Délais au point de dépôt (drop)
+# Avant l'ouverture : délai IMPORTANT pour stabiliser le robot
+DROP_PRE_HOLD_STEPS  = int(0.25 / 0.05)  # 5 steps = 0.25s
+# Après l'ouverture : minimal, juste le temps que le bloc quitte la pince
+DROP_POST_HOLD_STEPS = 1  # 1 step × 50ms = 0.05s
 
 # ===============================
 # 1) Construire les waypoints XYZ + mode + pince
@@ -124,11 +126,24 @@ if Motor_command_xyz:
         if mode == "G":
             # Action pince : maintenir la position actuelle + changer l'état pince
             thetas = get_all_thetas(current_pos)
+            move_type_step = Trajectory[i][2]  # "openGripper" ou "closeGripper"
             if thetas is not None:
                 theta1, theta2, theta3 = [float(t) for t in thetas]
-                # Délai réduit pour la pince
+
+                if move_type_step == "openGripper":
+                    # 0.25s avant le drop : robot stable, pince encore fermée
+                    for _ in range(DROP_PRE_HOLD_STEPS):
+                        Motor_command_angles.append([theta1, theta2, theta3, True, angle])
+
+                # Action pince principale
                 for _ in range(GRIPPER_HOLD_STEPS):
                     Motor_command_angles.append([theta1, theta2, theta3, pince_seg, angle])
+
+                if move_type_step == "openGripper":
+                    # 0.1s après le drop : laisser le bloc tomber avant de repartir
+                    for _ in range(DROP_POST_HOLD_STEPS):
+                        Motor_command_angles.append([theta1, theta2, theta3, False, angle])
+
             continue
 
         # Calcul de la distance
