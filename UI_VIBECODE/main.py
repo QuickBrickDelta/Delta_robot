@@ -744,7 +744,7 @@ class VibeCodeUI(QMainWindow):
         """)
         plot_2d_layout = QVBoxLayout(plot_2d_frame)
         plot_2d_layout.setContentsMargins(0, 0, 0, 0)
-        self.fig_2d = plt.figure(facecolor='#1E1E2E', figsize=(4, 4), dpi=80)
+        self.fig_2d = plt.figure(facecolor='#1E1E2E', figsize=(3, 3), dpi=80)
         self.fig_2d.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95)
         self.canvas_2d = FigureCanvas(self.fig_2d)
         self.ax_2d = self.fig_2d.add_subplot(111)
