@@ -288,6 +288,7 @@ class DropBin(QFrame):
     def __init__(self, bin_id, label_text, layout_dir='V'):
         super().__init__()
         self.bin_id = bin_id
+        self.on_drop_callback = None  # Sera assigné par VibeCodeUI
         self.setAcceptDrops(True)
         self.setFixedSize(60, 60)
         
@@ -351,11 +352,13 @@ class DropBin(QFrame):
         self.dragLeaveEvent(event)
         source_widget = event.source()
         if source_widget:
-            # Retrait du wrapper/parent précédent
             source_widget.setParent(None)
             self.layout.insertWidget(self.layout.count() - 1, source_widget)
             source_widget.show()
             event.acceptProposedAction()
+            # Sauvegarder le mapping immédiatement après chaque drop
+            if self.on_drop_callback:
+                self.on_drop_callback()
 
 class VibeCodeUI(QMainWindow):
     def __init__(self):
@@ -706,6 +709,11 @@ class VibeCodeUI(QMainWindow):
             if not inserted:
                 self.bin_bank.layout.insertWidget(self.bin_bank.layout.count() - 1, pill)
 
+        # Connecter le callback de sauvegarde à tous les bacs
+        for b in self.bins.values():
+            b.on_drop_callback = self.save_color_mapping
+        self.bin_bank.on_drop_callback = self.save_color_mapping
+
         # Ajout des deux moitiés (plot et config bacs) dans le layout HAUT
         top_right_layout.addWidget(plot_frame, stretch=1)
         top_right_layout.addWidget(config_bacs_frame)
@@ -784,6 +792,25 @@ class VibeCodeUI(QMainWindow):
         # Message initial
         self.log_output("--- Système VibeCode Initialisé ---")
         self.log_output("Prêt à démarrer la communication...")
+
+    def save_color_mapping(self):
+        """Sauvegarde color→slot_id dans color_mapping.json après chaque drag-and-drop."""
+        import json, os
+        current_mapping = {}
+        for pill in self.pills:
+            parent_widget = pill.parent()
+            # Remonter jusqu'au DropBin parent
+            while parent_widget is not None and not hasattr(parent_widget, 'bin_id'):
+                parent_widget = parent_widget.parent()
+            if parent_widget and parent_widget.bin_id != 0:
+                current_mapping[pill.color_id] = parent_widget.bin_id
+            else:
+                current_mapping[pill.color_id] = 0  # Non-assigné
+
+        map_file = os.path.join(os.path.dirname(__file__), "color_mapping.json")
+        with open(map_file, "w") as f:
+            json.dump(current_mapping, f, indent=2)
+        self.log_output(f"[BACS] Mapping sauvegardé : {current_mapping}")
 
     def update_colors(self):
         self.hue += 0.005
