@@ -249,12 +249,12 @@ class ColorPill(QLabel):
     def __init__(self, color_id, color_name, bg_color, parent=None):
         super().__init__("", parent) # No text
         self.color_id = color_id
-        self.setFixedSize(25, 25)
+        self.setFixedSize(35, 35)
         self.setStyleSheet(f"""
             QLabel {{
                 background-color: {bg_color};
-                border: 2px solid rgba(255, 255, 255, 0.2);
-                border-radius: 30px;
+                border: 2px solid rgba(255, 255, 255, 0.4);
+                border-radius: 17.5px;
             }}
         """)
         self.setToolTip(color_name)
@@ -290,25 +290,25 @@ class DropBin(QFrame):
         self.bin_id = bin_id
         self.on_drop_callback = None  # Sera assigné par VibeCodeUI
         self.setAcceptDrops(True)
-        self.setFixedSize(60, 60)
+        self.setFixedSize(85, 85)
         
         # Style circulaire épuré comme le dessin
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: transparent;
+                background-color: #1E1E2E;
                 border: 2px solid #585B70;
-                border-radius: 15px;
+                border-radius: 20px;
             }}
         """)
         
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(5, 5, 5, 5)
         main_layout.setSpacing(0)
 
         # Label discret au centre (Numéro)
         self.name_label = QLabel(str(bin_id) if bin_id != 0 else "B")
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.name_label.setStyleSheet("color: #585B70; font-size: 14px; font-weight: bold; border: none;")
+        self.name_label.setStyleSheet("color: #89B4FA; font-size: 24px; font-weight: bold; border: none;")
         main_layout.addWidget(self.name_label)
 
         # Layout pour les pastilles (Overlay au centre)
@@ -376,13 +376,8 @@ class VibeCodeUI(QMainWindow):
 
         # ====== GAUCHE : Panneau de contrôle ======
         self.control_panel = QFrame()
-        self.control_panel.setStyleSheet("""
-            QFrame {
-                background-color: #1E1E2E;
-                border-radius: 15px;
-                border: 2px solid #89B4FA;
-            }
-        """)
+        self.control_panel.setObjectName("control_panel")
+        self.control_panel.setStyleSheet("") # Clear local style to use global theme
         self.control_panel.setFixedWidth(380)
         control_layout = QVBoxLayout(self.control_panel)
         control_layout.setContentsMargins(5, 30, 5, 30)
@@ -527,28 +522,9 @@ class VibeCodeUI(QMainWindow):
 
         # Bouton Démarrer
         self.btn_start = QPushButton("▶ DÉMARRER")
+        self.btn_start.setObjectName("btn_start")
         self.btn_start.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_start.setStyleSheet("""
-            QPushButton {
-                background-color: #89B4FA;
-                color: #11111B;
-                font-size: 24px;
-                font-weight: bold;
-                border-radius: 10px;
-                padding: 15px;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #74C7EC;
-            }
-            QPushButton:pressed {
-                background-color: #89DCEB;
-            }
-            QPushButton:disabled {
-                background-color: #585B70;
-                color: #A6ADC8;
-            }
-        """)
+        self.btn_start.setStyleSheet("") # Clear local style to use global theme
         self.btn_start.clicked.connect(self.start_robot)
         control_layout.addWidget(self.btn_start)
 
@@ -642,65 +618,53 @@ class VibeCodeUI(QMainWindow):
         config_bacs_frame = QFrame()
         config_bacs_frame.setStyleSheet("""
             QFrame {
-                background-color: #11111B;
-                border-radius: 10px;
-                border: 2px solid #A6ADC8;
+                background-color: #181926;
+                border-radius: 20px;
+                border: 2px solid #363a4f;
             }
         """)
-        # Set a fixed width for the bins panel so it doesn't take 50% randomly
-        config_bacs_frame.setFixedWidth(350)
+        # Set a fixed width for the bins panel (Zoom in)
+        config_bacs_frame.setFixedWidth(500)
         config_layout = QVBoxLayout(config_bacs_frame)
-        config_layout.setContentsMargins(20, 20, 20, 20)
-
-        bin_title = QLabel("CONFIGURATION DES BACS:")
-        bin_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bin_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
-        config_layout.addWidget(bin_title)
-        
-        hint_lbl = QLabel("(Glisser-Déposer)")
-        hint_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hint_lbl.setStyleSheet("color: #585B70; font-size: 11px; border: none;")
-        config_layout.addWidget(hint_lbl)
-        
-        config_layout.addSpacing(10)
+        config_layout.setContentsMargins(0, 0, 0, 0)
+        config_layout.setSpacing(0)
 
 
-        # Création des 9 Bacs de tri (Plus petits)
+        # Création des 9 Bacs de tri (Zoomed Full)
         self.bins = {}
         for i in range(1, 10):
             self.bins[i] = DropBin(i, f"S{i}", layout_dir='V')
-            self.bins[i].setFixedSize(50, 50)
-            self.bins[i].setStyleSheet(self.bins[i].styleSheet() + "font-size: 8px;")
+            self.bins[i].setFixedSize(110, 110)
+            self.bins[i].setStyleSheet(self.bins[i].styleSheet() + "font-size: 10px;")
 
         # Création du Layout Triangulaire selon schéma utilisateur:
         triangle_layout = QGridLayout()
-        triangle_layout.setSpacing(2)
+        triangle_layout.setSpacing(20) # Beaucoup plus d'espace entre les bacs
 
-        # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 3, 3)
-        triangle_layout.addWidget(self.bins[5], 3, 5)
-        triangle_layout.addWidget(self.bins[6], 3, 7)
+        # Ligne du haut (Plus espacée)
+        triangle_layout.addWidget(self.bins[4], 1, 1)
+        triangle_layout.addWidget(self.bins[5], 1, 4)
+        triangle_layout.addWidget(self.bins[6], 1, 7)
 
         # Diagonale Gauche
-        triangle_layout.addWidget(self.bins[3], 4, 2) # Décalé un peu vers l'extérieur
-        triangle_layout.addWidget(self.bins[2], 5, 3)
-        triangle_layout.addWidget(self.bins[1], 6, 4)
+        triangle_layout.addWidget(self.bins[3], 3, 0)
+        triangle_layout.addWidget(self.bins[2], 5, 1)
+        triangle_layout.addWidget(self.bins[1], 7, 2)
 
         # Diagonale Droite
-        triangle_layout.addWidget(self.bins[7], 4, 8)
+        triangle_layout.addWidget(self.bins[7], 3, 8)
         triangle_layout.addWidget(self.bins[8], 5, 7)
-        triangle_layout.addWidget(self.bins[9], 6, 6) 
+        triangle_layout.addWidget(self.bins[9], 7, 6) 
 
-        # Force chaque "unité" de ta grille à avoir une taille minimale
+        # Force chaque "unité" de ta grille à avoir une taille minimale pour occuper l'espace
         for i in range(11): # Pour 11 colonnes
-            triangle_layout.setColumnMinimumWidth(i, 20)
+            triangle_layout.setColumnMinimumWidth(i, 40)
             triangle_layout.setColumnStretch(i, 1)
         for i in range(10): # Pour 10 lignes
-            triangle_layout.setRowMinimumHeight(i, 20)
+            triangle_layout.setRowMinimumHeight(i, 40)
             triangle_layout.setRowStretch(i, 1)
         
         config_layout.addLayout(triangle_layout)
-        config_layout.addStretch()
         
         import json
         import os
@@ -735,8 +699,8 @@ class VibeCodeUI(QMainWindow):
             b.on_drop_callback = self.save_color_mapping
 
         # Ajout des deux moitiés (plot et config bacs) dans le layout HAUT
-        top_right_layout.addWidget(plot_frame, stretch=1)
-        top_right_layout.addWidget(config_bacs_frame)
+        top_right_layout.addWidget(plot_frame, stretch=0) # Rapetisser la simulation
+        top_right_layout.addWidget(config_bacs_frame, stretch=1)
         
         # Le haut prend 2/3 de l'espace global du panneau de droite
         right_layout.addLayout(top_right_layout, stretch=2)
@@ -1003,7 +967,33 @@ class VibeCodeUI(QMainWindow):
     def get_dark_theme(self):
         return """
             QMainWindow {
-                background-color: #11111B;
+                background-color: #1E1E2E;
+            }
+            QLabel {
+                color: #CDD6F4;
+                font-family: 'Segoe UI', sans-serif;
+            }
+            QPushButton {
+                font-family: 'Segoe UI', sans-serif;
+                border-radius: 12px;
+                background-color: #313244;
+                color: #CDD6F4;
+                padding: 10px;
+            }
+            QPushButton:hover {
+                background-color: #45475A;
+            }
+            QPushButton#btn_start {
+                background-color: #89B4FA;
+                color: #11111B;
+            }
+            QPushButton#btn_start:hover {
+                background-color: #74C7EC;
+            }
+            QFrame#control_panel {
+                background-color: #181825;
+                border: 2px solid #89B4FA;
+                border-radius: 20px;
             }
         """
 
