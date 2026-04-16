@@ -651,19 +651,19 @@ class VibeCodeUI(QMainWindow):
         triangle_layout.setSpacing(10)
 
         # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 0, 1)
-        triangle_layout.addWidget(self.bins[5], 0, 3)
-        triangle_layout.addWidget(self.bins[6], 0, 5)
+        triangle_layout.addWidget(self.bins[4], 0, 0)
+        triangle_layout.addWidget(self.bins[5], 0, 2)
+        triangle_layout.addWidget(self.bins[6], 0, 4)
 
         # Diagonale Gauche
-        triangle_layout.addWidget(self.bins[3], 1, 0) # Décalé un peu vers l'extérieur
-        triangle_layout.addWidget(self.bins[2], 2, 1)
-        triangle_layout.addWidget(self.bins[1], 4, 2)
+        triangle_layout.addWidget(self.bins[3], 1, -1) # Décalé un peu vers l'extérieur
+        triangle_layout.addWidget(self.bins[2], 2, 0)
+        triangle_layout.addWidget(self.bins[1], 4, 1)
 
         # Diagonale Droite
-        triangle_layout.addWidget(self.bins[7], 1, 6)
-        triangle_layout.addWidget(self.bins[8], 2, 5)
-        triangle_layout.addWidget(self.bins[9], 4, 4) 
+        triangle_layout.addWidget(self.bins[7], 1, 5)
+        triangle_layout.addWidget(self.bins[8], 2, 4)
+        triangle_layout.addWidget(self.bins[9], 4, 3) 
 
         # Centrage
         for i in range(7): triangle_layout.setColumnStretch(i, 1)
