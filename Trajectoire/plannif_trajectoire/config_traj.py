@@ -57,8 +57,8 @@ def get_tangent(angle_deg):
 # Segment 1 (Top)
 t1 = get_tangent(ang1)
 p2 = drop_bac1_position
-p3 = (p2[0] - s_offset*t1[0], p2[1] - s_offset*t1[1], p2[2]) # Slot 3
-p1 = (p2[0] + s_offset*t1[0], p2[1] + s_offset*t1[1], p2[2]) # Slot 1
+p1 = (p2[0] - s_offset*t1[0], p2[1] - s_offset*t1[1], p2[2]) # Slot 1
+p3 = (p2[0] + s_offset*t1[0], p2[1] + s_offset*t1[1], p2[2]) # Slot 3
 
 # Segment 2 (Bas-Gauche)
 t2 = get_tangent(ang2)
@@ -69,8 +69,8 @@ p6 = (p5[0] + s_offset*t2[0], p5[1] + s_offset*t2[1], p5[2]) # Slot 6
 # Segment 3 (Bas-Droite)
 t3 = get_tangent(ang3)
 p8 = drop_bac3_position
-p9 = (p8[0] - s_offset*t3[0], p8[1] - s_offset*t3[1], p8[2]) # Slot 9
-p7 = (p8[0] + s_offset*t3[0], p8[1] + s_offset*t3[1], p8[2]) # Slot 7
+p7 = (p8[0] - s_offset*t3[0], p8[1] - s_offset*t3[1], p8[2]) # Slot 7
+p9 = (p8[0] + s_offset*t3[0], p8[1] + s_offset*t3[1], p8[2]) # Slot 9
 
 # Dictionnaire final des Bacs
 bacs = {
