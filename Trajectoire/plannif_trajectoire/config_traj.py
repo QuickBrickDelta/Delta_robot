@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 # --- Paramètres globaux ---
 ROBOT_ROTATION_OFFSET_DEG = -30.0    # Ajuster si les axes X/Y sont décalés par rapport au châssis
 MAX_BLOCS_OPTIMAL = 7
-speed_joint_move_global = 55.0  # cm/s
-speed_approach_move_global = 25.0  # cm/s
+speed_joint_move_global = 80.0  # cm/s
+speed_approach_move_global = 40.0  # cm/s
 speed_approach_hub = 10.0
 DETECTION_X_OFFSET_CM = 1.3  # Offset X (cm) appliqué aux positions détectées → valeur écrite dans detected_blocks.json
 DETECTION_Y_OFFSET_CM = 1  # Offset Y (cm) appliqué aux positions détectées
