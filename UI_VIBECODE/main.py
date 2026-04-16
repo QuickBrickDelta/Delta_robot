@@ -794,6 +794,7 @@ class VibeCodeUI(QMainWindow):
         # 1. Sauvegarder les blocs vus par la caméra
         import json
         import os
+        import config_traj
         
         # Obtenir les assignations actuelles des bacs via les widgets Drag&Drop
         current_mapping = {}
@@ -831,7 +832,6 @@ class VibeCodeUI(QMainWindow):
         import importlib
         import MouvementConnecte
         import animation_and_plot_traj
-        import config_traj
         
         # Important: Reload config_traj FIRST so it reads color_mapping.json
         importlib.reload(config_traj)
