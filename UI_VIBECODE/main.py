@@ -1022,9 +1022,13 @@ class VibeCodeUI(QMainWindow):
         # Revenir à la vue Caméra à la place du Graphe 2D
         self.bottom_stack.setCurrentIndex(0)
 
-        # Si c'était un cycle AUTOMATIQUE (MouvementConnecte), le robot finit à Home [0,0,-25]
+        # On met à jour la position connue du robot (il finit au-dessus du dernier bac)
         if hasattr(self, 'worker') and self.worker and self.worker.manual_path is None:
-            self.current_robot_pos = [0.0, 0.0, -20.0]
+            # On récupère le dernier point de command_xyz s'il existe
+            if 'Motor_command_xyz' in globals() and Motor_command_xyz:
+                self.current_robot_pos = Motor_command_xyz[-1][:3]
+            else:
+                self.current_robot_pos = [0.0, 0.0, -20.0]
             
             # RÉACTIVE la détection vision maintenant que le robot est arrêté
             self.camera_thread.pause_detection = False
@@ -1041,9 +1045,17 @@ class VibeCodeUI(QMainWindow):
             self.log_output("Blocs restants détectés : Reprise automatique de la séquence.")
             self.start_robot()
         else:
-            self.log_output("Zone de tri totalement vide. Séquence terminée.")
-            self.status_label.setText("STATUT : REPOS (ZONE VIDE)")
-            self.status_label.setStyleSheet("color: #A6E3A1; font-size: 18px; font-weight: bold; border: none;")
+            self.log_output("Zone de tri totalement vide. Retour à la maison (Home).")
+            self.status_label.setText("ZONE VIDE : RETOUR HOME")
+            
+            # Retourner à la position Home manuellement
+            self.spin_x.setValue(0.0)
+            self.spin_y.setValue(0.0)
+            self.spin_z.setValue(-20.0)
+            self.go_manual()
+            
+            # On laisse go_manual changer le statut, puis on le modifie dans 2 sec pour dire "Repos"
+            QTimer.singleShot(2500, lambda: self.status_label.setText("STATUT : REPOS (PRÊT)"))
 
     def go_manual(self):
         """Mode manuel : vérifie la portée et envoie le robot à la position X,Y,Z saisie."""

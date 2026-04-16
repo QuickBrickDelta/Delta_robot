@@ -109,17 +109,8 @@ def plan_full_trajectory(blocs):
         path.append((None, None, "openGripper", 0.0,
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
 
-    # 8) Point de passage centre table (rentrée smooth)
-    path.append((None, None, "joint", speed_joint,
-                 config_traj.home_intermediaire_position[0], 
-                 config_traj.home_intermediaire_position[1], 
-                 config_traj.home_intermediaire_position[2], 
-                 0, False))
-
-    # 9) Retour final au home
-    path.append((None, None, "joint", speed_approach_hub,
-                 home_position[0], home_position[1], home_position[2], 0, False))
-
+    # Le robot reste au dernier point (au-dessus du dernier bac)
+    # pour libérer la vue de la caméra au centre du plateau !
     return path, blocs_sorted
 
 def main():
