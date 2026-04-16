@@ -385,7 +385,7 @@ class VibeCodeUI(QMainWindow):
         """)
         self.control_panel.setFixedWidth(380)
         control_layout = QVBoxLayout(self.control_panel)
-        control_layout.setContentsMargins(22, 30, 22, 30)
+        control_layout.setContentsMargins(5, 30, 5, 30)
 
         # Titre
         self.title_label = QLabel("Q U I C K B R I C K")
@@ -650,19 +650,19 @@ class VibeCodeUI(QMainWindow):
         triangle_layout.setSpacing(2)
 
         # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 1, 3)
-        triangle_layout.addWidget(self.bins[5], 1, 5)
-        triangle_layout.addWidget(self.bins[6], 1, 7)
+        triangle_layout.addWidget(self.bins[4], 3, 3)
+        triangle_layout.addWidget(self.bins[5], 3, 5)
+        triangle_layout.addWidget(self.bins[6], 3, 7)
 
         # Diagonale Gauche
-        triangle_layout.addWidget(self.bins[3], 2, 2) # Décalé un peu vers l'extérieur
-        triangle_layout.addWidget(self.bins[2], 3, 3)
-        triangle_layout.addWidget(self.bins[1], 4, 4)
+        triangle_layout.addWidget(self.bins[3], 4, 2) # Décalé un peu vers l'extérieur
+        triangle_layout.addWidget(self.bins[2], 5, 3)
+        triangle_layout.addWidget(self.bins[1], 6, 4)
 
         # Diagonale Droite
-        triangle_layout.addWidget(self.bins[7], 2, 8)
-        triangle_layout.addWidget(self.bins[8], 3, 7)
-        triangle_layout.addWidget(self.bins[9], 4, 6) 
+        triangle_layout.addWidget(self.bins[7], 4, 8)
+        triangle_layout.addWidget(self.bins[8], 5, 7)
+        triangle_layout.addWidget(self.bins[9], 6, 6) 
 
         # Force chaque "unité" de ta grille à avoir une taille minimale
         for i in range(11): # Pour 11 colonnes
