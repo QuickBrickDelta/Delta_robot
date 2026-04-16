@@ -62,7 +62,7 @@ def plot_blocks_3D(blocs, home_position):
         ax.text(pos[0], pos[1], pos[2], f' {color} output', fontsize=10, color=mpl_c)
     
     # Dessiner le triangle à z=-38.5 (niveau de la table)
-    vertices = get_triangle_vertices(side_length=30)
+    vertices = get_triangle_vertices(side_length=37)
     triangle = np.vstack([vertices, vertices[0]])
     ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
     
@@ -78,7 +78,7 @@ def plot_blocks_3D(blocs, home_position):
     plt.show()
 
 ## Triangle helper function
-def get_triangle_vertices(side_length=30):
+def get_triangle_vertices(side_length=37):
     """Retourne les vertices du triangle équilatéral.
     Un coin est aligné avec l'axe X positif."""
     r = side_length / np.sqrt(3)
@@ -88,7 +88,7 @@ def get_triangle_vertices(side_length=30):
     return np.array([v1, v2, v3])
 
 ## Triangle plotting function
-def plot_triangle(side_length=30):
+def plot_triangle(side_length=37):
     """Dessine un triangle équilatéral noir centré à l'origine.
     Un coin est aligné avec l'axe X positif."""
     vertices = get_triangle_vertices(side_length)
@@ -100,7 +100,7 @@ def draw_route_2D_on_ax(ax, order, start_pos):
     x0, y0, _ = start_pos
 
     # Dessiner le triangle de travail
-    vertices = get_triangle_vertices(side_length=30)
+    vertices = get_triangle_vertices(side_length=37)
     triangle = np.vstack([vertices, vertices[0]])
     ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
@@ -197,7 +197,7 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
     ax.set_aspect('equal', adjustable='box')
     
     # Dessiner le triangle
-    vertices = get_triangle_vertices(side_length=30)
+    vertices = get_triangle_vertices(side_length=37)
     triangle = np.vstack([vertices, vertices[0]])
     ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
@@ -313,7 +313,7 @@ def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.0
     ax.set_title("Animation trajectoire (3D)")
     
     # Dessiner le triangle à z=-38.5 (niveau de la table)
-    vertices = get_triangle_vertices(side_length=30)
+    vertices = get_triangle_vertices(side_length=37)
     triangle = np.vstack([vertices, vertices[0]])
     ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
 

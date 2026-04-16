@@ -690,7 +690,7 @@ class VibeCodeUI(QMainWindow):
             "red": ("🔴 Roug", "#BE1142"),
             "blue": ("🔵 Bleu", "#1357C5"),
             "green_dark": ("🟢 VF.", "#24701E"),
-            "green_light": ("🟢 VC.", "#0EF17C"),
+            "green_light": ("🟢 VC.", "#5BF65B"),
             "yellow": ("🟡 Jaun", "#F8E813"),
             "orange": ("🟠 Oran", "#FD6D13"),
         }
