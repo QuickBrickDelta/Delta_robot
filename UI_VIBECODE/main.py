@@ -390,7 +390,7 @@ class VibeCodeUI(QMainWindow):
         # Titre
         self.title_label = QLabel("Q U I C K B R I C K")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("color: #89B4FA; font-size: 36px; font-weight: bold; border: none; padding-left: 10px; padding-right: 10px;")
+        self.title_label.setStyleSheet("color: #89B4FA; font-size: 36px; font-weight: bold; border: none; padding-left: 30px; padding-right: 30px;")
         control_layout.addWidget(self.title_label)
 
         control_layout.addStretch()
