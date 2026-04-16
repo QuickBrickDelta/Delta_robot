@@ -31,10 +31,19 @@ if args.manual:
         Motor_command_angles = json.load(f)
 else:
     # Mode auto : importer MouvementConnecte (planification complète)
+    print(f"[DEBUG] Tentative d'import de MouvementConnecte...")
+    print(f"[DEBUG] sys.path contains: {sys.path}")
     try:
-        from MouvementConnecte import Motor_command_angles
-    except ImportError:
-        print("[PIE] ERREUR : Impossible d'importer MouvementConnecte. Vérifie le chemin.")
+        import MouvementConnecte
+        Motor_command_angles = MouvementConnecte.Motor_command_angles
+        print(f"[DEBUG] Import réussi. Motor_command_angles len: {len(Motor_command_angles)}")
+    except ImportError as e:
+        print(f"[PIE] ERREUR : Impossible d'importer MouvementConnecte : {e}")
+        Motor_command_angles = []
+    except Exception as e:
+        print(f"[PIE] ERREUR INCONNUE lors de l'import : {e}")
+        import traceback
+        traceback.print_exc()
         Motor_command_angles = []
 
 
