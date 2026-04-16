@@ -95,6 +95,75 @@ def plot_triangle(side_length=37):
     triangle = np.vstack([vertices, vertices[0]])  # Fermer le triangle
     plt.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
+## Trajectory plotting function (Refactored for modularity)
+def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
+    """
+    ax: matplotlib axes
+    order: list of blocks
+    start_pos: (x, y, z)
+    drop_positions: Dict mapping color names to (x, y, z) tuples
+    """
+    x0, y0, _ = start_pos
+
+    # Dessiner le triangle de travail
+    vertices = get_triangle_vertices(side_length=37)
+    triangle = np.vstack([vertices, vertices[0]])
+    ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
+
+    # Point home
+    ax.scatter(x0, y0, c='black', s=120, marker='^', label='Home')
+
+    # Trajet segment par segment
+    cur = start_pos
+    
+    # Mapping des couleurs custom vers les couleurs Matplotlib
+    color_map = {
+        "red": "red",
+        "green_dark": "darkgreen",
+        "green_light": "lightgreen",
+        "blue": "blue",
+        "yellow": "yellow",
+        "orange": "orange"
+    }
+
+    for i, b in enumerate(order, 1):
+        if len(b) >= 6:
+            c, bloc_type, x, y, z_ignored, angle, *_ = b
+        else:
+            c, bloc_type, x, y, angle = b[:5]
+            
+        p_bloc = (float(x), float(y), config_traj.z_table)
+        
+        # --- MODULAR DROP POSITION ---
+        # Si drop_positions est fourni, on l'utilise, sinon on fallback
+        if drop_positions and c in drop_positions:
+            p_out = drop_positions[c]
+        else:
+            # Fallback sur l'ancienne fonction ou une valeur par défaut
+            p_out = output_pos_for_color(c) 
+
+        mpl_color = color_map.get(c, "black")
+
+        # cur -> bloc (Solid line)
+        ax.annotate("", xy=(p_bloc[0], p_bloc[1]), xytext=(cur[0], cur[1]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color))
+        ax.scatter(p_bloc[0], p_bloc[1], c=mpl_color, s=100)
+        ax.text(p_bloc[0], p_bloc[1], f"B{i}", ha='left', va='bottom')
+
+        # bloc -> output (Dashed line)
+        ax.annotate("", xy=(p_out[0], p_out[1]), xytext=(p_bloc[0], p_bloc[1]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color, linestyle='dashed'))
+        ax.scatter(p_out[0], p_out[1], c=mpl_color, s=150, marker='s')
+        ax.text(p_out[0], p_out[1], f"O{i}", ha='left', va='bottom')
+
+        cur = p_out 
+
+    ax.set_xlim(-15, 20)
+    ax.set_ylim(-18, 18)
+    ax.set_aspect('equal', adjustable='box')
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.set_title("Trajectoire calculée par le planificateur")
+
 ## Trajectory plotting function
 def draw_route_2D_on_ax(ax, order, start_pos):
     x0, y0, _ = start_pos

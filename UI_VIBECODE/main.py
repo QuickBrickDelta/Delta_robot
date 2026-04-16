@@ -900,8 +900,13 @@ class VibeCodeUI(QMainWindow):
         self.ax_2d.clear() # On efface l'ancien graphe si existant
         self.ax_2d.set_facecolor('#1E1E2E')
         blocs_sorted = getattr(MouvementConnecte, 'blocs_sorted', [])
+        ui_drop_zones = {}
+        for color, bin_id in current_mapping.items():
+            if bin_id != 0:
+                # On récupère la coordonnée du bac (ex: Bac 1 -> config_traj.SLOT_1)
+                ui_drop_zones[color] = getattr(config_traj, f"SLOT_{bin_id}_POS")
         if len(blocs_sorted) > 0:
-            animation_and_plot_traj.draw_route_2D_on_ax(self.ax_2d, blocs_sorted, config_traj.home_position)
+            animation_and_plot_traj.draw_route_2D_v2(self.ax_2d, blocs_sorted, config_traj.home_position, drop_positions=ui_drop_zones)
             # Rafraîchissement des ticks pour qu'ils restent visibles après le clear
             self.ax_2d.tick_params(colors='#CDD6F4')
         self.canvas_2d.draw()
