@@ -12,6 +12,20 @@ venv/
 
 # plots directory
 .plots_algo_path/
+# Logs
+logs/
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environnements virtuels
+.venv/
+venv/
+
+# plots directory
+.plots_algo_path/
 plots_algo_path/
 
 # calib_flash
@@ -19,5 +33,11 @@ plots_algo_path/
 calib_flash/
 
 # Fichiers générés dynamiquement
-detected_blocks.json
-manual_command_angles.json
+*.json
+!VisionNumerique/HSV/hsv_ranges.json
+!VisionNumerique/lab/lab_colors.json
+!.vscode/settings.json
+
+# Python cache
+__pycache__/
+*.pyc

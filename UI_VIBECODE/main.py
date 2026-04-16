@@ -828,6 +828,13 @@ class VibeCodeUI(QMainWindow):
                 adjusted_blocks.append(adjusted)
             json.dump(adjusted_blocks, f)
                 
+        # Sauvegarder la position de départ actuelle pour que MouvementConnecte la prenne en compte
+        start_pos_path = os.path.join(os.path.dirname(__file__), "start_pos.json")
+        with open(start_pos_path, "w") as f:
+            # S'assurer d'avoir un format liste de 3 floats
+            current_pos = getattr(self, 'current_robot_pos', [0.0, 0.0, -20.0])
+            json.dump([float(v) for v in current_pos], f)
+            
         # 2. Recharger le script qui planifie la trajectoire physiquement (MouvementConnecte)
         import importlib
         import MouvementConnecte

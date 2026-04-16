@@ -39,7 +39,10 @@ cost_do_bloc_from = other_fct_traj.cost_do_bloc_from
 from shortest_path_algorithms import plan_bnb_basic, plan_exact_tsp, plan_cheapest_insertion
 
 ## full trajectoire function
-def plan_full_trajectory(blocs):
+def plan_full_trajectory(blocs, start_position=None):
+    if start_position is None:
+        start_position = home_position
+        
     # path: [(bloc_carried, bloc_type, movement_type, speed, x, y, z, angle, pince_fermee), ...]
     path = []
     speed_joint = speed_joint_move_global
@@ -48,15 +51,15 @@ def plan_full_trajectory(blocs):
 
     # Trier les blocs selon un algorithme de planification
     if len(blocs) < 11:
-        blocs_sorted, total_distance = plan_bnb_basic(blocs, home_position)
+        blocs_sorted, total_distance = plan_bnb_basic(blocs, start_position)
     elif len(blocs) < 14:
-        blocs_sorted, total_distance = plan_exact_tsp(blocs, home_position)
+        blocs_sorted, total_distance = plan_exact_tsp(blocs, start_position)
     else:
-        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
+        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, start_position)
 
-    # 1) Départ au home (Haut)
+    # 1) Départ au point actuel (nommé "home" par convention dans rest of pipeline)
     path.append((None, None, "home", speed_approach_hub,
-                 home_position[0], home_position[1], home_position[2], 0.0, False))
+                 start_position[0], start_position[1], start_position[2], 0.0, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
     path.append((None, None, "joint", speed_approach_hub,

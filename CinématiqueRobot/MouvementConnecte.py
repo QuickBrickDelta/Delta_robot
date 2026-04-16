@@ -56,7 +56,17 @@ if os.path.exists(detected_path):
     except Exception as e:
         print(f"Erreur de lecture des blocs: {e}")
 
-Trajectory, blocs_sorted = plannif_trajectoire.plan_full_trajectory(blocs)
+# Lecture de la position de départ (si le robot ne commence pas de 0)
+start_pos_path = os.path.join(project_root, "UI_VIBECODE", "start_pos.json")
+start_pos = None
+if os.path.exists(start_pos_path):
+    try:
+        with open(start_pos_path, 'r') as f:
+            start_pos = json.load(f)
+    except Exception as e:
+        print(f"Erreur lecture start_pos: {e}")
+
+Trajectory, blocs_sorted = plannif_trajectoire.plan_full_trajectory(blocs, start_position=start_pos)
 
 # Commandes pour la simulation (XYZ + mode L/J/G)
 Motor_command_xyz = []
