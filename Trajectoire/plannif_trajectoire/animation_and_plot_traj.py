@@ -166,8 +166,8 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     for spine in ax.spines.values():
         spine.set_edgecolor('#585B70')
         
-    ax.set_xlabel("Y Robot (cm)", color='white', fontsize=8)
-    ax.set_ylabel("X Robot (cm)", color='white', fontsize=8)
+    ax.set_xlabel("Y Robot (cm)", color='white', fontsize=12)
+    ax.set_ylabel("X Robot (cm)", color='white', fontsize=12)
 
 ## Trajectory plotting function (Ancienne version)
 def draw_route_2D_on_ax(ax, order, start_pos):
