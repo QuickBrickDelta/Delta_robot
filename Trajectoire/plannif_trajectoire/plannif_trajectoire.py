@@ -49,7 +49,7 @@ def plan_full_trajectory(blocs):
                  config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2], 0.0, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
-    path.append((None, None, "joint", speed_approach_hub,
+    path.append((None, None, "joint", config_traj.speed_approach_hub,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
@@ -107,44 +107,32 @@ def plan_full_trajectory(blocs):
                  0, False))
 
     # 9) Retour final au home
-    path.append((None, None, "joint", speed_approach_hub,
-                 home_position[0], home_position[1], home_position[2], 0, False))
+    path.append((None, None, "joint", config_traj.speed_approach_hub,
+                 config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2], 0, False))
 
     return path, blocs_sorted
 
 def main():
-    #plot_blocks_2D(blocs)
-    plot_blocks_3D(blocs, home_position)
-    distances = [distance_from_output(bloc) for bloc in blocs]
-    for bloc, dist in zip(blocs, distances):
-        print(f"Distance du bloc {bloc} a sa position de sortie: {dist:.2f} unites")
-
-    print(f"Distance entre la position de depart et la position de sortie rouge: {distance_between_points(home_position, red_output_position):.2f} unites")
-
-    # Trier les blocs selon un algorithme de planification
-    # Branch and Bound, TSP exact, ou Cheapest Insertion selon le nombre de blocs
-    if len(blocs) < 11:
-        blocs_sorted, total_distance = plan_bnb_basic(blocs, home_position)
-        print("Ordre optimal:", blocs_sorted)
-        print(f"Distance totale optimale: {total_distance:.2f}")
-    elif len(blocs) < 14:
-        blocs_sorted, total_distance = plan_exact_tsp(blocs, home_position)
-        print("Ordre optimal:", blocs_sorted)
-        print(f"Distance totale optimale: {total_distance:.2f}")
+    # En mode debug, on utilise les blocs par défaut de config_traj
+    blocs_local = config_traj.blocs
+    home_pos = config_traj.home_position
+    
+    plot_blocks_3D(blocs_local, home_pos)
+    
+    # On teste le TSP sur ces blocs
+    if len(blocs_local) < 11:
+        blocs_sorted, total_distance = plan_bnb_basic(blocs_local, home_pos)
+    elif len(blocs_local) < 14:
+        blocs_sorted, total_distance = plan_exact_tsp(blocs_local, home_pos)
     else:
-        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
-        print("Ordre non-optimal:", blocs_sorted)
-        print(f"Distance totale non-optimale: {total_distance:.2f}")
+        blocs_sorted, total_distance = plan_cheapest_insertion(blocs_local, home_pos)
 
-    plot_route_2D(blocs_sorted, home_position)
+    plot_route_2D(blocs_sorted, home_pos)
 
     # Full trajectory
     full_path, _ = plan_full_trajectory(blocs_sorted)
-    print("Trajectoire complète:")
-    for step in full_path:
-        print(step)
-    #animate_full_trajectory_2D(full_path, blocs=blocs, home_position=home_position, dt=0.05, show_trace=True)
-    animate_full_trajectory_3D(full_path, blocs=blocs_sorted, home_position=home_position, dt=0.05, show_trace=True)
+    #animate_full_trajectory_2D(full_path, blocs=blocs_local, home_position=home_pos, dt=0.05, show_trace=True)
+    animate_full_trajectory_3D(full_path, blocs=blocs_sorted, home_position=home_pos, dt=0.05, show_trace=True)
 
 if __name__ == "__main__":
     main()

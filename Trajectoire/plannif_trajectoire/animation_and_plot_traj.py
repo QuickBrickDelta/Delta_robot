@@ -4,12 +4,11 @@ from matplotlib.animation import FuncAnimation
 import config_traj  # Pour les variables globales
 
 # Importer les variables globales depuis config_traj
-red_output_position = config_traj.red_output_position
-blue_output_position = config_traj.blue_output_position
-green_dark_output_position = config_traj.green_dark_output_position
-green_light_output_position = config_traj.green_light_output_position
-yellow_output_position = config_traj.yellow_output_position
-orange_output_position = config_traj.orange_output_position
+# Mapping couleurs custom -> couleurs Matplotlib valides
+COLOR_MAP = {
+    'red': 'red', 'blue': 'blue', 'yellow': 'yellow',
+    'orange': 'orange', 'green_dark': 'darkgreen', 'green_light': 'limegreen'
+}
 
 # Importer les fonctions depuis other_fct_traj.py
 from other_fct_traj import output_pos_for_color
@@ -18,8 +17,12 @@ from other_fct_traj import output_pos_for_color
 def plot_blocks_2D(blocs):
     """Affiche les blocs sur un graphique 2D."""
     for bloc in blocs:
-        couleur, bloc_type, x, y, angle = bloc
-        plt.scatter(x, y, c=couleur, s=100)  # s est la taille du point
+        if len(bloc) >= 6:
+            couleur, bloc_type, x, y, z_ignored, angle, *_ = bloc
+        else:
+            couleur, x, y, z_ignored, angle = bloc[:5]
+        mpl_c = COLOR_MAP.get(couleur, 'gray')
+        plt.scatter(x, y, c=mpl_c, s=100)
         plt.text(x, y, f'({x},{y})', fontsize=9, ha='right')
     plt.xlim(-10, 10)
     plt.ylim(-10, 10)
@@ -34,24 +37,29 @@ def plot_blocks_3D(blocs, home_position):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     for bloc in blocs:
-        z = config_traj.z_table  # Tous les blocs sont au niveau z=-38.5
-        couleur, bloc_type, x, y, angle = bloc
-        ax.scatter(x, y, z, c=couleur, s=100)
+        if len(bloc) >= 6:
+            couleur, bloc_type, x, y, z, angle, *_ = bloc
+        else:
+            couleur, x, y, z, angle = bloc[:5]
+            z = config_traj.z_table  # Fallback
+        mpl_c = COLOR_MAP.get(couleur, 'gray')
+        ax.scatter(x, y, z, c=mpl_c, s=100)
     # Afficher la position de départ du robot
     ax.scatter(home_position[0], home_position[1], home_position[2], c='black', s=150, marker='^')
     ax.text(home_position[0], home_position[1], home_position[2], ' Home', fontsize=10, color='black')
     # Afficher les positions de sortie
     output_positions = {
-        'red': red_output_position,
-        'blue': blue_output_position,
-        'green_dark': green_dark_output_position,
-        'green_light': green_light_output_position,
-        'yellow': yellow_output_position,
-        'orange': orange_output_position
+        'red': config_traj.red_output_position,
+        'blue': config_traj.blue_output_position,
+        'green_dark': config_traj.green_dark_output_position,
+        'green_light': config_traj.green_light_output_position,
+        'yellow': config_traj.yellow_output_position,
+        'orange': config_traj.orange_output_position
     }
     for color, pos in output_positions.items():
-        ax.scatter(pos[0], pos[1], pos[2], c=color, s=150, marker='s')
-        ax.text(pos[0], pos[1], pos[2], f' {color} output', fontsize=10, color=color)
+        mpl_c = COLOR_MAP.get(color, 'gray')
+        ax.scatter(pos[0], pos[1], pos[2], c=mpl_c, s=150, marker='s')
+        ax.text(pos[0], pos[1], pos[2], f' {color} output', fontsize=10, color=mpl_c)
     
     # Dessiner le triangle à z=-38.5 (niveau de la table)
     vertices = get_triangle_vertices(side_length=30)
