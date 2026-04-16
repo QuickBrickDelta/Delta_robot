@@ -95,7 +95,7 @@ def plot_triangle(side_length=37):
     triangle = np.vstack([vertices, vertices[0]])  # Fermer le triangle
     plt.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
-## Trajectory plotting function (Refactored for modularity)
+## Trajectory plotting function (VERSION FINALE NETTOYÉE)
 def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     """
     ax: matplotlib axes
@@ -105,25 +105,19 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     """
     x0, y0, _ = start_pos
 
-    # Dessiner le triangle de travail
+    # 1. Dessiner le triangle de travail (INVERSÉ Y-X)
     vertices = get_triangle_vertices(side_length=40)
     triangle = np.vstack([vertices, vertices[0]])
-    ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
+    # On met Y (index 1) en horizontal et X (index 0) en vertical
+    ax.plot(triangle[:, 1], triangle[:, 0], '-', linewidth=1.2, color='white', label='Zone')
 
-    # Point home
-    ax.scatter(x0, y0, c='white', s=120, marker='^', label='Home')
+    # 2. Point home (Inversé)
+    ax.scatter(y0, x0, c='white', s=100, marker='^', zorder=5)
 
-    # Trajet segment par segment
-    cur = start_pos
-    
-    # Mapping des couleurs custom vers les couleurs Matplotlib
+    cur = (x0, y0)
     color_map = {
-        "red": "red",
-        "green_dark": "darkgreen",
-        "green_light": "lightgreen",
-        "blue": "blue",
-        "yellow": "yellow",
-        "orange": "orange"
+        "red": "red", "green_dark": "darkgreen", "green_light": "#5BF65B",
+        "blue": "blue", "yellow": "yellow", "orange": "orange"
     }
 
     for i, b in enumerate(order, 1):
@@ -131,40 +125,51 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
             c, bloc_type, x, y, z_ignored, angle, *_ = b
         else:
             c, bloc_type, x, y, angle = b[:5]
-            
-        p_bloc = (float(x), float(y), config_traj.z_table)
         
-        # --- MODULAR DROP POSITION ---
-        # Si drop_positions est fourni, on l'utilise, sinon on fallback
+        p_bloc = (float(x), float(y))
+        
         if drop_positions and c in drop_positions:
-            p_out = drop_positions[c]
+            p_out = (drop_positions[c][0], drop_positions[c][1])
         else:
-            # Fallback sur l'ancienne fonction ou une valeur par défaut
-            p_out = output_pos_for_color(c) 
+            p_out_full = output_pos_for_color(c)
+            p_out = (p_out_full[0], p_out_full[1])
 
         mpl_color = color_map.get(c, "white")
 
-        # cur -> bloc (Solid line)
-        ax.annotate("", xy=(p_bloc[0], p_bloc[1]), xytext=(cur[0], cur[1]),
-                     arrowprops=dict(arrowstyle="->", color=mpl_color))
-        ax.scatter(p_bloc[0], p_bloc[1], c=mpl_color, s=100)
-        ax.text(p_bloc[0], p_bloc[1], f"B{i}", ha='left', va='bottom')
+        # --- DESSIN (Y horizontal, X vertical) ---
+        # Trajet : cur -> bloc
+        ax.annotate("", xy=(p_bloc[1], p_bloc[0]), xytext=(cur[1], cur[0]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color, lw=1.5))
+        ax.scatter(p_bloc[1], p_bloc[0], c=mpl_color, s=80, edgecolors='white', linewidth=0.5)
+        ax.text(p_bloc[1], p_bloc[0], f"B{i}", color='white', fontsize=9, fontweight='bold')
 
-        # bloc -> output (Dashed line)
-        ax.annotate("", xy=(p_out[0], p_out[1]), xytext=(p_bloc[0], p_bloc[1]),
-                     arrowprops=dict(arrowstyle="->", color=mpl_color, linestyle='dashed'))
-        ax.scatter(p_out[0], p_out[1], c=mpl_color, s=150, marker='s')
-        ax.text(p_out[0], p_out[1], f"O{i}", ha='left', va='bottom')
+        # Trajet : bloc -> output
+        ax.annotate("", xy=(p_out[1], p_out[0]), xytext=(p_bloc[1], p_bloc[0]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color, lw=1.5))
+        ax.scatter(p_out[1], p_out[0], c=mpl_color, s=120, marker='s', edgecolors='white', linewidth=0.5)
+        ax.text(p_out[1], p_out[0], f"O{i}", color='white', fontsize=9, fontweight='bold')
 
         cur = p_out 
 
-    ax.set_xlim(-20, 20)
-    ax.set_ylim(-20, 20)
-    ax.set_aspect('equal', adjustable='box')
-    ax.grid(True, linestyle="--", alpha=0.5)
-    ax.set_title("Trajectoire calculée par le planificateur")
+    # --- CONFIGURATION FINALE DU GRAPHIQUE ---
+    ax.set_xlim(25, -25) # Robot Y
+    ax.set_ylim(25, -20) # Robot X
+    
+    ax.set_aspect('equal')
+    ax.grid(True, linestyle=":", alpha=0.2, color='white')
+    
+    # Titre et style
+    ax.set_title("TRAJECTOIRE PLANIFIÉE", color='white', fontsize=12, pad=10, fontweight='bold')
+    ax.tick_params(colors='white', labelsize=8)
+    
+    # Bordures (Spines) en gris foncé pour le look "Dark Mode"
+    for spine in ax.spines.values():
+        spine.set_edgecolor('#585B70')
+        
+    ax.set_xlabel("Y Robot (cm)", color='white', fontsize=12)
+    ax.set_ylabel("X Robot (cm)", color='white', fontsize=12)
 
-## Trajectory plotting function
+## Trajectory plotting function (Ancienne version)
 def draw_route_2D_on_ax(ax, order, start_pos):
     x0, y0, _ = start_pos
 
@@ -191,7 +196,7 @@ def draw_route_2D_on_ax(ax, order, start_pos):
         color_map = {
             "red": "red",
             "green_dark": "darkgreen",
-            "green_light": "lightgreen",
+            "green_light": "green",
             "blue": "blue",
             "yellow": "yellow",
             "orange": "orange"
