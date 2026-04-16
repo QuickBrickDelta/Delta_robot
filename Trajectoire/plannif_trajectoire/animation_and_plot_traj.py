@@ -111,7 +111,7 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
     # Point home
-    ax.scatter(x0, y0, c='black', s=120, marker='^', label='Home')
+    ax.scatter(x0, y0, c='white', s=120, marker='^', label='Home')
 
     # Trajet segment par segment
     cur = start_pos
@@ -142,7 +142,7 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
             # Fallback sur l'ancienne fonction ou une valeur par défaut
             p_out = output_pos_for_color(c) 
 
-        mpl_color = color_map.get(c, "black")
+        mpl_color = color_map.get(c, "white")
 
         # cur -> bloc (Solid line)
         ax.annotate("", xy=(p_bloc[0], p_bloc[1]), xytext=(cur[0], cur[1]),
