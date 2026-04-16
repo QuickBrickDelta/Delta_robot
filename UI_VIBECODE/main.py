@@ -385,7 +385,7 @@ class VibeCodeUI(QMainWindow):
         """)
         self.control_panel.setFixedWidth(380)
         control_layout = QVBoxLayout(self.control_panel)
-        control_layout.setContentsMargins(20, 30, 20, 30)
+        control_layout.setContentsMargins(22, 30, 22, 30)
 
         # Titre
         self.title_label = QLabel("Q U I C K B R I C K")
