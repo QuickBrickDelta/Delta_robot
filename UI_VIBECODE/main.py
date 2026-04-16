@@ -608,7 +608,7 @@ class VibeCodeUI(QMainWindow):
         top_right_layout.setContentsMargins(0, 0, 0, 0)
         top_right_layout.setSpacing(10)
 
-        # 1. Le Plot 3D — FIXÉ pour ne pas déborder et pousser les bacs
+        # 1. Le Plot 3D
         plot_frame = QFrame()
         plot_frame.setStyleSheet("""
             QFrame {
@@ -617,17 +617,12 @@ class VibeCodeUI(QMainWindow):
                 border: 2px solid #585B70;
             }
         """)
-        plot_frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        plot_frame.setMaximumWidth(450)  # Ne peut JAMAIS dépasser 450px de large
-        
         plot_layout = QVBoxLayout(plot_frame)
-        plot_layout.setContentsMargins(0, 0, 0, 0)
+        plot_layout.setContentsMargins(0, 0, 0, 0) # Supprime les marges du widget
 
         self.fig = plt.figure(facecolor='#11111B')
         self.fig.subplots_adjust(left=-0.05, right=1.05, bottom=-0.05, top=1.05)
         self.canvas = FigureCanvas(self.fig)
-        # Empêcher le canvas de demander plus d'espace que disponible
-        self.canvas.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.ax.set_facecolor('#11111B')
         self.ax.set_axis_off()
