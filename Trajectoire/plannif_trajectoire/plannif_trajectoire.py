@@ -141,7 +141,7 @@ def main():
     anim = animate_full_trajectory_3D(full_path, blocs=blocs_sorted, home_position=home_pos, dt=0.15, show_trace=True)
     # Option B : En GIF (Plus simple pour les rapports)
     print("Enregistrement du GIF (patience)...")
-    anim.save('simulation_robot.gif', writer='pillow', fps=20)
+    anim.save('simulation_robot.gif', writer='pillow', fps=5)
     print("GIF enregistré sous 'simulation_robot.gif'")
     plt.show()
 
