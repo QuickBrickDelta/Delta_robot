@@ -114,4 +114,6 @@ blocs = np.array([
     ("yellow", "2x8", -7.0, 8.0, z_table, 45.0),
     ("green_dark", "1x4", -5.0, 6.0, z_table, 90.0),
     ("blue", "2x2", 5.0, 5.0, z_table, -45.0),
+    ("green_light", "1x2", 6.0, -4.0, z_table, 30.0),
+    ("orange", "2x6", -6.0, -7.0, z_table, -30.0)
 ], dtype=object)
