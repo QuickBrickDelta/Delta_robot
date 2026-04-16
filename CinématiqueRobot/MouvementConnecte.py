@@ -45,16 +45,23 @@ import json
 detected_path = os.path.join(project_root, "UI", "detected_blocks.json")
 blocs = config_traj.blocs
 
+print(f"[DEBUG] Chemin blocs recherché: {detected_path}")
 if os.path.exists(detected_path):
-    print(f"Chargement des blocs détectés depuis {detected_path}")
+    print(f"[DEBUG] Chargement des blocs détectés depuis {detected_path}")
     try:
         with open(detected_path, 'r') as f:
             data = json.load(f)
+            print(f"[DEBUG] Raw data from JSON: {data}")
             if data and len(data) > 0:
                 # Convertir en tableau 2D d'objets comme dans config_traj
                 blocs = numpy.array(data, dtype=object)
+                print(f"[DEBUG] Blocs chargés : {len(blocs)}")
+            else:
+                print("[DEBUG] Fichier détection vide ou liste vide.")
     except Exception as e:
-        print(f"Erreur de lecture des blocs: {e}")
+        print(f"[DEBUG] Erreur de lecture des blocs : {e}")
+else:
+    print(f"[DEBUG] Fichier {detected_path} INTROUVABLE. Utilisation des blocs par défaut.")
 
 Trajectory, blocs_sorted = plannif_trajectoire.plan_full_trajectory(blocs)
 
@@ -213,6 +220,8 @@ if Motor_command_xyz:
             print(f"  [DEBUG] Cmd #{len(Motor_command_angles)}: XYZ=({pos_xyz[0]:.1f}, {pos_xyz[1]:.1f}, {pos_xyz[2]:.1f}) P={pince_seg} W={angle:.1f}°")
 
         current_pos = pos_xyz
+
+    print(f"[DEBUG] Fin de boucle interpolation. Total généré: {len(Motor_command_angles)} commandes angles.")
 
     # Debug : afficher les transitions de pince
     print(f"Total commandes: {len(Motor_command_angles)}")
