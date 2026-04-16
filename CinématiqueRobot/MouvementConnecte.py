@@ -67,8 +67,12 @@ pince_states = []
 Motor_command_angles = []
 
 # Nombre de commandes de pause pour laisser la pince s'ouvrir/fermer
-# 8 steps × 50ms = 0.4s de délai (Divisé par ~3)
+# 8 steps × 50ms = 0.4s de délai
 GRIPPER_HOLD_STEPS = 8
+
+# Minimum de points par segment pour éviter les saccades
+MIN_STEPS = 20
+MIN_STEPS_SLOW = 30  # Pour les mouvements lents (hub speed) qui couvrent peu de distance
 
 # ===============================
 # 1) Construire les waypoints XYZ + mode + pince
@@ -135,8 +139,10 @@ if Motor_command_xyz:
 
         # CALCUL DYNAMIQUE DU NOMBRE DE POINTS
         # steps = (Distance / Vitesse) / DT
-        # On assure un minimum de 10 points pour la fluidité même sur petits trajets
-        steps_dynamic = max(10, int((dist / speed) / DEFAULT_DT))
+        # Minimum élevé pour les mouvements lents (home hub) afin d'éviter les saccades
+        is_slow = speed <= config_traj.speed_approach_hub
+        min_steps = MIN_STEPS_SLOW if is_slow else MIN_STEPS
+        steps_dynamic = max(min_steps, int((dist / speed) / DEFAULT_DT))
 
         # Choix de l'interpolation (joint avec fallback linéaire)
         if mode == "J":
