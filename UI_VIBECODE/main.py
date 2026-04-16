@@ -439,6 +439,7 @@ class VibeCodeUI(QMainWindow):
             ("X", "spin_x", -22.0, 22.0, 0.0),
             ("Y", "spin_y", -22.0, 22.0, 0.0),
             ("Z", "spin_z", -45.0, -18.0, -20.0),
+            ("A°", "spin_a", -90.0, 90.0, 0.0),
         ]:
             col_widget = QWidget()
             col_layout = QVBoxLayout(col_widget)
@@ -1051,6 +1052,7 @@ class VibeCodeUI(QMainWindow):
         x = self.spin_x.value()
         y = self.spin_y.value()
         z = self.spin_z.value()
+        angle = self.spin_a.value()
         target_pos = [x, y, z]
 
         # 1. Vérifier la cinématique inverse
@@ -1081,7 +1083,7 @@ class VibeCodeUI(QMainWindow):
         manual_commands = []
         for th in th_trajectoire:
             t1, t2, t3 = [float(v) for v in th]
-            manual_commands.append([t1, t2, t3, False])  # pince ouverte
+            manual_commands.append([t1, t2, t3, False, float(angle)])  # pince ouverte, angle au poignet
 
         # --- CALCUL PREVIEW (XYZ Curve) ---
         # On garde interpolate_joint uniquement pour l'animation 3D (visuel courbé)
