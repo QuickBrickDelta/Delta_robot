@@ -153,7 +153,7 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
 
     # --- CONFIGURATION FINALE DU GRAPHIQUE ---
     ax.set_xlim(25, -25) # Robot Y
-    ax.set_ylim(25, -25) # Robot X
+    ax.set_ylim(25, -20) # Robot X
     
     ax.set_aspect('equal')
     ax.grid(True, linestyle=":", alpha=0.2, color='white')
