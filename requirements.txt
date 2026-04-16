@@ -1,0 +1,7 @@
+PyQt6
+numpy
+matplotlib
+opencv-python
+mediapipe
+pyserial
+python_tsp
