@@ -162,7 +162,7 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     ax.set_ylim(-20, 20)
     ax.set_aspect('equal', adjustable='box')
     ax.grid(True, linestyle="--", alpha=0.5)
-    ax.set_title("Trajectoire calculée par le planificateur")
+    ax.set_title("Trajectoire calculée par le planificateur", color='white')
 
 ## Trajectory plotting function (Ancienne version)
 def draw_route_2D_on_ax(ax, order, start_pos):
