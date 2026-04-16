@@ -108,7 +108,7 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     # Dessiner le triangle de travail
     vertices = get_triangle_vertices(side_length=40)
     triangle = np.vstack([vertices, vertices[0]])
-    ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
+    ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail', color='white')
 
     # Point home
     ax.scatter(x0, y0, c='white', s=120, marker='^', label='Home')
@@ -148,23 +148,23 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
         ax.annotate("", xy=(p_bloc[0], p_bloc[1]), xytext=(cur[0], cur[1]),
                      arrowprops=dict(arrowstyle="->", color=mpl_color))
         ax.scatter(p_bloc[0], p_bloc[1], c=mpl_color, s=100)
-        ax.text(p_bloc[0], p_bloc[1], f"B{i}", ha='left', va='bottom')
+        ax.text(p_bloc[0], p_bloc[1], f"B{i}", ha='left', va='bottom', color='white')
 
         # bloc -> output (Dashed line)
         ax.annotate("", xy=(p_out[0], p_out[1]), xytext=(p_bloc[0], p_bloc[1]),
-                     arrowprops=dict(arrowstyle="->", color=mpl_color, linestyle='dashed'))
+                     arrowprops=dict(arrowstyle="->", color=mpl_color))
         ax.scatter(p_out[0], p_out[1], c=mpl_color, s=150, marker='s')
-        ax.text(p_out[0], p_out[1], f"O{i}", ha='left', va='bottom')
+        ax.text(p_out[0], p_out[1], f"O{i}", ha='left', va='bottom', color='white')
 
         cur = p_out 
 
-    ax.set_xlim(-20, 20)
+    ax.set_xlim(-20, 25)
     ax.set_ylim(-20, 20)
     ax.set_aspect('equal', adjustable='box')
     ax.grid(True, linestyle="--", alpha=0.5)
     ax.set_title("Trajectoire calculée par le planificateur")
 
-## Trajectory plotting function
+## Trajectory plotting function (Ancienne version)
 def draw_route_2D_on_ax(ax, order, start_pos):
     x0, y0, _ = start_pos
 
