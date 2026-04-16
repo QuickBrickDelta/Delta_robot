@@ -249,7 +249,7 @@ class ColorPill(QLabel):
     def __init__(self, color_id, color_name, bg_color, parent=None):
         super().__init__("", parent) # No text
         self.color_id = color_id
-        self.setFixedSize(32, 32)
+        self.setFixedSize(25, 25)
         self.setStyleSheet(f"""
             QLabel {{
                 background-color: {bg_color};
@@ -643,21 +643,21 @@ class VibeCodeUI(QMainWindow):
         self.bins = {}
         for i in range(1, 10):
             self.bins[i] = DropBin(i, f"S{i}", layout_dir='V')
-            self.bins[i].setFixedSize(70, 70)
-            self.bins[i].setStyleSheet(self.bins[i].styleSheet() + "font-size: 10px;")
+            self.bins[i].setFixedSize(50, 50)
+            self.bins[i].setStyleSheet(self.bins[i].styleSheet() + "font-size: 8px;")
 
         # Création du Layout Triangulaire selon schéma utilisateur:
         triangle_layout = QGridLayout()
         triangle_layout.setSpacing(10)
 
         # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 0, 0)
+        triangle_layout.addWidget(self.bins[4], 0, 0.5)
         triangle_layout.addWidget(self.bins[5], 0, 2)
-        triangle_layout.addWidget(self.bins[6], 0, 4)
+        triangle_layout.addWidget(self.bins[6], 0, 3.5)
 
         # Diagonale Gauche
-        triangle_layout.addWidget(self.bins[3], 1, -1) # Décalé un peu vers l'extérieur
-        triangle_layout.addWidget(self.bins[2], 2, 0)
+        triangle_layout.addWidget(self.bins[3], 1, 0) # Décalé un peu vers l'extérieur
+        triangle_layout.addWidget(self.bins[2], 2, 0.5)
         triangle_layout.addWidget(self.bins[1], 4, 1)
 
         # Diagonale Droite
