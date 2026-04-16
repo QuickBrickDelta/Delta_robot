@@ -651,18 +651,18 @@ class VibeCodeUI(QMainWindow):
         triangle_layout.setSpacing(2)
 
         # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 0, 1)
-        triangle_layout.addWidget(self.bins[5], 0, 5)
-        triangle_layout.addWidget(self.bins[6], 0, 9)
+        triangle_layout.addWidget(self.bins[4], 1, 2)
+        triangle_layout.addWidget(self.bins[5], 1, 5)
+        triangle_layout.addWidget(self.bins[6], 1, 8)
 
         # Diagonale Gauche
-        triangle_layout.addWidget(self.bins[3], 1, 0) # Décalé un peu vers l'extérieur
-        triangle_layout.addWidget(self.bins[2], 2, 2)
+        triangle_layout.addWidget(self.bins[3], 2, 2) # Décalé un peu vers l'extérieur
+        triangle_layout.addWidget(self.bins[2], 3, 3)
         triangle_layout.addWidget(self.bins[1], 4, 4)
 
         # Diagonale Droite
-        triangle_layout.addWidget(self.bins[7], 1, 10)
-        triangle_layout.addWidget(self.bins[8], 2, 8)
+        triangle_layout.addWidget(self.bins[7], 2, 8)
+        triangle_layout.addWidget(self.bins[8], 3, 7)
         triangle_layout.addWidget(self.bins[9], 4, 6) 
 
         # Force chaque "unité" de ta grille à avoir une taille minimale
