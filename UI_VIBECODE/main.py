@@ -687,12 +687,12 @@ class VibeCodeUI(QMainWindow):
             except: pass
             
         color_props = {
-            "red": ("🔴 Roug", "#F38BA8"),
-            "blue": ("🔵 Bleu", "#89B4FA"),
-            "green_dark": ("🟢 VF.", "#A6E3A1"),
-            "green_light": ("🟢 VC.", "#94E2D5"),
-            "yellow": ("🟡 Jaun", "#F9E2AF"),
-            "orange": ("🟠 Oran", "#FAB387"),
+            "red": ("🔴 Roug", "#BE1142"),
+            "blue": ("🔵 Bleu", "#1357C5"),
+            "green_dark": ("🟢 VF.", "#24701E"),
+            "green_light": ("🟢 VC.", "#0EF17C"),
+            "yellow": ("🟡 Jaun", "#F8E813"),
+            "orange": ("🟠 Oran", "#FD6D13"),
         }
         
         self.pills = []
