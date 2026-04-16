@@ -861,6 +861,10 @@ class VibeCodeUI(QMainWindow):
         
         # Important: Reload config_traj FIRST so it reads color_mapping.json
         importlib.reload(config_traj)
+        import plannif_trajectoire
+        import shortest_path_algorithms
+        importlib.reload(shortest_path_algorithms) # Recharger avant plannif
+        importlib.reload(plannif_trajectoire)
         importlib.reload(animation_and_plot_traj)
         importlib.reload(MouvementConnecte)
         Motor_command_xyz = MouvementConnecte.Motor_command_xyz

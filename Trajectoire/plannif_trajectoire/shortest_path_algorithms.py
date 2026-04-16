@@ -39,7 +39,7 @@ from python_tsp.heuristics import solve_tsp_local_search
 Bloc = Tuple[str, int, int]  # (color, x, y)
 
 # (Optionnel) tu peux garder ces variables là si tu veux les utiliser ailleurs.
-home_position = config_traj.home_position
+# (home_position local supprimé pour forcer l'usage de config_traj.home_position)
 MAX_BLOCS_OPTIMAL = getattr(config_traj, "MAX_BLOCS_OPTIMAL", None)
 
 

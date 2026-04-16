@@ -8,18 +8,8 @@ import animation_and_plot_traj # Pour l'animation (utilise cette même file)
 import shortest_path_algorithms  # Pour les algorithmes de planification
 import other_fct_traj  # Pour les fonctions utilitaires
 
-# Importer les variables globales depuis config_traj.py
-blocs = config_traj.blocs
-home_position = config_traj.home_position
-red_output_position = config_traj.red_output_position
-blue_output_position = config_traj.blue_output_position
-green_dark_output_position = config_traj.green_dark_output_position
-green_light_output_position = config_traj.green_light_output_position
-yellow_output_position = config_traj.yellow_output_position
-orange_output_position = config_traj.orange_output_position
-speed_joint_move_global = config_traj.speed_joint_move_global
-speed_approach_move_global = config_traj.speed_approach_move_global
-speed_approach_hub = config_traj.speed_approach_hub
+# (Variables globales supprimées ici pour forcer l'usage de config_traj.VAR)
+
 
 # Importer les fonctions depuis animation_and_plot_traj.py
 plot_blocks_2D = animation_and_plot_traj.plot_blocks_2D
@@ -42,21 +32,21 @@ from shortest_path_algorithms import plan_bnb_basic, plan_exact_tsp, plan_cheape
 def plan_full_trajectory(blocs):
     # path: [(bloc_carried, bloc_type, movement_type, speed, x, y, z, angle, pince_fermee), ...]
     path = []
-    speed_joint = speed_joint_move_global
-    speed_approach = speed_approach_move_global
+    speed_joint = config_traj.speed_joint_move_global
+    speed_approach = config_traj.speed_approach_move_global
     distance_approach = 10.0
 
     # Trier les blocs selon un algorithme de planification
     if len(blocs) < 11:
-        blocs_sorted, total_distance = plan_bnb_basic(blocs, home_position)
+        blocs_sorted, total_distance = plan_bnb_basic(blocs, config_traj.home_position)
     elif len(blocs) < 14:
-        blocs_sorted, total_distance = plan_exact_tsp(blocs, home_position)
+        blocs_sorted, total_distance = plan_exact_tsp(blocs, config_traj.home_position)
     else:
-        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
+        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, config_traj.home_position)
 
     # 1) Départ au home (Haut)
-    path.append((None, None, "home", speed_approach_hub,
-                 home_position[0], home_position[1], home_position[2], 0.0, False))
+    path.append((None, None, "home", config_traj.speed_approach_hub,
+                 config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2], 0.0, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
     path.append((None, None, "joint", speed_approach_hub,
