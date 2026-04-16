@@ -1106,7 +1106,7 @@ class VibeCodeUI(QMainWindow):
         x = self.spin_x.value()
         y = self.spin_y.value()
         z = self.spin_z.value()
-        angle = self.spin_a.value()
+        angle = self.spin_a.value() + getattr(config_traj, 'WRIST_ANGLE_OFFSET_DEG', 0.0)
         target_pos = [x, y, z]
 
         # 1. Vérifier la cinématique inverse
