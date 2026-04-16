@@ -11,8 +11,8 @@ speed_approach_hub = 10.0  # cm/s — vitesse de retour au home
 # ============================================================
 # Parametres Mode RAPIDE (défaut)
 # ============================================================
-RAPIDE_SPEED_JOINT         = 80.0  # cm/s — déplacement inter-blocs
-RAPIDE_SPEED_APPROACH      = 40.0  # cm/s — approche/remontée au-dessus des blocs
+RAPIDE_SPEED_JOINT         = 60.0  # cm/s — déplacement inter-blocs
+RAPIDE_SPEED_APPROACH      = 20.0  # cm/s — approche/remontée au-dessus des blocs
 RAPIDE_SPEED_HUB           = 10.0  # cm/s — retour au home
 RAPIDE_GRIPPER_HOLD_STEPS  = 2     # Steps de maintien pince (×50ms) → 0.10s
 RAPIDE_DROP_PRE_HOLD_STEPS = 5     # Steps de stabilisation avant drop → 0.25s
@@ -21,8 +21,8 @@ RAPIDE_DROP_POST_STEPS     = 1     # Steps après drop → 0.05s
 # ============================================================
 # Parametres Mode CHILL
 # ============================================================
-CHILL_SPEED_JOINT         = 40.0  # cm/s — déplacement inter-blocs
-CHILL_SPEED_APPROACH      = 20.0  # cm/s — approche/remontée au-dessus des blocs
+CHILL_SPEED_JOINT         = 30.0  # cm/s — déplacement inter-blocs
+CHILL_SPEED_APPROACH      = 15.0  # cm/s — approche/remontée au-dessus des blocs
 CHILL_SPEED_HUB           = 5.0   # cm/s — retour au home
 CHILL_GRIPPER_HOLD_STEPS  = 8     # Steps de maintien pince (×50ms) → 0.40s
 CHILL_DROP_PRE_HOLD_STEPS = 5     # Steps de stabilisation avant drop → 0.25s
