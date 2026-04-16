@@ -274,45 +274,44 @@ def detect_blocks(bgr, color_ranges, h_data=None):
     blurred = cv2.GaussianBlur(bgr, (11, 11), 0)
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     
-    # 2. MASQUE GLOBAL d'exclusion (Pixels déjà assignés)
-    already_assigned_mask = np.zeros((h, w), dtype=np.uint8)
-    
-    kernel_open = np.ones((3, 3), np.uint8)
-    kernel_close = np.ones((11, 11), np.uint8)
-
-    # Note: L'ordre dans color_ranges.items() devient important. 
-    # Les premières couleurs ont la priorité.
+    # 2. On crée un masque global de tout ce qui ressemble à un bloc (toutes couleurs)
+    full_mask = np.zeros((h, w), dtype=np.uint8)
     for name, ranges in color_ranges.items():
-        # Création du masque pour la couleur actuelle
-        color_mask = np.zeros((h, w), dtype=np.uint8)
         for lo, hi in ranges:
-            color_mask = cv2.bitwise_or(color_mask, cv2.inRange(hsv, lo, hi))
+            full_mask = cv2.bitwise_or(full_mask, cv2.inRange(hsv, lo, hi))
+    
+    # Nettoyage morphologique global
+    full_mask = cv2.morphologyEx(full_mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    full_mask = cv2.morphologyEx(full_mask, cv2.MORPH_CLOSE, np.ones((11, 11), np.uint8))
+    
+    # 3. On itère sur les contours géométriques trouvés
+    cnts, _ = cv2.findContours(full_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    for c in cnts:
+        area = cv2.contourArea(c)
+        if area < MIN_AREA_PX:
+            continue
         
-        # --- ÉTAPE CLÉ : On soustrait les pixels déjà pris par une autre couleur ---
-        color_mask = cv2.bitwise_and(color_mask, cv2.bitwise_not(already_assigned_mask))
-        
-        # Nettoyage habituel
-        color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel_open)
-        color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_CLOSE, kernel_close)
-        
-        # Recherche de contours
-        cnts, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        for c in cnts:
-            area = cv2.contourArea(c)
-            if area < MIN_AREA_PX:
-                continue
+        # Filtre géométrique strict
+        if not _is_rectangle_approx(c, RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN):
+            continue
             
-            if not _is_rectangle_approx(c, RECT_ANGLE_TOL_DEG, RECT_AREA_RATIO_MIN):
-                continue
-                
-            std_ab = _region_uniformity_lab(bgr, c)[0]
-            if std_ab > COLOR_STD_THRESH:
-                continue
-            
-            if _dominant_fraction(bgr, c, ranges) < DOMINANT_FRAC_THRESH:
-                continue
-            
+        std_ab = _region_uniformity_lab(bgr, c)[0]
+        if std_ab > COLOR_STD_THRESH:
+            continue
+
+        # --- ÉTAPE CLÉ : Quelle couleur gagne pour CE contour ? ---
+        best_color = None
+        max_frac = 0.0
+        
+        for name, ranges in color_ranges.items():
+            frac = _dominant_fraction(bgr, c, ranges)
+            if frac > max_frac:
+                max_frac = frac
+                best_color = name
+        
+        # On ne garde le bloc que si la meilleure couleur passe le seuil
+        if best_color is not None and max_frac >= DOMINANT_FRAC_THRESH:
             rect = cv2.minAreaRect(c)
             (cx, cy), (w_px, h_px), rect_angle = rect
             angle = angle_via_pca(c)
@@ -329,7 +328,6 @@ def detect_blocks(bgr, color_ranges, h_data=None):
             if angle > 90:
                 angle -= 180
 
-            # (Optionnel) Calcul des dimensions réelles comme tu l'as déjà
             # --- CALCUL DES DIMENSIONS RÉELLES (cm) ---
             dims_cm = None
             if h_data is not None:
@@ -361,21 +359,16 @@ def detect_blocks(bgr, color_ranges, h_data=None):
                     if not (MIN_W <= dims_cm[0] <= MAX_W) or not (MIN_H <= dims_cm[1] <= MAX_H):
                         continue
 
-            # SI LE BLOC EST VALIDE :
-            # On l'ajoute à la liste
             out.append({
-                "color": name,
+                "color": best_color,
                 "box": cv2.boxPoints(rect),
                 "center": (cx, cy),
                 "angle": angle,
                 "dims_cm": dims_cm
             })
             
-            # ON MARQUE LE BLOC comme "assigné" dans le masque global
-            # pour que les couleurs suivantes ignorent cette zone
-            cv2.drawContours(already_assigned_mask, [c], -1, 255, -1)
-            
     return out
+
 
 # ---------- IO caméra ----------
 def open_cap():
