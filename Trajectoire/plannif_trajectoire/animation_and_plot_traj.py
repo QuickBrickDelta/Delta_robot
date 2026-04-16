@@ -106,7 +106,7 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     x0, y0, _ = start_pos
 
     # Dessiner le triangle de travail
-    vertices = get_triangle_vertices(side_length=37)
+    vertices = get_triangle_vertices(side_length=40)
     triangle = np.vstack([vertices, vertices[0]])
     ax.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
@@ -158,8 +158,8 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
 
         cur = p_out 
 
-    ax.set_xlim(-15, 20)
-    ax.set_ylim(-18, 18)
+    ax.set_xlim(-20, 20)
+    ax.set_ylim(-20, 20)
     ax.set_aspect('equal', adjustable='box')
     ax.grid(True, linestyle="--", alpha=0.5)
     ax.set_title("Trajectoire calculée par le planificateur")
