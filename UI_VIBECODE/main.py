@@ -247,20 +247,17 @@ class CameraThread(QThread):
 
 class ColorPill(QLabel):
     def __init__(self, color_id, color_name, bg_color, parent=None):
-        super().__init__(color_name, parent)
+        super().__init__("", parent) # No text
         self.color_id = color_id
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setFixedSize(32, 32)
         self.setStyleSheet(f"""
             QLabel {{
                 background-color: {bg_color};
-                color: #11111B;
-                font-weight: bold;
-                font-size: 11px;
-                border-radius: 5px;
-                padding: 2px 5px;
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                border-radius: 16px;
             }}
         """)
-        self.setMaximumHeight(24)
+        self.setToolTip(color_name)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def mousePressEvent(self, event):
@@ -288,30 +285,39 @@ class ColorPill(QLabel):
             self.show()  # Si annulé, réaffiche
 
 class DropBin(QFrame):
-    def __init__(self, bin_id, title, layout_dir='V', parent=None):
-        super().__init__(parent)
+    def __init__(self, bin_id, label_text, layout_dir='V'):
+        super().__init__()
         self.bin_id = bin_id
         self.setAcceptDrops(True)
-        self.setStyleSheet("""
-            QFrame {
-                background-color: #181825;
-                border: 2px dashed #585B70;
-                border-radius: 10px;
-            }
+        self.setFixedSize(60, 60)
+        
+        # Style circulaire épuré comme le dessin
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: transparent;
+                border: 2px solid #585B70;
+                border-radius: 30px;
+            }}
         """)
-        if layout_dir == 'V':
-            self.layout = QVBoxLayout(self)
-        else:
-            self.layout = QHBoxLayout(self)
-            
-        self.layout.setContentsMargins(5, 5, 5, 5)
-        self.layout.setSpacing(5)
         
-        title_lbl = QLabel(title)
-        title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_lbl.setStyleSheet("color: #A6ADC8; font-size: 11px; font-weight: bold; border: none;")
-        self.layout.addWidget(title_lbl)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # Label discret au centre (Numéro)
+        self.name_label = QLabel(str(bin_id) if bin_id != 0 else "B")
+        self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.name_label.setStyleSheet("color: #585B70; font-size: 14px; font-weight: bold; border: none;")
+        main_layout.addWidget(self.name_label)
+
+        # Layout pour les pastilles (Overlay au centre)
+        self.layout = QVBoxLayout() if layout_dir == 'V' else QHBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(2)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addLayout(self.layout)
         
+        # Espaceur pour garder le label centré quand vide
         self.layout.addStretch()
 
     def dragEnterEvent(self, event):
@@ -610,9 +616,9 @@ class VibeCodeUI(QMainWindow):
             }
         """)
         # Set a fixed width for the bins panel so it doesn't take 50% randomly
-        config_bacs_frame.setFixedWidth(300)
+        config_bacs_frame.setFixedWidth(350)
         config_layout = QVBoxLayout(config_bacs_frame)
-        config_layout.setContentsMargins(10, 20, 10, 20)
+        config_layout.setContentsMargins(20, 20, 20, 20)
 
         bin_title = QLabel("CONFIGURATION DES BACS:")
         bin_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -626,27 +632,42 @@ class VibeCodeUI(QMainWindow):
         
         config_layout.addSpacing(10)
 
-        # Création des Bacs
+        # Création de la banque (Non-assignées)
         self.bin_bank = DropBin(0, "BANQUE (Non-Assignées)", layout_dir='H')
         self.bin_bank.setMinimumHeight(45)
-        
-        self.bin_1 = DropBin(1, "BAC 1 (Haut)", layout_dir='V')
-        self.bin_2 = DropBin(2, "BAC 2 (Gauche)", layout_dir='V')
-        self.bin_3 = DropBin(3, "BAC 3 (Droite)", layout_dir='V')
-        
-        # Dimensions pour qu'ils soient de belle taille
-        bin_size = (110, 85)
-        self.bin_1.setMinimumSize(*bin_size)
-        self.bin_2.setMinimumSize(*bin_size)
-        self.bin_3.setMinimumSize(*bin_size)
-        
-        # Layout Triangulaire (Grille 2x2, bac 1 au milieu en haut)
+
+        # Création des 9 Bacs de tri (Plus petits)
+        self.bins = {}
+        for i in range(1, 10):
+            self.bins[i] = DropBin(i, f"S{i}", layout_dir='V')
+            self.bins[i].setFixedSize(70, 70)
+            self.bins[i].setStyleSheet(self.bins[i].styleSheet() + "font-size: 10px;")
+
+        # Création du Layout Triangulaire selon schéma utilisateur:
+        # Top Side: 3 (Left), 2 (Center), 1 (Right)
+        # Left Side: 4, 5, 6
+        # Right Side: 9, 8, 7
         triangle_layout = QGridLayout()
         triangle_layout.setSpacing(10)
-        
-        triangle_layout.addWidget(self.bin_1, 0, 0, 1, 2, Qt.AlignmentFlag.AlignHCenter)
-        triangle_layout.addWidget(self.bin_2, 1, 0, 1, 1, Qt.AlignmentFlag.AlignRight)
-        triangle_layout.addWidget(self.bin_3, 1, 1, 1, 1, Qt.AlignmentFlag.AlignLeft)
+
+        # Ligne du haut (Horizontal horizontal)
+        triangle_layout.addWidget(self.bins[3], 0, 0)
+        triangle_layout.addWidget(self.bins[2], 0, 3)
+        triangle_layout.addWidget(self.bins[1], 0, 6)
+
+        # Diagonale Gauche
+        triangle_layout.addWidget(self.bins[4], 1, 0) # Décalé un peu vers l'extérieur
+        triangle_layout.addWidget(self.bins[5], 2, 1)
+        triangle_layout.addWidget(self.bins[6], 4, 2)
+
+        # Diagonale Droite
+        triangle_layout.addWidget(self.bins[9], 1, 6)
+        triangle_layout.addWidget(self.bins[8], 2, 5)
+        triangle_layout.addWidget(self.bins[7], 4, 4) 
+
+        # Centrage
+        for i in range(7): triangle_layout.setColumnStretch(i, 1)
+        for i in range(5): triangle_layout.setRowStretch(i, 1)
         
         config_layout.addWidget(self.bin_bank)
         config_layout.addLayout(triangle_layout)
@@ -676,10 +697,14 @@ class VibeCodeUI(QMainWindow):
             pill = ColorPill(c_id, c_name, bg)
             self.pills.append(pill)
             target_bin_id = mapping.get(c_id, 0)
-            if target_bin_id == 1: self.bin_1.layout.insertWidget(self.bin_1.layout.count() - 1, pill)
-            elif target_bin_id == 2: self.bin_2.layout.insertWidget(self.bin_2.layout.count() - 1, pill)
-            elif target_bin_id == 3: self.bin_3.layout.insertWidget(self.bin_3.layout.count() - 1, pill)
-            else: self.bin_bank.layout.insertWidget(self.bin_bank.layout.count() - 1, pill)
+            
+            inserted = False
+            if target_bin_id in self.bins:
+                self.bins[target_bin_id].layout.insertWidget(self.bins[target_bin_id].layout.count() - 1, pill)
+                inserted = True
+            
+            if not inserted:
+                self.bin_bank.layout.insertWidget(self.bin_bank.layout.count() - 1, pill)
 
         # Ajout des deux moitiés (plot et config bacs) dans le layout HAUT
         top_right_layout.addWidget(plot_frame, stretch=1)
@@ -803,10 +828,10 @@ class VibeCodeUI(QMainWindow):
             parent_widget = pill.parent()
             while parent_widget is not None and not hasattr(parent_widget, 'bin_id'):
                 parent_widget = parent_widget.parent()
-            if parent_widget:
+            if parent_widget and parent_widget.bin_id != 0:
                 current_mapping[pill.color_id] = parent_widget.bin_id
             else:
-                current_mapping[pill.color_id] = 1 # Fallback au bac 1
+                current_mapping[pill.color_id] = 0 # banque/non-assigné
                 
         map_file = os.path.join(os.path.dirname(__file__), "color_mapping.json")
         with open(map_file, "w") as f:

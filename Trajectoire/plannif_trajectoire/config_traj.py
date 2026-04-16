@@ -35,23 +35,56 @@ home_intermediaire_position = (0.0, 0.0, z_home_intermediaire)
 # 3 bacs à r=18cm, même disposition que les pignons mais décalé de 90° en XY
 # Pignons: 0°, 120°, 240°  →  Drops: 90°, 210°, 330°
 import math
-r_drop = 25
-drop_bac1_position = ( 0.0,                            r_drop,                          z_drop)  # 90°
-drop_bac2_position = (-math.sin(math.radians(60))*r_drop, -math.cos(math.radians(60))*r_drop, z_drop)  # 210°
-drop_bac3_position = ( math.sin(math.radians(60))*r_drop, -math.cos(math.radians(60))*r_drop, z_drop)  # 330°
+# --- Positions de sortie (Teachable & Auto-compensées) ---
+# On compense le ROBOT_ROTATION_OFFSET_DEG pour que les bacs ne bougent pas 
+# physiquement quand on ajuste la rotation du robot.
+r_drop = 22.0
+ang1 = 90.0  - ROBOT_ROTATION_OFFSET_DEG
+ang2 = 210.0 - ROBOT_ROTATION_OFFSET_DEG
+ang3 = 330.0 - ROBOT_ROTATION_OFFSET_DEG
+
+drop_bac1_position = (r_drop * math.cos(math.radians(ang1)), r_drop * math.sin(math.radians(ang1)), z_drop)
+drop_bac2_position = (r_drop * math.cos(math.radians(ang2)), r_drop * math.sin(math.radians(ang2)), z_drop)
+drop_bac3_position = (r_drop * math.cos(math.radians(ang3)), r_drop * math.sin(math.radians(ang3)), z_drop)
+
+s_offset = 5.0 # Décalage entre les slots
+
+def get_tangent(angle_deg):
+    rad = math.radians(angle_deg + 90) # Tangente = Normale + 90°
+    return (math.cos(rad), math.sin(rad))
+
+# Calcul des 9 Slots relatifs aux 3 centres
+# Segment 1 (Top)
+t1 = get_tangent(ang1)
+p2 = drop_bac1_position
+p3 = (p2[0] - s_offset*t1[0], p2[1] - s_offset*t1[1], p2[2]) # Slot 3
+p1 = (p2[0] + s_offset*t1[0], p2[1] + s_offset*t1[1], p2[2]) # Slot 1
+
+# Segment 2 (Bas-Gauche)
+t2 = get_tangent(ang2)
+p5 = drop_bac2_position
+p4 = (p5[0] - s_offset*t2[0], p5[1] - s_offset*t2[1], p5[2]) # Slot 4
+p6 = (p5[0] + s_offset*t2[0], p5[1] + s_offset*t2[1], p5[2]) # Slot 6
+
+# Segment 3 (Bas-Droite)
+t3 = get_tangent(ang3)
+p8 = drop_bac3_position
+p9 = (p8[0] - s_offset*t3[0], p8[1] - s_offset*t3[1], p8[2]) # Slot 9
+p7 = (p8[0] + s_offset*t3[0], p8[1] + s_offset*t3[1], p8[2]) # Slot 7
+
+# Dictionnaire final des Bacs
+bacs = {
+    1: p1, 2: p2, 3: p3,
+    4: p4, 5: p5, 6: p6,
+    7: p7, 8: p8, 9: p9
+}
 
 # Mapping dynamique via color_mapping.json
 import json
 import os
 
-mapping = {
-    "red": 1,
-    "blue": 2,
-    "green_dark": 3,
-    "green_light": 1,
-    "yellow": 1,
-    "orange": 2
-}
+# Fallback mapping
+mapping = {"red": 1, "blue": 2, "green_dark": 3, "green_light": 4, "yellow": 5, "orange": 6}
 
 try:
     map_file = os.path.join(os.path.dirname(__file__), "..", "UI_VIBECODE", "color_mapping.json")
@@ -61,18 +94,17 @@ try:
 except Exception:
     pass
 
-bacs = {
-    1: drop_bac1_position,
-    2: drop_bac2_position,
-    3: drop_bac3_position
-}
+# Helper pour récupérer la position de sortie d'une couleur
+def get_output_pos(color_name):
+    slot_id = mapping.get(color_name, 0)
+    return bacs.get(slot_id, drop_bac1_position if "drop_bac1_position" in globals() else p_top_mid)
 
-red_output_position    = bacs.get(mapping.get("red", 1), drop_bac1_position)
-blue_output_position   = bacs.get(mapping.get("blue", 2), drop_bac2_position)
-green_dark_output_position  = bacs.get(mapping.get("green_dark", 3), drop_bac3_position)
-green_light_output_position = bacs.get(mapping.get("green_light", 1), drop_bac1_position)
-yellow_output_position = bacs.get(mapping.get("yellow", 1), drop_bac1_position)
-orange_output_position = bacs.get(mapping.get("orange", 2), drop_bac2_position)
+red_output_position    = get_output_pos("red")
+blue_output_position   = get_output_pos("blue")
+green_dark_output_position  = get_output_pos("green_dark")
+green_light_output_position = get_output_pos("green_light")
+yellow_output_position = get_output_pos("yellow")
+orange_output_position = get_output_pos("orange")
 
 # --- Blocs ---
 
