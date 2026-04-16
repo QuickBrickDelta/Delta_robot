@@ -837,9 +837,9 @@ class VibeCodeUI(QMainWindow):
         import json, os
         if self.robot_mode == "rapide":
             self.robot_mode = "chill"
-            self.btn_mode.setText("MODE : CHILL")
+            self.btn_mode.setText("MODE : LENT")
             self.btn_mode.setChecked(True)
-            self.log_output("[MODE] Passé en mode CHILL — vitesses réduites, délais augmentés.")
+            self.log_output("[MODE] Passé en mode LENT — vitesses réduites, délais augmentés.")
         else:
             self.robot_mode = "rapide"
             self.btn_mode.setText("MODE : RAPIDE")
