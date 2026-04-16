@@ -38,8 +38,8 @@ const int SERVO_PINCE_PIN = 3; // Pin PWM du servo pince
 const int SERVO_WRIST_PIN = 5; // Pin PWM du servo poignet
 const int PULSE_OUVERTE = 1845;
 const int PULSE_FERMEE = 2030;
-const int PULSE_WRIST_0_DEG = 1800; // Valeur pour 0 deg
-const int PULSE_WRIST_90_DEG = 0;   // Valeur pour 90 deg (donc -90 deg = 3600) et la valeur pour -90 deg est 3600
+const int PULSE_WRIST_0_DEG = 1700; // Valeur calibrée pour 0° (neutre)
+const int PULSE_WRIST_90_DEG = 550; // Valeur calibrée pour +90°
 
 Dynamixel2Arduino dxl(DXL_SERIAL);
 Servo pinceServo;
@@ -277,20 +277,21 @@ void applyLastCommand() {
   if (abs(lastWristAngle - currentWristAngle) > 0.5f) {
     currentWristAngle = lastWristAngle;
 
-    // Mapping INVERSÉ : 0 deg -> 1700 (PULSE_WRIST_0_DEG), 90 deg -> 550
-    // (PULSE_WRIST_90_DEG)
+    // Mapping : 0° -> PULSE_WRIST_0_DEG, +90° -> PULSE_WRIST_90_DEG, -90° -> miroir
     float angle_clamped = currentWristAngle;
-    if (angle_clamped < -90.0f)
-      angle_clamped = -90.0f;
-    if (angle_clamped < -90.0f)
+    if (angle_clamped > 90.0f)   // BUG CORRIGÉ : clamp positif
+      angle_clamped = 90.0f;
+    if (angle_clamped < -90.0f)  // clamp négatif
       angle_clamped = -90.0f;
 
-    // Calcul : On part de 1700 et on retire proportionnellement à l'angle
-    float range = (float)(PULSE_WRIST_0_DEG - PULSE_WRIST_90_DEG);
+    // Calcul proportionnel : 0° -> PULSE_WRIST_0_DEG, angle croissant -> pulse décroissant
+    float range = (float)(PULSE_WRIST_0_DEG - PULSE_WRIST_90_DEG); // 1700 - 550 = 1150
     float pulse = (float)PULSE_WRIST_0_DEG - (angle_clamped * (range / 90.0f));
 
-    // Sécurité : bornes physiques du servo modifiées (0 à 3600 pour -90)
-    int finalPulse = constrain((int)pulse, 0, 3600);
+    // Bornes physiques : 550 (max positif) à 2850 (max négatif, symétrique)
+    int pulseLow  = PULSE_WRIST_90_DEG;                   // 550
+    int pulseHigh = PULSE_WRIST_0_DEG + (int)range;       // 1700 + 1150 = 2850
+    int finalPulse = constrain((int)pulse, pulseLow, pulseHigh);
     wristServo.writeMicroseconds(finalPulse);
   }
 }
