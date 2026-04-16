@@ -169,6 +169,80 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     ax.set_xlabel("Y Robot (cm)", color='white', fontsize=12)
     ax.set_ylabel("X Robot (cm)", color='white', fontsize=12)
 
+## Trajectory plotting function (VERSION FINALE NETTOYÉE)
+def draw_route_2D_v3(ax, order, start_pos, drop_positions=None):
+    """
+    ax: matplotlib axes
+    order: list of blocks
+    start_pos: (x, y, z)
+    drop_positions: Dict mapping color names to (x, y, z) tuples
+    """
+    x0, y0, _ = start_pos
+
+    # 1. Dessiner le triangle de travail (INVERSÉ Y-X)
+    vertices = get_triangle_vertices(side_length=40)
+    triangle = np.vstack([vertices, vertices[0]])
+    # On met Y (index 1) en horizontal et X (index 0) en vertical
+    ax.plot(triangle[:, 1], triangle[:, 0], '-', linewidth=1.2, color='black', label='Zone')
+
+    # 2. Point home (Inversé)
+    ax.scatter(y0, x0, c='black', s=100, marker='^', zorder=5)
+
+    cur = (x0, y0)
+    color_map = {
+        "red": "red", "green_dark": "darkgreen", "green_light": "#5BF65B",
+        "blue": "blue", "yellow": "yellow", "orange": "orange"
+    }
+
+    for i, b in enumerate(order, 1):
+        if len(b) >= 6:
+            c, bloc_type, x, y, z_ignored, angle, *_ = b
+        else:
+            c, bloc_type, x, y, angle = b[:5]
+        
+        p_bloc = (float(x), float(y))
+        
+        if drop_positions and c in drop_positions:
+            p_out = (drop_positions[c][0], drop_positions[c][1])
+        else:
+            p_out_full = output_pos_for_color(c)
+            p_out = (p_out_full[0], p_out_full[1])
+
+        mpl_color = color_map.get(c, "black")
+
+        # --- DESSIN (Y horizontal, X vertical) ---
+        # Trajet : cur -> bloc
+        ax.annotate("", xy=(p_bloc[1], p_bloc[0]), xytext=(cur[1], cur[0]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color, lw=1.5))
+        ax.scatter(p_bloc[1], p_bloc[0], c=mpl_color, s=80, edgecolors='black', linewidth=0.5)
+        ax.text(p_bloc[1], p_bloc[0], f"B{i}", color='black', fontsize=9, fontweight='bold')
+
+        # Trajet : bloc -> output
+        ax.annotate("", xy=(p_out[1], p_out[0]), xytext=(p_bloc[1], p_bloc[0]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color, lw=1.5))
+        ax.scatter(p_out[1], p_out[0], c=mpl_color, s=120, marker='s', edgecolors='black', linewidth=0.5)
+
+        cur = p_out 
+
+    # --- CONFIGURATION FINALE DU GRAPHIQUE ---
+    ax.set_xlim(25, -25) # Robot Y
+    ax.set_ylim(25, -20) # Robot X
+    
+    ax.set_aspect('equal')
+    ax.grid(True, linestyle=":", alpha=0.2, color='black')
+    
+    # Titre et style
+    ax.set_title("TRAJECTOIRE PLANIFIÉE", color='black', fontsize=12, pad=10, fontweight='bold')
+    ax.tick_params(colors='black', labelsize=8)
+    
+    # Bordures (Spines) en gris foncé pour le look "Dark Mode"
+    for spine in ax.spines.values():
+        spine.set_edgecolor('#585B70')
+        
+    ax.set_xlabel("Y Robot (cm)", color='black', fontsize=12)
+    ax.set_ylabel("X Robot (cm)", color='black', fontsize=12)
+
+
 ## Trajectory plotting function (Ancienne version)
 def draw_route_2D_on_ax(ax, order, start_pos):
     x0, y0, _ = start_pos
@@ -227,7 +301,7 @@ def draw_route_2D_on_ax(ax, order, start_pos):
 def plot_route_2D(order, start_pos):
     """Fonction originale pour un affichage en fenêtre popup autonome."""
     fig, ax = plt.subplots()
-    draw_route_2D_on_ax(ax, order, start_pos)
+    draw_route_2D_v3(ax, order, start_pos)
     plt.show()
 
 ## animation function
@@ -287,12 +361,12 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
 
     # Outputs (si tes variables globales existent)
     outputs = {
-        'red': red_output_position,
-        'blue': blue_output_position,
-        'green_dark': green_dark_output_position,
-        'green_light': green_light_output_position,
-        'yellow': yellow_output_position,
-        'orange': orange_output_position
+        'red': config_traj.red_output_position,
+        'blue': config_traj.blue_output_position,
+        'green_dark': config_traj.green_dark_output_position,
+        'green_light': config_traj.green_light_output_position,
+        'yellow': config_traj.yellow_output_position,
+        'orange': config_traj.orange_output_position
     }
     for color, pos in outputs.items():
         ax.scatter(pos[0], pos[1], c=color, s=120, marker='s')
@@ -347,118 +421,105 @@ def animate_full_trajectory_2D(full_path, blocs=None, home_position=None, dt=0.0
     return anim
 
 def animate_full_trajectory_3D(full_path, blocs=None, home_position=None, dt=0.05, show_trace=True):
-    """
-    full_path: [(bloc_carried, movement_type, speed, x, y, z, pince_fermee), ...]
-    dt: pas de temps simulé (sec) pour l'interpolation
-    """
-
     if len(full_path) < 2:
         raise ValueError("full_path doit contenir au moins 2 points")
 
-    # --- 1) Frames interpolées ---
-    frames = []  # (x, y, z, angle, grip, mtype, carried_color)
-    for i in range(len(full_path) - 1):
-        carried_color1, carried_type1, mtype1, speed1, x1, y1, z1, angle1, grip1 = full_path[i]
-        carried_color2, carried_type2, mtype2, speed2, x2, y2, z2, angle2, grip2 = full_path[i + 1]
+    # --- 1) Couleurs et Positions ---
+    color_map = {
+        "red": "red",
+        "green_dark": "darkgreen",
+        "green_light": "#5BF65B",
+        "blue": "blue",
+        "yellow": "yellow",
+        "orange": "orange"
+    }
 
-        p1 = np.array([float(x1), float(y1), float(z1)], dtype=float)
-        p2 = np.array([float(x2), float(y2), float(z2)], dtype=float)
+    # --- 2) Frames interpolées (Correction Unpacking) ---
+    frames = []
+    for i in range(len(full_path) - 1):
+        p1_data = full_path[i]
+        p2_data = full_path[i + 1]
+
+        # On indexe par la fin pour être sûr d'avoir x, y, z peu importe le début
+        # full_path point: (color, type, mtype, speed, x, y, z, angle, grip)
+        p1 = np.array([float(p1_data[4]), float(p1_data[5]), float(p1_data[6])])
+        p2 = np.array([float(p2_data[4]), float(p2_data[5]), float(p2_data[6])])
 
         dist = np.linalg.norm(p2 - p1)
-        speed = max(float(speed2), 1e-6)
+        speed = max(float(p2_data[3]), 1e-6)
         T = dist / speed
         steps = max(1, int(np.ceil(T / dt)))
 
         for s in range(steps):
             t = (s + 1) / steps
             p = (1 - t) * p1 + t * p2
-            frames.append((p[0], p[1], p[2], bool(grip2), mtype2, carried_color2))
+            # On stocke: x, y, z, grip, mtype, carried_color
+            frames.append((p[0], p[1], p[2], bool(p2_data[8]), p2_data[2], p2_data[0]))
 
-    # --- 2) Figure 3D ---
+    # --- 3) Figure 3D ---
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-
-    ax.set_xlim(-10, 10)
-    ax.set_ylim(-10, 10)
+    ax.set_xlim(25, -25)
+    ax.set_ylim(25, -20)
     ax.set_zlim(config_traj.z_table, 10)
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
-    ax.set_title("Animation trajectoire (3D)")
-    
-    # Dessiner le triangle à z=-38.5 (niveau de la table)
+
+    # Dessin du triangle de travail
     vertices = get_triangle_vertices(side_length=37)
     triangle = np.vstack([vertices, vertices[0]])
-    ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k-', linewidth=0.8, label='Zone de travail')
+    ax.plot(triangle[:, 0], triangle[:, 1], [config_traj.z_table]*len(triangle), 'k-', linewidth=0.8)
 
-    # Blocs
+    # Affichage des Bacs (Outputs) - UNE SEULE FOIS
+    raw_outputs = {
+        'red': config_traj.red_output_position,
+        'blue': config_traj.blue_output_position,
+        'green_dark': config_traj.green_dark_output_position,
+        'green_light': config_traj.green_light_output_position,
+        'yellow': config_traj.yellow_output_position,
+        'orange': config_traj.orange_output_position
+    }
+    for color_name, pos in raw_outputs.items():
+        mpl_c = color_map.get(color_name, color_name)
+        ax.scatter(pos[0], pos[1], pos[2], c=mpl_c, s=120, marker='s')
+        ax.text(pos[0], pos[1], pos[2], f" {color_name}", fontsize=8)
+
+    # Affichage des Blocs au sol
     if blocs is not None:
-        for couleur, bloc_type, x, y, angle in blocs:
-            ax.scatter(float(x), float(y), config_traj.z_table, c=couleur, s=60)
+        for b in blocs:
+            c_name, _, bx, by = b[0], b[1], b[2], b[3]
+            ax.scatter(float(bx), float(by), config_traj.z_table, c=color_map.get(c_name, "black"), s=60)
 
     # Home
     if home_position is not None:
         ax.scatter(home_position[0], home_position[1], home_position[2], c='black', s=120, marker='^')
-        ax.text(home_position[0], home_position[1], home_position[2], " Home", fontsize=9, color='black')
 
-    # Outputs
-    outputs = {
-        'red': red_output_position,
-        'blue': blue_output_position,
-        'green_dark': green_dark_output_position,
-        'green_light': green_light_output_position,
-        'yellow': yellow_output_position,
-        'orange': orange_output_position
-    }
-    for color, pos in outputs.items():
-        ax.scatter(pos[0], pos[1], pos[2], c=color, s=120, marker='s')
-        ax.text(pos[0], pos[1], pos[2], f" {color} out", fontsize=9, color=color)
-
-    ax.legend()
     robot = ax.scatter([], [], [], s=140, marker='o')
-
-    if show_trace:
-        trace_line, = ax.plot([], [], [], linewidth=2)
-        tx, ty, tz = [], [], []
-    else:
-        trace_line = None
-
     status_text = fig.text(0.02, 0.95, "", ha="left", va="top")
 
+    if show_trace:
+        trace_line, = ax.plot([], [], [], linewidth=2, alpha=0.5)
+        tx, ty, tz = [], [], []
+
     def init():
-        x, y, z, grip, mtype, carried = frames[0]
-        robot._offsets3d = ([x], [y], [z])
-        robot.set_color(carried if (grip and carried is not None) else 'black')
-        status_text.set_text("")
-        if show_trace:
-            trace_line.set_data([], [])
-            trace_line.set_3d_properties([])
-        return (robot, status_text) if not show_trace else (robot, status_text, trace_line)
+        robot._offsets3d = ([], [], [])
+        return robot, status_text
 
     def update(k):
         x, y, z, grip, mtype, carried = frames[k]
-
         robot._offsets3d = ([x], [y], [z])
-        robot.set_color(carried if (grip and carried is not None) else 'black')
+        
+        # Couleur du robot change s'il porte un bloc
+        r_color = color_map.get(carried, "black") if grip else "black"
+        robot.set_color(r_color)
 
-        status_text.set_text(
-            f"Frame {k+1}/{len(frames)} | move={mtype} | grip={'CLOSED' if grip else 'OPEN'} | carried={carried}"
-        )
-
+        status_text.set_text(f"Move: {mtype} | Grip: {'CLOSED' if grip else 'OPEN'}")
+        
         if show_trace:
             tx.append(x); ty.append(y); tz.append(z)
             trace_line.set_data(tx, ty)
             trace_line.set_3d_properties(tz)
-            return robot, status_text, trace_line
-
+        
         return robot, status_text
 
-    anim = FuncAnimation(
-        fig, update, frames=len(frames), init_func=init,
-        interval=int(dt * 1000),
-        blit=False,  # 3D: plus stable
-        repeat=False
-    )
-
+    anim = FuncAnimation(fig, update, frames=len(frames), init_func=init, interval=int(dt * 1000), repeat=False)
     plt.show()
     return anim
