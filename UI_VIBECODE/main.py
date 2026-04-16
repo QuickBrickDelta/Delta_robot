@@ -174,10 +174,12 @@ class CameraThread(QThread):
                     if loaded:
                         self.H_cam, _, _, self.cam_center = loaded
                         self.cam_center = self.cam_center.reshape(2)
+                        self.h_data_tuple = loaded
                     else:
                         self.H_cam = None
+                        self.h_data_tuple = None
 
-                detections = detect_blocks(frame, COLOR_RANGES, h_data=None)
+                detections = detect_blocks(frame, COLOR_RANGES, h_data=getattr(self, 'h_data_tuple', None))
                 current_blocks = []
                 for det in detections:
                     box = np.array(det["box"], dtype=np.int32)
@@ -1023,9 +1025,25 @@ class VibeCodeUI(QMainWindow):
         # Si c'était un cycle AUTOMATIQUE (MouvementConnecte), le robot finit à Home [0,0,-25]
         if hasattr(self, 'worker') and self.worker and self.worker.manual_path is None:
             self.current_robot_pos = [0.0, 0.0, -20.0]
+            
+            # RÉACTIVE la détection vision maintenant que le robot est arrêté
+            self.camera_thread.pause_detection = False
+            
+            # On laisse le temps à la caméra d'analyser les nouveaux blocs restants 
+            self.status_label.setText("NOUVELLE VÉRIFICATION...")
+            QTimer.singleShot(1500, self.check_and_restart)
+        else:
+            self.camera_thread.pause_detection = False
 
-        # RÉACTIVE la détection vision maintenant que le robot est arrêté
-        self.camera_thread.pause_detection = False
+    def check_and_restart(self):
+        # Si on a encore des blocs valides à l'écran, on relance automatiquement
+        if hasattr(self, 'camera_thread') and len(self.camera_thread.latest_blocks) > 0:
+            self.log_output("Blocs restants détectés : Reprise automatique de la séquence.")
+            self.start_robot()
+        else:
+            self.log_output("Zone de tri totalement vide. Séquence terminée.")
+            self.status_label.setText("STATUT : REPOS (ZONE VIDE)")
+            self.status_label.setStyleSheet("color: #A6E3A1; font-size: 18px; font-weight: bold; border: none;")
 
     def go_manual(self):
         """Mode manuel : vérifie la portée et envoie le robot à la position X,Y,Z saisie."""
