@@ -610,7 +610,7 @@ class VibeCodeUI(QMainWindow):
 
         # 1. Le Plot 3D
         plot_frame = QFrame()
-        plot_frame.setFixedSize(400, 420)
+        plot_frame.setFixedSize(300, 340)
         plot_frame.setStyleSheet("""
             QFrame {
                 background-color: #11111B;
@@ -624,7 +624,7 @@ class VibeCodeUI(QMainWindow):
         self.fig = plt.figure(facecolor='#11111B')
         self.fig.subplots_adjust(left=-0.05, right=1.05, bottom=-0.05, top=1.05)
         self.canvas = FigureCanvas(self.fig)
-        self.canvas.setFixedSize(396, 380)
+        self.canvas.setFixedSize(296, 300)
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.ax.set_facecolor('#11111B')
         self.ax.set_axis_off()
