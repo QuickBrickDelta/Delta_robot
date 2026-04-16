@@ -323,13 +323,12 @@ class DropBin(QFrame):
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
-            # Limite de 3 couleurs par bac (sauf pour le bac Non-Assigné qui a l'ID 0)
-            if self.bin_id != 0:
-                pills_count = sum(1 for i in range(self.layout.count()) if isinstance(self.layout.itemAt(i).widget(), ColorPill))
-                if pills_count >= 3:
-                    event.ignore()
-                    return
-                    
+            # Limite de 3 couleurs par bac
+            pills_count = sum(1 for i in range(self.layout.count()) if isinstance(self.layout.itemAt(i).widget(), ColorPill))
+            if pills_count >= 3:
+                event.ignore()
+                return
+                
             event.acceptProposedAction()
             self.setStyleSheet("""
                 QFrame {
@@ -635,9 +634,6 @@ class VibeCodeUI(QMainWindow):
         
         config_layout.addSpacing(10)
 
-        # Création de la banque (Non-assignées)
-        self.bin_bank = DropBin(0, "BANQUE (Non-Assignées)", layout_dir='H')
-        self.bin_bank.setMinimumHeight(45)
 
         # Création des 9 Bacs de tri (Plus petits)
         self.bins = {}
@@ -673,7 +669,6 @@ class VibeCodeUI(QMainWindow):
             triangle_layout.setRowMinimumHeight(i, 20)
             triangle_layout.setRowStretch(i, 1)
         
-        config_layout.addWidget(self.bin_bank)
         config_layout.addLayout(triangle_layout)
         config_layout.addStretch()
         
@@ -700,20 +695,14 @@ class VibeCodeUI(QMainWindow):
         for c_id, (c_name, bg) in color_props.items():
             pill = ColorPill(c_id, c_name, bg)
             self.pills.append(pill)
-            target_bin_id = mapping.get(c_id, 0)
-            
-            inserted = False
-            if target_bin_id in self.bins:
-                self.bins[target_bin_id].layout.insertWidget(self.bins[target_bin_id].layout.count() - 1, pill)
-                inserted = True
-            
-            if not inserted:
-                self.bin_bank.layout.insertWidget(self.bin_bank.layout.count() - 1, pill)
+            target_bin_id = mapping.get(c_id, 1)  # Bac 1 par défaut si non-assigné
+            if target_bin_id not in self.bins:
+                target_bin_id = 1
+            self.bins[target_bin_id].layout.insertWidget(self.bins[target_bin_id].layout.count() - 1, pill)
 
         # Connecter le callback de sauvegarde à tous les bacs
         for b in self.bins.values():
             b.on_drop_callback = self.save_color_mapping
-        self.bin_bank.on_drop_callback = self.save_color_mapping
 
         # Ajout des deux moitiés (plot et config bacs) dans le layout HAUT
         top_right_layout.addWidget(plot_frame, stretch=1)
