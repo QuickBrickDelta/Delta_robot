@@ -1,13 +1,7 @@
 import numpy as np
 import config_traj  # Pour les variables globales
 
-# Importer les variables globales depuis config_traj
-red_output_position = config_traj.red_output_position
-blue_output_position = config_traj.blue_output_position
-green_dark_output_position = config_traj.green_dark_output_position
-green_light_output_position = config_traj.green_light_output_position
-yellow_output_position = config_traj.yellow_output_position
-orange_output_position = config_traj.orange_output_position
+# Importation de `config_traj` pour un accès dynamique aux paramètres
 
 ## Get position functions
 def bloc_pos(bloc):
@@ -20,12 +14,12 @@ def bloc_pos(bloc):
 
 def output_pos_for_color(color):
     return {
-        'red': red_output_position,
-        'blue': blue_output_position,
-        'green_dark': green_dark_output_position,
-        'green_light': green_light_output_position,
-        'yellow': yellow_output_position,
-        'orange': orange_output_position,
+        'red': config_traj.red_output_position,
+        'blue': config_traj.blue_output_position,
+        'green_dark': config_traj.green_dark_output_position,
+        'green_light': config_traj.green_light_output_position,
+        'yellow': config_traj.yellow_output_position,
+        'orange': config_traj.orange_output_position,
     }[color]
 
 ## Cost calculation functions
@@ -46,20 +40,7 @@ def distance_from_output(bloc):
     else:
         couleur, x, y, z_val, angle = bloc
     z = 0  # Tous les blocs sont au niveau z=0 pour le calcul 2D
-    if couleur == 'red':
-        output_pos = red_output_position
-    elif couleur == 'blue':
-        output_pos = blue_output_position
-    elif couleur == 'green_dark':
-        output_pos = green_dark_output_position
-    elif couleur == 'green_light':
-        output_pos = green_light_output_position
-    elif couleur == 'yellow':
-        output_pos = yellow_output_position
-    elif couleur == 'orange':
-        output_pos = orange_output_position
-    else:
-        raise ValueError(f"Couleur inconnue: {couleur}")
+    output_pos = output_pos_for_color(couleur)
     
     dist = np.sqrt((x - output_pos[0])**2 + (y - output_pos[1])**2 + (z - output_pos[2])**2)
     return dist

@@ -352,11 +352,13 @@ def detect_blocks(bgr, color_ranges, h_data=None):
                     # On trie pour avoir toujours [petit_coté, grand_coté]
                     dims_cm = sorted([dim1, dim2])
                     
-                    #--- FILTRE LEGO (Optionnel) ---
-                    #Si tu veux filtrer les briques 2x4 (environ 1.6 x 3.2 cm)
-                    TARGET_W, TARGET_H = 1.6, 3.2
-                    TOL = 0.8
-                    if abs(dims_cm[0] - TARGET_W) > TOL or abs(dims_cm[1] - TARGET_H) > TOL:
+                    #--- FILTRE STRICT TAILLE ---
+                    # Briques 2x4 = typiquement ~1.6 cm x 3.2 cm
+                    # Rejeter tout ce qui est plus petit ou absurdement plus gros
+                    MIN_W, MAX_W = 1.0, 2.5
+                    MIN_H, MAX_H = 2.0, 4.5
+                    
+                    if not (MIN_W <= dims_cm[0] <= MAX_W) or not (MIN_H <= dims_cm[1] <= MAX_H):
                         continue
 
             # SI LE BLOC EST VALIDE :

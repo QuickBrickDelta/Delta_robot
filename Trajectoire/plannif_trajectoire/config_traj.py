@@ -11,7 +11,7 @@ DETECTION_X_OFFSET_CM = 1.3  # Offset X (cm) appliqué aux positions détectées
 DETECTION_Y_OFFSET_CM = 1  # Offset Y (cm) appliqué aux positions détectées
 OFFSET_X_MULTIPLICATOR = 1.1  # Multiplicateur X (Correction d'échelle)
 OFFSET_Y_MULTIPLICATOR = 1.1  # Multiplicateur Y (Correction d'échelle)
-WRIST_ANGLE_OFFSET_DEG = -70.0  # Décalage en degrés de la pince par rapport à la vue caméra
+WRIST_ANGLE_OFFSET_DEG = -70  # Décalage en degrés de la pince par rapport à la vue caméra
 
 # --- Calibration Servos PWM ---
 PULSE_PINCE_OUVERTE = 1500
@@ -40,13 +40,39 @@ drop_bac1_position = ( 0.0,                            r_drop,                  
 drop_bac2_position = (-math.sin(math.radians(60))*r_drop, -math.cos(math.radians(60))*r_drop, z_drop)  # 210°
 drop_bac3_position = ( math.sin(math.radians(60))*r_drop, -math.cos(math.radians(60))*r_drop, z_drop)  # 330°
 
-# Mapping couleur → bac (3 bacs, 4 couleurs)
-red_output_position    = drop_bac1_position   # Bac 1
-blue_output_position   = drop_bac2_position   # Bac 2
-green_dark_output_position  = drop_bac3_position   # Bac 3
-green_light_output_position = drop_bac1_position   # Bac 1 (partagé avec red)
-yellow_output_position = drop_bac1_position   # Bac 1 (partagé avec red)
-orange_output_position = drop_bac2_position   # Bac 2 (partagé avec blue)
+# Mapping dynamique via color_mapping.json
+import json
+import os
+
+mapping = {
+    "red": 1,
+    "blue": 2,
+    "green_dark": 3,
+    "green_light": 1,
+    "yellow": 1,
+    "orange": 2
+}
+
+try:
+    map_file = os.path.join(os.path.dirname(__file__), "..", "UI_VIBECODE", "color_mapping.json")
+    if os.path.exists(map_file):
+        with open(map_file, "r") as f:
+            mapping.update(json.load(f))
+except Exception:
+    pass
+
+bacs = {
+    1: drop_bac1_position,
+    2: drop_bac2_position,
+    3: drop_bac3_position
+}
+
+red_output_position    = bacs.get(mapping.get("red", 1), drop_bac1_position)
+blue_output_position   = bacs.get(mapping.get("blue", 2), drop_bac2_position)
+green_dark_output_position  = bacs.get(mapping.get("green_dark", 3), drop_bac3_position)
+green_light_output_position = bacs.get(mapping.get("green_light", 1), drop_bac1_position)
+yellow_output_position = bacs.get(mapping.get("yellow", 1), drop_bac1_position)
+orange_output_position = bacs.get(mapping.get("orange", 2), drop_bac2_position)
 
 # --- Blocs ---
 

@@ -19,9 +19,9 @@ if sys.platform != "win32":
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QFrame,
                              QDoubleSpinBox, QSizePolicy, QPlainTextEdit,
-                             QStackedLayout)
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
-from PyQt6.QtGui import QFont, QPalette, QColor, QImage, QPixmap
+                             QStackedLayout, QGridLayout)
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QMimeData, QPoint
+from PyQt6.QtGui import QFont, QPalette, QColor, QImage, QPixmap, QDrag
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -174,10 +174,12 @@ class CameraThread(QThread):
                     if loaded:
                         self.H_cam, _, _, self.cam_center = loaded
                         self.cam_center = self.cam_center.reshape(2)
+                        self.h_data_tuple = loaded
                     else:
                         self.H_cam = None
+                        self.h_data_tuple = None
 
-                detections = detect_blocks(frame, COLOR_RANGES, h_data=None)
+                detections = detect_blocks(frame, COLOR_RANGES, h_data=getattr(self, 'h_data_tuple', None))
                 current_blocks = []
                 for det in detections:
                     box = np.array(det["box"], dtype=np.int32)
@@ -243,12 +245,118 @@ class CameraThread(QThread):
         self._run_flag = False
         self.wait()
 
+class ColorPill(QLabel):
+    def __init__(self, color_id, color_name, bg_color, parent=None):
+        super().__init__(color_name, parent)
+        self.color_id = color_id
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setStyleSheet(f"""
+            QLabel {{
+                background-color: {bg_color};
+                color: #11111B;
+                font-weight: bold;
+                font-size: 11px;
+                border-radius: 5px;
+                padding: 2px 5px;
+            }}
+        """)
+        self.setMaximumHeight(24)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_start_position = event.position().toPoint()
+
+    def mouseMoveEvent(self, event):
+        if not (event.buttons() & Qt.MouseButton.LeftButton):
+            return
+        if (event.position().toPoint() - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
+            return
+            
+        drag = QDrag(self)
+        mime_data = QMimeData()
+        mime_data.setText(self.color_id)
+        drag.setMimeData(mime_data)
+        
+        pixmap = self.grab()
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(event.position().toPoint())
+        
+        self.hide()
+        drop_action = drag.exec(Qt.DropAction.MoveAction)
+        if drop_action == Qt.DropAction.IgnoreAction:
+            self.show()  # Si annulé, réaffiche
+
+class DropBin(QFrame):
+    def __init__(self, bin_id, title, layout_dir='V', parent=None):
+        super().__init__(parent)
+        self.bin_id = bin_id
+        self.setAcceptDrops(True)
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #181825;
+                border: 2px dashed #585B70;
+                border-radius: 10px;
+            }
+        """)
+        if layout_dir == 'V':
+            self.layout = QVBoxLayout(self)
+        else:
+            self.layout = QHBoxLayout(self)
+            
+        self.layout.setContentsMargins(5, 5, 5, 5)
+        self.layout.setSpacing(5)
+        
+        title_lbl = QLabel(title)
+        title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_lbl.setStyleSheet("color: #A6ADC8; font-size: 11px; font-weight: bold; border: none;")
+        self.layout.addWidget(title_lbl)
+        
+        self.layout.addStretch()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasText():
+            # Limite de 3 couleurs par bac (sauf pour le bac Non-Assigné qui a l'ID 0)
+            if self.bin_id != 0:
+                pills_count = sum(1 for i in range(self.layout.count()) if isinstance(self.layout.itemAt(i).widget(), ColorPill))
+                if pills_count >= 3:
+                    event.ignore()
+                    return
+                    
+            event.acceptProposedAction()
+            self.setStyleSheet("""
+                QFrame {
+                    background-color: #313244;
+                    border: 2px solid #89B4FA;
+                    border-radius: 10px;
+                }
+            """)
+
+    def dragLeaveEvent(self, event):
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #181825;
+                border: 2px dashed #585B70;
+                border-radius: 10px;
+            }
+        """)
+
+    def dropEvent(self, event):
+        self.dragLeaveEvent(event)
+        source_widget = event.source()
+        if source_widget:
+            # Retrait du wrapper/parent précédent
+            source_widget.setParent(None)
+            self.layout.insertWidget(self.layout.count() - 1, source_widget)
+            source_widget.show()
+            event.acceptProposedAction()
 
 class VibeCodeUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("VibeCode Control — Delta Robot")
-        self.resize(1000, 700)
+        self.setMinimumSize(1100, 850)
+        self.resize(1200, 900)
         self.setStyleSheet(self.get_dark_theme())
 
         # Widget central
@@ -267,7 +375,7 @@ class VibeCodeUI(QMainWindow):
                 border: 2px solid #89B4FA;
             }
         """)
-        self.control_panel.setFixedWidth(350)
+        self.control_panel.setFixedWidth(380)
         control_layout = QVBoxLayout(self.control_panel)
         control_layout.setContentsMargins(20, 30, 20, 30)
 
@@ -299,6 +407,8 @@ class VibeCodeUI(QMainWindow):
 
         control_layout.addSpacing(20)
 
+
+
         # ====== MODE MANUEL ======
         manual_title = QLabel("POSITION MANUELLE :")
         manual_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
@@ -329,6 +439,7 @@ class VibeCodeUI(QMainWindow):
             ("X", "spin_x", -22.0, 22.0, 0.0),
             ("Y", "spin_y", -22.0, 22.0, 0.0),
             ("Z", "spin_z", -45.0, -18.0, -20.0),
+            ("A°", "spin_a", -90.0, 90.0, 0.0),
         ]:
             col_widget = QWidget()
             col_layout = QVBoxLayout(col_widget)
@@ -454,7 +565,12 @@ class VibeCodeUI(QMainWindow):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(10)
 
-        # -- Haut : Plot 3D
+        # -- Haut : Plot 3D et Config Bacs (Divisé en 2 horizontalement)
+        top_right_layout = QHBoxLayout()
+        top_right_layout.setContentsMargins(0, 0, 0, 0)
+        top_right_layout.setSpacing(10)
+
+        # 1. Le Plot 3D
         plot_frame = QFrame()
         plot_frame.setStyleSheet("""
             QFrame {
@@ -467,7 +583,7 @@ class VibeCodeUI(QMainWindow):
         plot_layout.setContentsMargins(0, 0, 0, 0) # Supprime les marges du widget
 
         self.fig = plt.figure(facecolor='#11111B')
-        self.fig.subplots_adjust(left=-0.05, right=1.05, bottom=-0.05, top=1.05) # "Zoom" extrême en enlevant les marges matplotlib
+        self.fig.subplots_adjust(left=-0.05, right=1.05, bottom=-0.05, top=1.05)
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.ax.set_facecolor('#11111B')
@@ -483,7 +599,94 @@ class VibeCodeUI(QMainWindow):
             "font-weight: bold; border: none; padding: 4px;"
         )
         plot_layout.addWidget(self.xyz_label)
-        right_layout.addWidget(plot_frame, stretch=2) # Le plot prend 2/3 de l'espace
+        
+        # 2. Le Panneau de configuration des Bacs
+        config_bacs_frame = QFrame()
+        config_bacs_frame.setStyleSheet("""
+            QFrame {
+                background-color: #11111B;
+                border-radius: 15px;
+                border: 2px solid #A6ADC8;
+            }
+        """)
+        # Set a fixed width for the bins panel so it doesn't take 50% randomly
+        config_bacs_frame.setFixedWidth(300)
+        config_layout = QVBoxLayout(config_bacs_frame)
+        config_layout.setContentsMargins(10, 20, 10, 20)
+
+        bin_title = QLabel("CONFIGURATION DES BACS:")
+        bin_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        bin_title.setStyleSheet("color: #A6ADC8; font-size: 14px; font-weight: bold; border: none;")
+        config_layout.addWidget(bin_title)
+        
+        hint_lbl = QLabel("(Glisser-Déposer)")
+        hint_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        hint_lbl.setStyleSheet("color: #585B70; font-size: 11px; border: none;")
+        config_layout.addWidget(hint_lbl)
+        
+        config_layout.addSpacing(10)
+
+        # Création des Bacs
+        self.bin_bank = DropBin(0, "BANQUE (Non-Assignées)", layout_dir='H')
+        self.bin_bank.setMinimumHeight(45)
+        
+        self.bin_1 = DropBin(1, "BAC 1 (Haut)", layout_dir='V')
+        self.bin_2 = DropBin(2, "BAC 2 (Gauche)", layout_dir='V')
+        self.bin_3 = DropBin(3, "BAC 3 (Droite)", layout_dir='V')
+        
+        # Dimensions pour qu'ils soient de belle taille
+        bin_size = (110, 85)
+        self.bin_1.setMinimumSize(*bin_size)
+        self.bin_2.setMinimumSize(*bin_size)
+        self.bin_3.setMinimumSize(*bin_size)
+        
+        # Layout Triangulaire (Grille 2x2, bac 1 au milieu en haut)
+        triangle_layout = QGridLayout()
+        triangle_layout.setSpacing(10)
+        
+        triangle_layout.addWidget(self.bin_1, 0, 0, 1, 2, Qt.AlignmentFlag.AlignHCenter)
+        triangle_layout.addWidget(self.bin_2, 1, 0, 1, 1, Qt.AlignmentFlag.AlignRight)
+        triangle_layout.addWidget(self.bin_3, 1, 1, 1, 1, Qt.AlignmentFlag.AlignLeft)
+        
+        config_layout.addWidget(self.bin_bank)
+        config_layout.addLayout(triangle_layout)
+        config_layout.addStretch()
+        
+        import json
+        import os
+        mapping = {"red": 1, "blue": 2, "green_dark": 3, "green_light": 1, "yellow": 1, "orange": 2}
+        map_file = os.path.join(os.path.dirname(__file__), "color_mapping.json")
+        if os.path.exists(map_file):
+            try:
+                with open(map_file, "r") as f:
+                    mapping.update(json.load(f))
+            except: pass
+            
+        color_props = {
+            "red": ("🔴 Roug", "#F38BA8"),
+            "blue": ("🔵 Bleu", "#89B4FA"),
+            "green_dark": ("🟢 VF.", "#A6E3A1"),
+            "green_light": ("🟢 VC.", "#94E2D5"),
+            "yellow": ("🟡 Jaun", "#F9E2AF"),
+            "orange": ("🟠 Oran", "#FAB387"),
+        }
+        
+        self.pills = []
+        for c_id, (c_name, bg) in color_props.items():
+            pill = ColorPill(c_id, c_name, bg)
+            self.pills.append(pill)
+            target_bin_id = mapping.get(c_id, 0)
+            if target_bin_id == 1: self.bin_1.layout.insertWidget(self.bin_1.layout.count() - 1, pill)
+            elif target_bin_id == 2: self.bin_2.layout.insertWidget(self.bin_2.layout.count() - 1, pill)
+            elif target_bin_id == 3: self.bin_3.layout.insertWidget(self.bin_3.layout.count() - 1, pill)
+            else: self.bin_bank.layout.insertWidget(self.bin_bank.layout.count() - 1, pill)
+
+        # Ajout des deux moitiés (plot et config bacs) dans le layout HAUT
+        top_right_layout.addWidget(plot_frame, stretch=1)
+        top_right_layout.addWidget(config_bacs_frame)
+        
+        # Le haut prend 2/3 de l'espace global du panneau de droite
+        right_layout.addLayout(top_right_layout, stretch=2)
 
         # -- Bas : Caméra ou 2D Plot (empilés)
         self.bottom_stack_widget = QWidget()
@@ -592,6 +795,23 @@ class VibeCodeUI(QMainWindow):
         # 1. Sauvegarder les blocs vus par la caméra
         import json
         import os
+        import config_traj
+        
+        # Obtenir les assignations actuelles des bacs via les widgets Drag&Drop
+        current_mapping = {}
+        for pill in self.pills:
+            parent_widget = pill.parent()
+            while parent_widget is not None and not hasattr(parent_widget, 'bin_id'):
+                parent_widget = parent_widget.parent()
+            if parent_widget:
+                current_mapping[pill.color_id] = parent_widget.bin_id
+            else:
+                current_mapping[pill.color_id] = 1 # Fallback au bac 1
+                
+        map_file = os.path.join(os.path.dirname(__file__), "color_mapping.json")
+        with open(map_file, "w") as f:
+            json.dump(current_mapping, f)
+            
         detected_path = os.path.join(os.path.dirname(__file__), "detected_blocks.json")
         with open(detected_path, "w") as f:
             raw_blocks = self.camera_thread.latest_blocks if hasattr(self, 'camera_thread') else []
@@ -614,6 +834,8 @@ class VibeCodeUI(QMainWindow):
         import MouvementConnecte
         import animation_and_plot_traj
         
+        # Important: Reload config_traj FIRST so it reads color_mapping.json
+        importlib.reload(config_traj)
         importlib.reload(animation_and_plot_traj)
         importlib.reload(MouvementConnecte)
         Motor_command_xyz = MouvementConnecte.Motor_command_xyz
@@ -798,12 +1020,31 @@ class VibeCodeUI(QMainWindow):
         self.btn_go_manual.setDisabled(False)
         self.anim_timer.stop()
 
+        # Revenir à la vue Caméra à la place du Graphe 2D
+        self.bottom_stack.setCurrentIndex(0)
+
         # Si c'était un cycle AUTOMATIQUE (MouvementConnecte), le robot finit à Home [0,0,-25]
         if hasattr(self, 'worker') and self.worker and self.worker.manual_path is None:
             self.current_robot_pos = [0.0, 0.0, -20.0]
+            
+            # RÉACTIVE la détection vision maintenant que le robot est arrêté
+            self.camera_thread.pause_detection = False
+            
+            # On laisse le temps à la caméra d'analyser les nouveaux blocs restants 
+            self.status_label.setText("NOUVELLE VÉRIFICATION...")
+            QTimer.singleShot(1500, self.check_and_restart)
+        else:
+            self.camera_thread.pause_detection = False
 
-        # RÉACTIVE la détection vision maintenant que le robot est arrêté
-        self.camera_thread.pause_detection = False
+    def check_and_restart(self):
+        # Si on a encore des blocs valides à l'écran, on relance automatiquement
+        if hasattr(self, 'camera_thread') and len(self.camera_thread.latest_blocks) > 0:
+            self.log_output("Blocs restants détectés : Reprise automatique de la séquence.")
+            self.start_robot()
+        else:
+            self.log_output("Zone de tri totalement vide. Séquence terminée.")
+            self.status_label.setText("STATUT : REPOS (ZONE VIDE)")
+            self.status_label.setStyleSheet("color: #A6E3A1; font-size: 18px; font-weight: bold; border: none;")
 
     def go_manual(self):
         """Mode manuel : vérifie la portée et envoie le robot à la position X,Y,Z saisie."""
@@ -811,6 +1052,7 @@ class VibeCodeUI(QMainWindow):
         x = self.spin_x.value()
         y = self.spin_y.value()
         z = self.spin_z.value()
+        angle = self.spin_a.value()
         target_pos = [x, y, z]
 
         # 1. Vérifier la cinématique inverse
@@ -841,7 +1083,7 @@ class VibeCodeUI(QMainWindow):
         manual_commands = []
         for th in th_trajectoire:
             t1, t2, t3 = [float(v) for v in th]
-            manual_commands.append([t1, t2, t3, False])  # pince ouverte
+            manual_commands.append([t1, t2, t3, False, float(angle)])  # pince ouverte, angle au poignet
 
         # --- CALCUL PREVIEW (XYZ Curve) ---
         # On garde interpolate_joint uniquement pour l'animation 3D (visuel courbé)

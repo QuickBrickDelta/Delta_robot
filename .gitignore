@@ -5,10 +5,14 @@ logs/
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
 
 # Environnements virtuels
 .venv/
 venv/
+env/
+.env
 
 # plots directory
 .plots_algo_path/
@@ -18,6 +22,8 @@ plots_algo_path/
 .calib_flash/
 calib_flash/
 
-# Fichiers générés dynamiquement
+# Fichiers de configuration et de données générés dynamiquement
+*.json
+color_mapping.json
 detected_blocks.json
 manual_command_angles.json
