@@ -343,7 +343,7 @@ class DropBin(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background-color: #181825;
-                border: 2px dashed #585B70;
+                border: 2px solid #585B70;
                 border-radius: 10px;
             }
         """)
