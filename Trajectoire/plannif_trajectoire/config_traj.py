@@ -109,7 +109,7 @@ import os
 mapping = {"red": 1, "blue": 2, "green_dark": 3, "green_light": 4, "yellow": 5, "orange": 6}
 
 try:
-    map_file = os.path.join(os.path.dirname(__file__), "..", "..", "UI_VIBECODE", "color_mapping.json")
+    map_file = os.path.join(os.path.dirname(__file__), "..", "..", "UI", "color_mapping.json")
     if os.path.exists(map_file):
         with open(map_file, "r") as f:
             mapping.update(json.load(f))

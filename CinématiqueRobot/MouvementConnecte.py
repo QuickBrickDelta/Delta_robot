@@ -42,7 +42,7 @@ import config_traj
 import json
 
 # Trajectoire haut niveau (positions XYZ + info pince)
-detected_path = os.path.join(project_root, "UI_VIBECODE", "detected_blocks.json")
+detected_path = os.path.join(project_root, "UI", "detected_blocks.json")
 blocs = config_traj.blocs
 
 if os.path.exists(detected_path):
@@ -69,7 +69,7 @@ Motor_command_angles = []
 # ===============================
 # Mode CHILL / RAPIDE (lu depuis l'UI)
 # ===============================
-_mode_file = os.path.join(project_root, "UI_VIBECODE", "mode_robot.json")
+_mode_file = os.path.join(project_root, "UI", "mode_robot.json")
 _robot_mode = "rapide"
 try:
     with open(_mode_file, "r") as _f:
