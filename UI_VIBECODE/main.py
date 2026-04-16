@@ -388,7 +388,7 @@ class VibeCodeUI(QMainWindow):
         control_layout.setContentsMargins(20, 30, 20, 30)
 
         # Titre
-        self.title_label = QLabel("D E L T A\nV I B E")
+        self.title_label = QLabel("Q U I C K B R I C K")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setStyleSheet("color: #89B4FA; font-size: 36px; font-weight: bold; border: none;")
         control_layout.addWidget(self.title_label)
@@ -747,7 +747,7 @@ class VibeCodeUI(QMainWindow):
         """)
         plot_2d_layout = QVBoxLayout(plot_2d_frame)
         plot_2d_layout.setContentsMargins(0, 0, 0, 0)
-        self.fig_2d = plt.figure(facecolor='#1E1E2E')
+        self.fig_2d = plt.figure(facecolor='#1E1E2E', figsize=(3, 3), dpi=50)
         self.fig_2d.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95)
         self.canvas_2d = FigureCanvas(self.fig_2d)
         self.ax_2d = self.fig_2d.add_subplot(111)
