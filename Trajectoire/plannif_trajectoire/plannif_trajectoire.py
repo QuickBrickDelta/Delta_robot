@@ -39,10 +39,7 @@ cost_do_bloc_from = other_fct_traj.cost_do_bloc_from
 from shortest_path_algorithms import plan_bnb_basic, plan_exact_tsp, plan_cheapest_insertion
 
 ## full trajectoire function
-def plan_full_trajectory(blocs, start_position=None):
-    if start_position is None:
-        start_position = home_position
-        
+def plan_full_trajectory(blocs):
     # path: [(bloc_carried, bloc_type, movement_type, speed, x, y, z, angle, pince_fermee), ...]
     path = []
     speed_joint = speed_joint_move_global
@@ -51,15 +48,15 @@ def plan_full_trajectory(blocs, start_position=None):
 
     # Trier les blocs selon un algorithme de planification
     if len(blocs) < 11:
-        blocs_sorted, total_distance = plan_bnb_basic(blocs, start_position)
+        blocs_sorted, total_distance = plan_bnb_basic(blocs, home_position)
     elif len(blocs) < 14:
-        blocs_sorted, total_distance = plan_exact_tsp(blocs, start_position)
+        blocs_sorted, total_distance = plan_exact_tsp(blocs, home_position)
     else:
-        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, start_position)
+        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
 
-    # 1) Départ au point actuel (nommé "home" par convention dans rest of pipeline)
+    # 1) Départ au home (Haut)
     path.append((None, None, "home", speed_approach_hub,
-                 start_position[0], start_position[1], start_position[2], 0.0, False))
+                 home_position[0], home_position[1], home_position[2], 0.0, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
     path.append((None, None, "joint", speed_approach_hub,
@@ -112,8 +109,17 @@ def plan_full_trajectory(blocs, start_position=None):
         path.append((None, None, "openGripper", 0.0,
                      p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
 
-    # Le robot reste au dernier point (au-dessus du dernier bac)
-    # pour libérer la vue de la caméra au centre du plateau !
+    # 8) Point de passage centre table (rentrée smooth)
+    path.append((None, None, "joint", speed_joint,
+                 config_traj.home_intermediaire_position[0], 
+                 config_traj.home_intermediaire_position[1], 
+                 config_traj.home_intermediaire_position[2], 
+                 0, False))
+
+    # 9) Retour final au home
+    path.append((None, None, "joint", speed_approach_hub,
+                 home_position[0], home_position[1], home_position[2], 0, False))
+
     return path, blocs_sorted
 
 def main():
