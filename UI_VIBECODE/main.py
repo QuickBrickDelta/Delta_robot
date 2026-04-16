@@ -903,8 +903,11 @@ class VibeCodeUI(QMainWindow):
         ui_drop_zones = {}
         for color, bin_id in current_mapping.items():
             if bin_id != 0:
-                # On récupère la coordonnée du bac (ex: Bac 1 -> config_traj.SLOT_1)
-                ui_drop_zones[color] = getattr(config_traj, f"SLOT_{bin_id}_POS")
+                attr_name = f"p{bin_id}"
+                if hasattr(config_traj, attr_name):
+                    ui_drop_zones[color] = getattr(config_traj, attr_name)
+                else:
+                    print(f"Attention: {attr_name} non trouvé dans config_traj")
         if len(blocs_sorted) > 0:
             animation_and_plot_traj.draw_route_2D_v2(self.ax_2d, blocs_sorted, config_traj.home_position, drop_positions=ui_drop_zones)
             # Rafraîchissement des ticks pour qu'ils restent visibles après le clear
