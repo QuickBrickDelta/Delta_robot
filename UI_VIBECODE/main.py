@@ -614,7 +614,7 @@ class VibeCodeUI(QMainWindow):
         config_bacs_frame.setStyleSheet("""
             QFrame {
                 background-color: #11111B;
-                border-radius: 15px;
+                border-radius: 10px;
                 border: 2px solid #A6ADC8;
             }
         """)
