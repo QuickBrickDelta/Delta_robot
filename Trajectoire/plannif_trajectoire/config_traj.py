@@ -38,7 +38,7 @@ import math
 # --- Positions de sortie (Teachable & Auto-compensées) ---
 # On compense le ROBOT_ROTATION_OFFSET_DEG pour que les bacs ne bougent pas 
 # physiquement quand on ajuste la rotation du robot.
-r_drop = 21.0
+r_drop = 19.0
 ang1 = 90.0  + ROBOT_ROTATION_OFFSET_DEG
 ang2 = 210.0 + ROBOT_ROTATION_OFFSET_DEG
 ang3 = 330.0 + ROBOT_ROTATION_OFFSET_DEG
@@ -47,7 +47,7 @@ drop_bac1_position = (r_drop * math.cos(math.radians(ang1)), r_drop * math.sin(m
 drop_bac2_position = (r_drop * math.cos(math.radians(ang2)), r_drop * math.sin(math.radians(ang2)), z_drop)
 drop_bac3_position = (r_drop * math.cos(math.radians(ang3)), r_drop * math.sin(math.radians(ang3)), z_drop)
 
-s_offset = 10.5 # Décalage entre les slots
+s_offset = 12 # Décalage entre les slots
 
 def get_tangent(angle_deg):
     rad = math.radians(angle_deg + 90) # Tangente = Normale + 90°
