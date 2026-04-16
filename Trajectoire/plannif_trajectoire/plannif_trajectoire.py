@@ -15,6 +15,7 @@ import other_fct_traj  # Pour les fonctions utilitaires
 plot_blocks_2D = animation_and_plot_traj.plot_blocks_2D
 plot_blocks_3D = animation_and_plot_traj.plot_blocks_3D
 plot_route_2D = animation_and_plot_traj.plot_route_2D
+draw_route_2D = animation_and_plot_traj.draw_route_2D_v2
 animate_full_trajectory_2D = animation_and_plot_traj.animate_full_trajectory_2D
 animate_full_trajectory_3D = animation_and_plot_traj.animate_full_trajectory_3D
 
