@@ -388,7 +388,7 @@ class VibeCodeUI(QMainWindow):
         control_layout.setContentsMargins(20, 30, 20, 30)
 
         # Titre
-        self.title_label = QLabel("D E L T A\nV I B E")
+        self.title_label = QLabel("Q U I C K B R I C K")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setStyleSheet("color: #89B4FA; font-size: 36px; font-weight: bold; border: none;")
         control_layout.addWidget(self.title_label)
