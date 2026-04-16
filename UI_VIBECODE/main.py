@@ -648,22 +648,22 @@ class VibeCodeUI(QMainWindow):
 
         # Création du Layout Triangulaire selon schéma utilisateur:
         triangle_layout = QGridLayout()
-        triangle_layout.setSpacing(10)
+        triangle_layout.setSpacing(2)
 
         # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 0, 0)
-        triangle_layout.addWidget(self.bins[5], 0, 2)
-        triangle_layout.addWidget(self.bins[6], 0, 3)
+        triangle_layout.addWidget(self.bins[4], 0, 1)
+        triangle_layout.addWidget(self.bins[5], 0, 5)
+        triangle_layout.addWidget(self.bins[6], 0, 9)
 
         # Diagonale Gauche
         triangle_layout.addWidget(self.bins[3], 1, 0) # Décalé un peu vers l'extérieur
-        triangle_layout.addWidget(self.bins[2], 2, 0)
-        triangle_layout.addWidget(self.bins[1], 4, 1)
+        triangle_layout.addWidget(self.bins[2], 2, 2)
+        triangle_layout.addWidget(self.bins[1], 4, 4)
 
         # Diagonale Droite
-        triangle_layout.addWidget(self.bins[7], 1, 5)
-        triangle_layout.addWidget(self.bins[8], 2, 4)
-        triangle_layout.addWidget(self.bins[9], 4, 3) 
+        triangle_layout.addWidget(self.bins[7], 1, 10)
+        triangle_layout.addWidget(self.bins[8], 2, 8)
+        triangle_layout.addWidget(self.bins[9], 4, 6) 
 
         # Centrage
         for i in range(7): triangle_layout.setColumnStretch(i, 1)
