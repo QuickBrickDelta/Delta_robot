@@ -11,7 +11,7 @@ DETECTION_X_OFFSET_CM = 1.3  # Offset X (cm) appliqué aux positions détectées
 DETECTION_Y_OFFSET_CM = 1  # Offset Y (cm) appliqué aux positions détectées
 OFFSET_X_MULTIPLICATOR = 1.1  # Multiplicateur X (Correction d'échelle)
 OFFSET_Y_MULTIPLICATOR = 1.1  # Multiplicateur Y (Correction d'échelle)
-WRIST_ANGLE_OFFSET_DEG = -0  # Décalage en degrés de la pince par rapport à la vue caméra
+WRIST_ANGLE_OFFSET_DEG = -10  # Décalage en degrés de la pince par rapport à la vue caméra
 
 # --- Calibration Servos PWM ---
 PULSE_PINCE_OUVERTE = 1500
