@@ -665,9 +665,13 @@ class VibeCodeUI(QMainWindow):
         triangle_layout.addWidget(self.bins[8], 2, 8)
         triangle_layout.addWidget(self.bins[9], 4, 6) 
 
-        # Centrage
-        for i in range(7): triangle_layout.setColumnStretch(i, 1)
-        for i in range(5): triangle_layout.setRowStretch(i, 1)
+        # Force chaque "unité" de ta grille à avoir une taille minimale
+        for i in range(11): # Pour 11 colonnes
+            triangle_layout.setColumnMinimumWidth(i, 20)
+            triangle_layout.setColumnStretch(i, 1)
+        for i in range(10): # Pour 10 lignes
+            triangle_layout.setRowMinimumHeight(i, 20)
+            triangle_layout.setRowStretch(i, 1)
         
         config_layout.addWidget(self.bin_bank)
         config_layout.addLayout(triangle_layout)
