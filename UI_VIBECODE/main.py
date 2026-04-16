@@ -447,7 +447,7 @@ class VibeCodeUI(QMainWindow):
             ("X", "spin_x", -22.0, 22.0, 0.0),
             ("Y", "spin_y", -22.0, 22.0, 0.0),
             ("Z", "spin_z", -45.0, -18.0, -20.0),
-            ("A°", "spin_a", -90.0, 90.0, 0.0),
+            ("A°", "spin_a", -180.0, 180.0, 0.0),
         ]:
             col_widget = QWidget()
             col_layout = QVBoxLayout(col_widget)
@@ -467,6 +467,9 @@ class VibeCodeUI(QMainWindow):
             col_layout.addWidget(spin)
             xyz_row.addWidget(col_widget)
         control_layout.addLayout(xyz_row)
+
+        # Surcharge du pas pour l'angle : 5° pour tester rapidement les positions
+        self.spin_a.setSingleStep(5.0)
 
         self.btn_go_manual = QPushButton("→ ALLER")
         self.btn_go_manual.setCursor(Qt.CursorShape.PointingHandCursor)
