@@ -132,10 +132,7 @@ for step in Trajectory:
         code_mouv = "G"  # Gripper action — maintenir position + changer pince
 
     if code_mouv:
-        if move_type == "home":
-            angle = 0.0
-        else:
-            angle = float(step[7])  # Récupérer l'angle depuis la trajectoire
+        angle = float(step[7])  # Récupérer l'angle depuis la trajectoire
         Motor_command_xyz.append([x, y, z, code_mouv, angle])
         pince_states.append(pince_fermee)
 
