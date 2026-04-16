@@ -63,7 +63,9 @@ if os.path.exists(detected_path):
 else:
     print(f"[DEBUG] Fichier {detected_path} INTROUVABLE. Utilisation des blocs par défaut.")
 
+print(f"[DEBUG] Appel de plan_full_trajectory avec {len(blocs)} blocs...")
 Trajectory, blocs_sorted = plannif_trajectoire.plan_full_trajectory(blocs)
+print(f"[DEBUG] Trajectory calculée : {len(Trajectory)} étapes.")
 
 # Commandes pour la simulation (XYZ + mode L/J/G)
 Motor_command_xyz = []
@@ -111,14 +113,15 @@ def _get_speed(raw_speed):
     return _SPEED_MAP.get(float(raw_speed), float(raw_speed))
 
 # ===============================
-# 1) Construire les waypoints XYZ + mode + pince
+# 1) Construire les waypoints XYZ + mode + pince + vitesse
 # ===============================
 for step in Trajectory:
     # step structure:
-    # (bloc_carried, movement_type, speed, x, y, z, angle, pince_fermee)
-    move_type = step[1]
-    x, y, z = float(step[3]), float(step[4]), float(step[5])
-    pince_fermee = bool(step[7])
+    # (bloc_carried, bloc_type, movement_type, speed,
+    #  x, y, z, angle, pince_fermee)
+    move_type = step[2]
+    x, y, z = float(step[4]), float(step[5]), float(step[6])
+    pince_fermee = bool(step[8])
 
     code_mouv = None
     if move_type in ["home", "joint"]:
@@ -126,13 +129,13 @@ for step in Trajectory:
     elif move_type == "linear":
         code_mouv = "L"
     elif move_type in ["closeGripper", "openGripper"]:
-        code_mouv = "G"  # Gripper action
+        code_mouv = "G"  # Gripper action — maintenir position + changer pince
 
     if code_mouv:
         if move_type == "home":
             angle = 0.0
         else:
-            angle = float(step[6])  # Récupérer l'angle depuis la trajectoire
+            angle = float(step[7])  # Récupérer l'angle depuis la trajectoire
         Motor_command_xyz.append([x, y, z, code_mouv, angle])
         pince_states.append(pince_fermee)
 
@@ -152,12 +155,10 @@ if Motor_command_xyz:
         target_pt = Motor_command_xyz[i]
         pos_xyz = target_pt[0:3]
         mode = target_pt[3]
-        angle = target_pt[4] # Récupérer l'angle
-        pince_seg = pince_states[i]
-        
-        # Récupérer la vitesse depuis la trajectoire d'origine, convertie selon le mode
+        angle = target_pt[4]
         speed = _get_speed(Trajectory[i][3]) if i < len(Trajectory) else 20.0
         if speed <= 0: speed = 20.0
+        pince_seg = pince_states[i]
 
         if mode == "G":
             # Action pince : maintenir la position actuelle + changer l'état pince
@@ -210,6 +211,11 @@ if Motor_command_xyz:
         for pos in traj_points:
             thetas = get_all_thetas(pos)
             if thetas is None:
+                # On ne print qu'une seule fois pour ne pas spammer
+                if not hasattr(get_all_thetas, '_fail_count'): get_all_thetas._fail_count = 0
+                if get_all_thetas._fail_count < 1:
+                    print(f"[DEBUG] Point hors limite : {pos} (Check config_traj ou dimensions robot)")
+                get_all_thetas._fail_count += 1
                 continue
 
             theta1, theta2, theta3 = [float(t) for t in thetas]

@@ -493,9 +493,22 @@ class VibeCodeUI(QMainWindow):
 
         control_layout.addSpacing(10)
 
-        # Toggle CHILL / RAPIDE
-        self.robot_mode = "rapide"  # Mode par défaut
-        self.btn_mode = QPushButton("MODE : RAPIDE")
+        # Toggle CHILL / RAPIDE — lire le mode depuis le fichier pour être synchro
+        _mode_file = os.path.join(os.path.dirname(__file__), "mode_robot.json")
+        try:
+            import json as _json
+            with open(_mode_file, "r") as _f:
+                self.robot_mode = _json.load(_f).get("mode", "rapide")
+        except Exception:
+            self.robot_mode = "rapide"
+            # Réinitialiser le fichier si absent ou corrompu
+            import json as _json
+            with open(_mode_file, "w") as _f:
+                _json.dump({"mode": "rapide"}, _f)
+
+        _label = "MODE : LENT" if self.robot_mode == "chill" else "MODE : RAPIDE"
+        self.btn_mode = QPushButton(_label)
+        self.btn_mode.setChecked(self.robot_mode == "chill")
         self.btn_mode.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_mode.setCheckable(True)
         self.btn_mode.setStyleSheet("""
