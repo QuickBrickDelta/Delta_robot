@@ -95,7 +95,7 @@ def plot_triangle(side_length=37):
     triangle = np.vstack([vertices, vertices[0]])  # Fermer le triangle
     plt.plot(triangle[:, 0], triangle[:, 1], 'k-', linewidth=0.8, label='Zone de travail')
 
-## Trajectory plotting function (Refactored for modularity)
+## Trajectory plotting function (Flipped Axes Y-X)
 def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     """
     ax: matplotlib axes
@@ -104,6 +104,80 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     drop_positions: Dict mapping color names to (x, y, z) tuples
     """
     x0, y0, _ = start_pos
+
+    # 1. Dessiner le triangle de travail (Inversion x/y)
+    vertices = get_triangle_vertices(side_length=40)
+    triangle = np.vstack([vertices, vertices[0]])
+    # On trace Y en horizontal (index 1) et X en vertical (index 0)
+    ax.plot(triangle[:, 1], triangle[:, 0], '-', linewidth=0.8, color='white', label='Zone de travail')
+
+    # 2. Point home (Inversion y0, x0)
+    ax.scatter(y0, x0, c='white', s=120, marker='^', label='Home')
+
+    # Trajet segment par segment
+    cur = (x0, y0) # On garde la logique interne en (x, y)
+    
+    color_map = {
+        "red": "red",
+        "green_dark": "darkgreen",
+        "green_light": "green",
+        "blue": "blue",
+        "yellow": "yellow",
+        "orange": "orange"
+    }
+
+    for i, b in enumerate(order, 1):
+        if len(b) >= 6:
+            c, bloc_type, x, y, z_ignored, angle, *_ = b
+        else:
+            c, bloc_type, x, y, angle = b[:5]
+            
+        p_bloc = (float(x), float(y))
+        
+        if drop_positions and c in drop_positions:
+            p_out_full = drop_positions[c]
+            p_out = (p_out_full[0], p_out_full[1])
+        else:
+            p_out_full = output_pos_for_color(c)
+            p_out = (p_out_full[0], p_out_full[1])
+
+        mpl_color = color_map.get(c, "white")
+
+        # --- DESSIN AVEC AXES INVERSÉS : (Y, X) ---
+
+        # cur -> bloc
+        ax.annotate("", xy=(p_bloc[1], p_bloc[0]), xytext=(cur[1], cur[0]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color))
+        ax.scatter(p_bloc[1], p_bloc[0], c=mpl_color, s=100)
+        ax.text(p_bloc[1], p_bloc[0], f"B{i}", ha='left', va='bottom', color='white')
+
+        # bloc -> output
+        ax.annotate("", xy=(p_out[1], p_out[0]), xytext=(p_bloc[1], p_bloc[0]),
+                     arrowprops=dict(arrowstyle="->", color=mpl_color))
+        ax.scatter(p_out[1], p_out[0], c=mpl_color, s=150, marker='s')
+        ax.text(p_out[1], p_out[0], f"O{i}", ha='left', va='bottom', color='white')
+
+        cur = p_out 
+
+    # --- CONFIGURATION FINALE ---
+    # Inversion des limites : xlim reçoit les limites de Y, ylim reçoit les limites de X
+    ax.set_xlim(-25, 25) 
+    ax.set_ylim(-20, 25) 
+    
+    ax.set_aspect('equal', adjustable='box')
+    ax.grid(True, linestyle="--", alpha=0.3, color='white')
+    
+    # Titre en blanc
+    ax.set_title("Trajectoire calculée par le planificateur", color='white')
+    
+    # Blanchir les axes et les chiffres
+    ax.tick_params(colors='white')
+    for spine in ax.spines.values():
+        spine.set_edgecolor('white')
+        
+    # Optionnel: Labels pour s'y retrouver
+    ax.set_xlabel("Y Robot (cm)", color='white')
+    ax.set_ylabel("X Robot (cm)", color='white')
 
     # Dessiner le triangle de travail
     vertices = get_triangle_vertices(side_length=40)
@@ -120,7 +194,7 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
     color_map = {
         "red": "red",
         "green_dark": "darkgreen",
-        "green_light": "lightgreen",
+        "green_light": "green",
         "blue": "blue",
         "yellow": "yellow",
         "orange": "orange"
@@ -159,7 +233,7 @@ def draw_route_2D_v2(ax, order, start_pos, drop_positions=None):
         cur = p_out 
 
     ax.set_xlim(-20, 25)
-    ax.set_ylim(-20, 20)
+    ax.set_ylim(-25, 25)
     ax.set_aspect('equal', adjustable='box')
     ax.grid(True, linestyle="--", alpha=0.5)
     ax.set_title("Trajectoire calculée par le planificateur", color='white')
@@ -191,7 +265,7 @@ def draw_route_2D_on_ax(ax, order, start_pos):
         color_map = {
             "red": "red",
             "green_dark": "darkgreen",
-            "green_light": "lightgreen",
+            "green_light": "green",
             "blue": "blue",
             "yellow": "yellow",
             "orange": "orange"
