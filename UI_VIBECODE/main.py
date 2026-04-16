@@ -651,13 +651,13 @@ class VibeCodeUI(QMainWindow):
         triangle_layout.setSpacing(10)
 
         # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 0, 0.5)
+        triangle_layout.addWidget(self.bins[4], 0, 0)
         triangle_layout.addWidget(self.bins[5], 0, 2)
-        triangle_layout.addWidget(self.bins[6], 0, 3.5)
+        triangle_layout.addWidget(self.bins[6], 0, 3)
 
         # Diagonale Gauche
         triangle_layout.addWidget(self.bins[3], 1, 0) # Décalé un peu vers l'extérieur
-        triangle_layout.addWidget(self.bins[2], 2, 0.5)
+        triangle_layout.addWidget(self.bins[2], 2, 0)
         triangle_layout.addWidget(self.bins[1], 4, 1)
 
         # Diagonale Droite
