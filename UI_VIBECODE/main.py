@@ -651,9 +651,9 @@ class VibeCodeUI(QMainWindow):
         triangle_layout.setSpacing(2)
 
         # Ligne du haut (Horizontal horizontal)
-        triangle_layout.addWidget(self.bins[4], 1, 2)
+        triangle_layout.addWidget(self.bins[4], 1, 3)
         triangle_layout.addWidget(self.bins[5], 1, 5)
-        triangle_layout.addWidget(self.bins[6], 1, 8)
+        triangle_layout.addWidget(self.bins[6], 1, 7)
 
         # Diagonale Gauche
         triangle_layout.addWidget(self.bins[3], 2, 2) # Décalé un peu vers l'extérieur
