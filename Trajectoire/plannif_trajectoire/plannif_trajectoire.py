@@ -36,6 +36,9 @@ def plan_full_trajectory(blocs):
     speed_approach = config_traj.speed_approach_move_global
     distance_approach = 10.0
 
+    # Offset du poignet appliqué dès le départ (position de repos de la pince)
+    wrist_offset = getattr(config_traj, 'WRIST_ANGLE_OFFSET_DEG', 0.0)
+
     # Trier les blocs selon un algorithme de planification
     if len(blocs) < 11:
         blocs_sorted, total_distance = plan_bnb_basic(blocs, config_traj.home_position)
@@ -44,16 +47,17 @@ def plan_full_trajectory(blocs):
     else:
         blocs_sorted, total_distance = plan_cheapest_insertion(blocs, config_traj.home_position)
 
-    # 1) Départ au home (Haut)
+    # 1) Départ au home (Haut) — offset appliqué dès le départ
     path.append((None, None, "home", config_traj.speed_approach_hub,
-                 config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2], 0.0, False))
+                 config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2],
+                 wrist_offset, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
     path.append((None, None, "joint", config_traj.speed_approach_hub,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
-                 0.0, False))
+                 wrist_offset, False))
 
     for bloc in blocs_sorted:
         # bloc format: (couleur, bloc_type, x, y, z, angle)
@@ -67,7 +71,7 @@ def plan_full_trajectory(blocs):
             p_bloc = (float(x), float(y), config_traj.z_table)
             
         # Application de l'offset du poignet et wrap arithmétique pour rester entre -90 et 90
-        angle = float(angle) + getattr(config_traj, 'WRIST_ANGLE_OFFSET_DEG', 0.0)
+        angle = float(angle) + wrist_offset
         while angle > 90.0:
             angle -= 180.0
         while angle < -90.0:
@@ -91,24 +95,25 @@ def plan_full_trajectory(blocs):
         path.append((couleur, bloc_type, "joint", speed_approach,
                      p_bloc[0], p_bloc[1], p_bloc[2] + distance_approach, angle, True))
 
-        # 6) Aller au-dessus du bac de sortie
+        # 6) Aller au-dessus du bac de sortie — offset appliqué aussi au dépôt
         path.append((couleur, bloc_type, "joint", speed_joint,
-                     p_out[0], p_out[1], p_out[2] + distance_approach, 0, True))
+                     p_out[0], p_out[1], p_out[2] + distance_approach, wrist_offset, True))
 
         # 7) Ouvrir la pince (drop)
         path.append((None, None, "openGripper", 0.0,
-                     p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
+                     p_out[0], p_out[1], p_out[2] + distance_approach, wrist_offset, False))
 
     # 8) Point de passage centre table (rentrée smooth)
     path.append((None, None, "joint", speed_joint,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
-                 0, False))
+                 wrist_offset, False))
 
     # 9) Retour final au home
     path.append((None, None, "joint", config_traj.speed_approach_hub,
-                 config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2], 0, False))
+                 config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2],
+                 wrist_offset, False))
 
     return path, blocs_sorted
 
