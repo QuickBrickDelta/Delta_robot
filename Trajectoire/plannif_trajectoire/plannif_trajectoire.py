@@ -138,7 +138,12 @@ def main():
     # Full trajectory
     full_path, _ = plan_full_trajectory(blocs_sorted)
     #animate_full_trajectory_2D(full_path, blocs=blocs_local, home_position=home_pos, dt=0.05, show_trace=True)
-    animate_full_trajectory_3D(full_path, blocs=blocs_sorted, home_position=home_pos, dt=0.05, show_trace=True)
+    anim = animate_full_trajectory_3D(full_path, blocs=blocs_sorted, home_position=home_pos, dt=0.15, show_trace=True)
+    # Option B : En GIF (Plus simple pour les rapports)
+    print("Enregistrement du GIF (patience)...")
+    anim.save('simulation_robot.gif', writer='pillow', fps=20)
+    print("GIF enregistré sous 'simulation_robot.gif'")
+    plt.show()
 
 if __name__ == "__main__":
     main()
