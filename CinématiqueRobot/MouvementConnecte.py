@@ -103,8 +103,10 @@ for step in Trajectory:
 # 2) Générer la trajectoire en ANGLES + pince (interpolation)
 # ===============================
 if Motor_command_xyz:
-    # Fréquence cible : 50Hz (20ms)
-    DEFAULT_DT = 0.02 
+    # DT réel de l'envoi série dans PieToArduino (stream_commands dt_s=0.05)
+    # IMPORTANT : doit correspondre à dt_s dans PieToArduino pour que
+    # les vitesses de config_traj soient respectées
+    DEFAULT_DT = 0.05
 
     current_pos = Motor_command_xyz[0][:3]
 
@@ -137,12 +139,10 @@ if Motor_command_xyz:
             current_pos = pos_xyz
             continue
 
-        # CALCUL DYNAMIQUE DU NOMBRE DE POINTS
-        # steps = (Distance / Vitesse) / DT
-        # Minimum élevé pour les mouvements lents (home hub) afin d'éviter les saccades
-        is_slow = speed <= config_traj.speed_approach_hub
-        min_steps = MIN_STEPS_SLOW if is_slow else MIN_STEPS
-        steps_dynamic = max(min_steps, int((dist / speed) / DEFAULT_DT))
+        # CALCUL DYNAMIQUE DU NOMBRE DE POINTS selon vitesse réelle
+        # steps = (Distance / Vitesse) / DT_réel
+        # Minimum de 3 pour éviter les divisions par zéro, pas plus (ne pas casser la vitesse)
+        steps_dynamic = max(3, int((dist / speed) / DEFAULT_DT))
 
         # Choix de l'interpolation (joint avec fallback linéaire)
         if mode == "J":
