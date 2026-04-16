@@ -494,15 +494,13 @@ class VibeCodeUI(QMainWindow):
         control_layout.addSpacing(10)
 
         # Toggle CHILL / RAPIDE — lire le mode depuis le fichier pour être synchro
-        _mode_file = os.path.join(os.path.dirname(__file__), "mode_robot.json")
+        import json as _json, os as _os
+        _mode_file = _os.path.join(current_dir, "mode_robot.json")
         try:
-            import json as _json
             with open(_mode_file, "r") as _f:
                 self.robot_mode = _json.load(_f).get("mode", "rapide")
         except Exception:
             self.robot_mode = "rapide"
-            # Réinitialiser le fichier si absent ou corrompu
-            import json as _json
             with open(_mode_file, "w") as _f:
                 _json.dump({"mode": "rapide"}, _f)
 
