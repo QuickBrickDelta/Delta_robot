@@ -8,18 +8,8 @@ import animation_and_plot_traj # Pour l'animation (utilise cette même file)
 import shortest_path_algorithms  # Pour les algorithmes de planification
 import other_fct_traj  # Pour les fonctions utilitaires
 
-# Importer les variables globales depuis config_traj.py
-blocs = config_traj.blocs
-home_position = config_traj.home_position
-red_output_position = config_traj.red_output_position
-blue_output_position = config_traj.blue_output_position
-green_dark_output_position = config_traj.green_dark_output_position
-green_light_output_position = config_traj.green_light_output_position
-yellow_output_position = config_traj.yellow_output_position
-orange_output_position = config_traj.orange_output_position
-speed_joint_move_global = config_traj.speed_joint_move_global
-speed_approach_move_global = config_traj.speed_approach_move_global
-speed_approach_hub = config_traj.speed_approach_hub
+# (Variables globales supprimées ici pour forcer l'usage de config_traj.VAR)
+
 
 # Importer les fonctions depuis animation_and_plot_traj.py
 plot_blocks_2D = animation_and_plot_traj.plot_blocks_2D
@@ -40,115 +30,114 @@ from shortest_path_algorithms import plan_bnb_basic, plan_exact_tsp, plan_cheape
 
 ## full trajectoire function
 def plan_full_trajectory(blocs):
-    # path: [(bloc_carried, movement_type, speed, x, y, z, angle, pince_fermee), ...]
+    # path: [(bloc_carried, bloc_type, movement_type, speed, x, y, z, angle, pince_fermee), ...]
     path = []
-    speed_joint = speed_joint_move_global
-    speed_approach = speed_approach_move_global
+    speed_joint = config_traj.speed_joint_move_global
+    speed_approach = config_traj.speed_approach_move_global
     distance_approach = 10.0
+
+    # Offset du poignet appliqué dès le départ (position de repos de la pince)
+    wrist_offset = getattr(config_traj, 'WRIST_ANGLE_OFFSET_DEG', 0.0)
 
     # Trier les blocs selon un algorithme de planification
     if len(blocs) < 11:
-        blocs_sorted, total_distance = plan_bnb_basic(blocs, home_position)
+        blocs_sorted, total_distance = plan_bnb_basic(blocs, config_traj.home_position)
     elif len(blocs) < 14:
-        blocs_sorted, total_distance = plan_exact_tsp(blocs, home_position)
+        blocs_sorted, total_distance = plan_exact_tsp(blocs, config_traj.home_position)
     else:
-        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
+        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, config_traj.home_position)
 
-    # 1) Départ au home (Haut)
-    path.append((None, "home", speed_approach_hub,
-                 home_position[0], home_position[1], home_position[2], 0.0, False))
+    # 1) Départ au home (Haut) — offset appliqué dès le départ
+    path.append((None, None, "home", config_traj.speed_approach_hub,
+                 config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2],
+                 wrist_offset, False))
 
     # 1b) Point de descente centrale (sortie hub - rentrée smooth)
-    path.append((None, "joint", speed_approach_hub,
+    path.append((None, None, "joint", config_traj.speed_approach_hub,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
-                 0.0, False))
+                 wrist_offset, False))
 
     for bloc in blocs_sorted:
-        # bloc format: [couleur, type, x, y, z, angle]
-        # On vérifie si on a 6 éléments (avec type) ou 5 (sans type)
-        if len(bloc) == 6:
-            # Format: [couleur, type, x, y, z, angle]
-            couleur, _, x, y, z_val, angle = bloc
+        # bloc format: (couleur, bloc_type, x, y, z, angle)
+        if len(bloc) >= 6:
+            couleur, bloc_type, x, y, z_ignored, angle, *_ = bloc
+            p_bloc = (float(x), float(y), config_traj.z_table)
         else:
-            # Format: [couleur, x, y, z, angle]
-            couleur, x, y, z_val, angle, *_ = bloc
-
-            # Maintenant on est SUR que x et y sont les bons
-        p_bloc = (float(x), float(y), config_traj.z_table)
-        p_out = output_pos_for_color(couleur)
+            # Fallback pour compatibilité ancienne
+            couleur, x, y, z_ignored, angle = bloc[:5]
+            bloc_type = "None"
+            p_bloc = (float(x), float(y), config_traj.z_table)
             
+        # Application de l'offset du poignet et wrap arithmétique pour rester entre -90 et 90
+        angle = float(angle) + wrist_offset
+        while angle > 90.0:
+            angle -= 180.0
+        while angle < -90.0:
+            angle += 180.0
+            
+        p_out  = output_pos_for_color(couleur)
+
         # 2) Aller au-dessus du bloc (pince ouverte)
-        path.append((None, "joint", speed_joint,
+        path.append((None, None, "joint", speed_joint,
                      p_bloc[0], p_bloc[1], p_bloc[2] + distance_approach, angle, False))
 
         # 3) Descendre sur le bloc
-        path.append((None, "joint", speed_approach,
+        path.append((None, None, "joint", speed_approach,
                      p_bloc[0], p_bloc[1], p_bloc[2], angle, False))
 
         # 4) Fermer la pince
-        path.append((couleur, "closeGripper", 0.0,
+        path.append((couleur, bloc_type, "closeGripper", 0.0,
                      p_bloc[0], p_bloc[1], p_bloc[2], angle, True))
 
         # 5) Remonter avec le bloc
-        path.append((couleur, "joint", speed_approach,
+        path.append((couleur, bloc_type, "joint", speed_approach,
                      p_bloc[0], p_bloc[1], p_bloc[2] + distance_approach, angle, True))
 
-        # 6) Aller au-dessus du bac de sortie
-        path.append((couleur, "joint", speed_joint,
-                     p_out[0], p_out[1], p_out[2] + distance_approach, 0, True))
+        # 6) Aller au-dessus du bac de sortie — offset appliqué aussi au dépôt
+        path.append((couleur, bloc_type, "joint", speed_joint,
+                     p_out[0], p_out[1], p_out[2] + distance_approach, wrist_offset, True))
 
         # 7) Ouvrir la pince (drop)
-        path.append((None, "openGripper", 0.0,
-                     p_out[0], p_out[1], p_out[2] + distance_approach, 0, False))
+        path.append((None, None, "openGripper", 0.0,
+                     p_out[0], p_out[1], p_out[2] + distance_approach, wrist_offset, False))
 
     # 8) Point de passage centre table (rentrée smooth)
-    path.append((None, "joint", speed_joint,
+    path.append((None, None, "joint", speed_joint,
                  config_traj.home_intermediaire_position[0], 
                  config_traj.home_intermediaire_position[1], 
                  config_traj.home_intermediaire_position[2], 
-                 0, False))
+                 wrist_offset, False))
 
     # 9) Retour final au home
-    path.append((None, "joint", speed_approach_hub,
-                 home_position[0], home_position[1], home_position[2], 0, False))
+    path.append((None, None, "joint", config_traj.speed_approach_hub,
+                 config_traj.home_position[0], config_traj.home_position[1], config_traj.home_position[2],
+                 wrist_offset, False))
 
-    return path
+    return path, blocs_sorted
 
 def main():
-    #plot_blocks_2D(blocs)
-    plot_blocks_3D(blocs, home_position)
-    distances = [distance_from_output(bloc) for bloc in blocs]
-    for bloc, dist in zip(blocs, distances):
-        print(f"Distance du bloc {bloc} a sa position de sortie: {dist:.2f} unites")
-
-    print(f"Distance entre la position de depart et la position de sortie rouge: {distance_between_points(home_position, red_output_position):.2f} unites")
-
-    # Trier les blocs selon un algorithme de planification
-    # Branch and Bound, TSP exact, ou Cheapest Insertion selon le nombre de blocs
-    if len(blocs) < 11:
-        blocs_sorted, total_distance = plan_bnb_basic(blocs, home_position)
-        print("Ordre optimal:", blocs_sorted)
-        print(f"Distance totale optimale: {total_distance:.2f}")
-    elif len(blocs) < 14:
-        blocs_sorted, total_distance = plan_exact_tsp(blocs, home_position)
-        print("Ordre optimal:", blocs_sorted)
-        print(f"Distance totale optimale: {total_distance:.2f}")
+    # En mode debug, on utilise les blocs par défaut de config_traj
+    blocs_local = config_traj.blocs
+    home_pos = config_traj.home_position
+    
+    plot_blocks_3D(blocs_local, home_pos)
+    
+    # On teste le TSP sur ces blocs
+    if len(blocs_local) < 11:
+        blocs_sorted, total_distance = plan_bnb_basic(blocs_local, home_pos)
+    elif len(blocs_local) < 14:
+        blocs_sorted, total_distance = plan_exact_tsp(blocs_local, home_pos)
     else:
-        blocs_sorted, total_distance = plan_cheapest_insertion(blocs, home_position)
-        print("Ordre non-optimal:", blocs_sorted)
-        print(f"Distance totale non-optimale: {total_distance:.2f}")
+        blocs_sorted, total_distance = plan_cheapest_insertion(blocs_local, home_pos)
 
-    plot_route_2D(blocs_sorted, home_position)
+    plot_route_2D(blocs_sorted, home_pos)
 
     # Full trajectory
-    full_path = plan_full_trajectory(blocs_sorted)
-    print("Trajectoire complète:")
-    for step in full_path:
-        print(step)
-    #animate_full_trajectory_2D(full_path, blocs=blocs, home_position=home_position, dt=0.05, show_trace=True)
-    animate_full_trajectory_3D(full_path, blocs=blocs_sorted, home_position=home_position, dt=0.05, show_trace=True)
+    full_path, _ = plan_full_trajectory(blocs_sorted)
+    #animate_full_trajectory_2D(full_path, blocs=blocs_local, home_position=home_pos, dt=0.05, show_trace=True)
+    animate_full_trajectory_3D(full_path, blocs=blocs_sorted, home_position=home_pos, dt=0.05, show_trace=True)
 
 if __name__ == "__main__":
     main()

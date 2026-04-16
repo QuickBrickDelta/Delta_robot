@@ -56,7 +56,7 @@ if os.path.exists(detected_path):
     except Exception as e:
         print(f"Erreur de lecture des blocs: {e}")
 
-Trajectory = plannif_trajectoire.plan_full_trajectory(blocs)
+Trajectory, blocs_sorted = plannif_trajectoire.plan_full_trajectory(blocs)
 
 # Commandes pour la simulation (XYZ + mode L/J/G)
 Motor_command_xyz = []
@@ -66,9 +66,42 @@ pince_states = []
 # liste dense de [angle1, angle2, angle3, pince_fermee] après interpolation
 Motor_command_angles = []
 
-# Nombre de commandes de pause pour laisser la pince s'ouvrir/fermer
-# 8 steps × 50ms = 0.4s de délai (Divisé par ~3)
-GRIPPER_HOLD_STEPS = 8
+# ===============================
+# Mode CHILL / RAPIDE (lu depuis l'UI)
+# ===============================
+_mode_file = os.path.join(project_root, "UI_VIBECODE", "mode_robot.json")
+_robot_mode = "rapide"
+try:
+    with open(_mode_file, "r") as _f:
+        _robot_mode = json.load(_f).get("mode", "rapide")
+except Exception:
+    pass
+
+print(f"[MODE] Mode robot : {_robot_mode.upper()}")
+
+if _robot_mode == "chill":
+    GRIPPER_HOLD_STEPS   = config_traj.CHILL_GRIPPER_HOLD_STEPS
+    DROP_PRE_HOLD_STEPS  = config_traj.CHILL_DROP_PRE_HOLD_STEPS
+    DROP_POST_HOLD_STEPS = config_traj.CHILL_DROP_POST_STEPS
+    # Mapping vitesse nominale → vitesse chill pour chaque type de mouvement
+    _SPEED_MAP = {
+        config_traj.speed_joint_move_global:    config_traj.CHILL_SPEED_JOINT,
+        config_traj.speed_approach_move_global: config_traj.CHILL_SPEED_APPROACH,
+        config_traj.speed_approach_hub:         config_traj.CHILL_SPEED_HUB,
+    }
+else:  # rapide (défaut)
+    GRIPPER_HOLD_STEPS   = config_traj.RAPIDE_GRIPPER_HOLD_STEPS
+    DROP_PRE_HOLD_STEPS  = config_traj.RAPIDE_DROP_PRE_HOLD_STEPS
+    DROP_POST_HOLD_STEPS = config_traj.RAPIDE_DROP_POST_STEPS
+    _SPEED_MAP = {
+        config_traj.speed_joint_move_global:    config_traj.RAPIDE_SPEED_JOINT,
+        config_traj.speed_approach_move_global: config_traj.RAPIDE_SPEED_APPROACH,
+        config_traj.speed_approach_hub:         config_traj.RAPIDE_SPEED_HUB,
+    }
+
+def _get_speed(raw_speed):
+    """Retourne la vitesse corrigée selon le mode actif."""
+    return _SPEED_MAP.get(float(raw_speed), float(raw_speed))
 
 # ===============================
 # 1) Construire les waypoints XYZ + mode + pince
@@ -101,8 +134,10 @@ for step in Trajectory:
 # 2) Générer la trajectoire en ANGLES + pince (interpolation)
 # ===============================
 if Motor_command_xyz:
-    # Fréquence cible : 50Hz (20ms)
-    DEFAULT_DT = 0.02 
+    # DT réel de l'envoi série dans PieToArduino (stream_commands dt_s=0.05)
+    # IMPORTANT : doit correspondre à dt_s dans PieToArduino pour que
+    # les vitesses de config_traj soient respectées
+    DEFAULT_DT = 0.05
 
     current_pos = Motor_command_xyz[0][:3]
 
@@ -113,18 +148,31 @@ if Motor_command_xyz:
         angle = target_pt[4] # Récupérer l'angle
         pince_seg = pince_states[i]
         
-        # Récupérer la vitesse depuis la trajectoire d'origine
-        speed = float(Trajectory[i][3]) if i < len(Trajectory) else 20.0
+        # Récupérer la vitesse depuis la trajectoire d'origine, convertie selon le mode
+        speed = _get_speed(Trajectory[i][3]) if i < len(Trajectory) else 20.0
         if speed <= 0: speed = 20.0
 
         if mode == "G":
             # Action pince : maintenir la position actuelle + changer l'état pince
             thetas = get_all_thetas(current_pos)
+            move_type_step = Trajectory[i][2]  # "openGripper" ou "closeGripper"
             if thetas is not None:
                 theta1, theta2, theta3 = [float(t) for t in thetas]
-                # Délai réduit pour la pince
+
+                if move_type_step == "openGripper":
+                    # 0.25s avant le drop : robot stable, pince encore fermée
+                    for _ in range(DROP_PRE_HOLD_STEPS):
+                        Motor_command_angles.append([theta1, theta2, theta3, True, angle])
+
+                # Action pince principale
                 for _ in range(GRIPPER_HOLD_STEPS):
                     Motor_command_angles.append([theta1, theta2, theta3, pince_seg, angle])
+
+                if move_type_step == "openGripper":
+                    # 0.1s après le drop : laisser le bloc tomber avant de repartir
+                    for _ in range(DROP_POST_HOLD_STEPS):
+                        Motor_command_angles.append([theta1, theta2, theta3, False, angle])
+
             continue
 
         # Calcul de la distance
@@ -135,10 +183,10 @@ if Motor_command_xyz:
             current_pos = pos_xyz
             continue
 
-        # CALCUL DYNAMIQUE DU NOMBRE DE POINTS
-        # steps = (Distance / Vitesse) / DT
-        # On assure un minimum de 10 points pour la fluidité même sur petits trajets
-        steps_dynamic = max(10, int((dist / speed) / DEFAULT_DT))
+        # CALCUL DYNAMIQUE DU NOMBRE DE POINTS selon vitesse réelle
+        # steps = (Distance / Vitesse) / DT_réel
+        # Minimum de 3 pour éviter les divisions par zéro, pas plus (ne pas casser la vitesse)
+        steps_dynamic = max(3, int((dist / speed) / DEFAULT_DT))
 
         # Choix de l'interpolation (joint avec fallback linéaire)
         if mode == "J":

@@ -136,12 +136,12 @@ def main():
     
     # 2) Ouvrir la connexion série
     ser = serial.Serial(port, baudrate=115200, timeout=1)
-    time.sleep(2)  # Attendre le reset de l'Arduino après connexion
+    time.sleep(0.5)  # Attendre le reset de l'Arduino après connexion (OpenRB ~500ms)
     
     # 3) Test de connexion (Ping/Pong)
     print(">>> Test de connexion (Ping)...")
     ser.write(b"?\n") # Envoi d'un ping
-    time.sleep(1)
+    time.sleep(0.2)  # Laisser le temps à l'Arduino de répondre au ping
     
     has_responded = False
     while ser.in_waiting > 0:
@@ -157,7 +157,7 @@ def main():
         print(">>> ATTENTION : Le robot n'a pas encore répondu.")
         print("    Essayez d'appuyer sur le bouton RESET de l'OpenRB maintenant !")
         # Une deuxième chance après le message
-        time.sleep(2)
+        time.sleep(0.5)  # Deuxième chance réduite
         while ser.in_waiting > 0:
             msg = ser.readline().decode('utf-8', errors='ignore').strip()
             if msg:
