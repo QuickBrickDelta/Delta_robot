@@ -8,7 +8,7 @@
 
 ---
 
-## 📸 Aperçu
+##  Aperçu
 
 ![robot](Images/Photo_Robot.jpg)
 
@@ -18,7 +18,7 @@
 
 ---
 
-## 🚀 Mise en route rapide
+##  Mise en route rapide
 
 ### 1. Installation du logiciel
 Clonez le dépôt et installez les dépendances :
@@ -35,7 +35,7 @@ Voir la [Documentation Matérielle](docs/hardware.md) pour le schéma de câblag
 
 ---
 
-## 🧠 Architecture du projet
+##  Architecture du projet
 
 Le robot intègre plusieurs sous-systèmes travaillant en boucle fermée :
 
@@ -44,7 +44,7 @@ Le robot intègre plusieurs sous-systèmes travaillant en boucle fermée :
 3.  **Cinématique** : Modèle géométrique inverse pour le pilotage des 3 bras parallèles.
 4.  **UI de Contrôle** : Visualisation 3D en temps réel et interface de configuration des bacs par "Drag & Drop".
 
-### 🗂️ Structure des dossiers
+###  Structure des dossiers
 ```
 Delta_robot/
 ├── Arduino/            # Firmware C++ pour OpenRB-150
@@ -59,7 +59,7 @@ Delta_robot/
 
 ---
 
-## 📚 Documentation détaillée
+##  Documentation détaillée
 
 *   [**Guide Matériel**](docs/hardware.md) : Liste des pièces, électronique et montage.
 *   [**Installation Logicielle**](docs/software_setup.md) : Configuration de l'environnement Python et flashage Arduino.
@@ -70,7 +70,7 @@ Delta_robot/
 
 
 
-## ⚖️ Licence
+##  Licence
 
 Ce projet est distribué sous la licence **MIT**. Voir le fichier [LICENSE.txt](LICENSE.txt) pour plus de détails.
 
