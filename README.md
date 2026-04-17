@@ -68,14 +68,7 @@ Delta_robot/
 
 ---
 
-## 🗺️ Roadmap / À venir
 
-- [ ] **Auto-calibration** : Calibration automatique du plan de travail via marqueurs ArUco.
-- [ ] **Détection de forme** : Support pour les blocs ronds et triangulaires.
-- [ ] **Optimisation du temps de cycle** : Implémentation de trajectoires en spline (S-Curve avancée).
-- [ ] **Mode Simulation 100%** : Test complet sans matériel via un moteur physique.
-
----
 
 ## ⚖️ Licence
 
