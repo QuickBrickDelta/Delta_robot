@@ -1,10 +1,14 @@
-# QuickBrick Delta Robot — Open Source Control System
+# QuickBrick Delta Robot 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-> Projet de session — Baccalauréat en Génie Robotique, Université de Sherbrooke.  
+> Projet de session S4 — Baccalauréat en Génie Robotique, Université de Sherbrooke.  
 > Un système complet de tri automatisé par vision numérique et planification de trajectoire optimale.
+
+Réalisé par  Domenic Coppola, Antoine Côté, Thierry Allen, Antoine Bolduc et Raphaël Gendron.
+
+Utilisation de l'IA générative à des fins de déverminage et d'assistance à la conception.
 
 ---
 
