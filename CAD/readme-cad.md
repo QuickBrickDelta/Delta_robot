@@ -6,16 +6,6 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ---
 
-## Structure du dossier
-
-| Fichier | Description |
-|--------|-------------|
-| `plateformeSup.stl` | Effecteur imprimé 3D |
-| `bras.stl` | Bras du robot delta |
-| `base.step` | Structure de base |
-| `assemblage_complet.step` | Assemblage complet du robot |
-
----
 
 ## Formats disponibles
 
@@ -49,6 +39,21 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ---
 
+### Pince
+
+| Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
+|-------|-------|-------------|-------------------|-------------|----------|
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/8acf8848-69de-4af8-8d5f-67a727853e41" /> | Support à servo de poignet | [support-servo-poignet.stl](STL/pince/support-servo-poignet.stl) | PLA | 15% | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/e35d4178-2650-4bf2-8351-5469225a33ce" /> | Support à servo de pince | [support-servo-pince.stl](STL/pince/support-servo-pince.stl) | PLA | 15% | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f85d9183-a085-4651-951b-9f5af607394d" /> | Plaque pour support à servo de pince | [plaque-support-servo-pince.stl](STL/pince/plaque-support-servo-pince.stl) | PLA | 15% | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f2317928-ef6b-4094-8b29-61622a3daac4" /> | Washer pour pince | [washer-pince.stl](STL/pince/washer-pince.stl) | PLA | 15% | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f7cd9e03-9d01-494c-873c-3027294fa027" /> | Pince 1 | [pince-1.stl](STL/pince/pince-1.stl) | PLA | 15% | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f61978fa-1b29-426f-ad69-b17d94f03779" /> | Pince 2 | [pince-2.stl](STL/pince/pince-2.stl) | PLA | 15% | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/76588b8b-76a0-43cf-99c1-4744d3898855" /> | Embouts de pince | [embouts-pince.stl](STL/pince/embouts-pince.stl) | TPU | 15% | 2 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/8c227cb5-e07f-4e7c-9f8f-cbee7e83a1bb" /> | Couvercle de pince avec couronne pour mise à l'origine | [couvercle-pince-couronne.stl](STL/pince/couvercle-pince-couronne.stl) | PLA | 15% | 1 |
+
+---
+
 ### Autres pièces
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
@@ -56,6 +61,11 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 | | | | | | |
 
 --- 
+
+
+
+
+
 
 ## Notes
 - Toutes les dimensions sont en millimètres.
