@@ -29,8 +29,10 @@ Ce guide couvre l'assemblage physique, l'électronique et la liste des composant
 2.  **Alimentation** : Connectez le bloc 12V au bornier de l'OpenRB-150. **ATTENTION** : Vérifiez la polarité.
 3.  **Communication** : Reliez l'OpenRB-150 au Raspberry Pi (ou PC) via un câble USB-C.
 
+<img width="551" height="601" alt="Schéma électrique" src="https://github.com/user-attachments/assets/f66a8961-799f-4907-8e93-2bb2f2d60dc8" />
+
 ![Schéma Électrique](../Schéma_Électrique_Delta.drawio)
-*(Exportez ce diagramme en PNG pour une meilleure visibilité dans le README)*
+*(Fichier draw.io)*
 
 ## Étapes d'assemblage
 
