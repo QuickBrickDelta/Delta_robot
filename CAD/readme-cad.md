@@ -16,6 +16,9 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 ## Impression 3D
 
 ### Bras robotique
+Assemblage:
+<img width="1573" height="664" alt="image" src="https://github.com/user-attachments/assets/41583448-9108-4d05-9339-9e5fb846ad26" />
+
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
@@ -30,6 +33,8 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 ---
 
 ### Plaque d'acrylique
+Assemblage:
+<img width="899" height="695" alt="image" src="https://github.com/user-attachments/assets/051888f2-df9f-46fe-a50f-aaa715b114db" />
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
@@ -40,6 +45,12 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 ---
 
 ### Pince
+
+Assemblage : 
+<img width="1531" height="603" alt="image" src="https://github.com/user-attachments/assets/36ff89b2-4785-4c4b-af81-a9cca3882521" />
+
+
+
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
@@ -58,7 +69,8 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
-| | | | | | |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/3eec49ff-d622-4e25-9cd8-ecb752e766da" /> | Attache caméra | [attache-camera.stl](STL/autres/attache-camera.stl) | PLA | 15% | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/c5388d61-4350-484c-b8b8-cbfa71b2a66a" /> | Attache Raspberry Pi | [attache-raspberry-pi.stl](STL/autres/attache-raspberry-pi.stl) | PLA | 15% | 1 |
 
 --- 
 
