@@ -2,7 +2,7 @@
 
 Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onshape.com/).
 
->  [Ouvrir le projet complet dans OnShape](https://cad.onshape.com/documents/0e918514191409c2a18572ab/w/21e7121afbe0440ffe943c21/e/87bd8cfb125acff7d4804a25?renderMode=0&uiState=69e3bea0ded48bb00e4b5927)
+>  [Voir l'assemblage complet](https://cad.onshape.com/documents/0e918514191409c2a18572ab/w/21e7121afbe0440ffe943c21/e/87bd8cfb125acff7d4804a25?renderMode=0&uiState=69e3bea0ded48bb00e4b5927)
 
 ---
 
