@@ -9,6 +9,7 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 ## Formats disponibles
 
 - **STL** — Prêt pour l'impression 3D
+- **DXF** — Prêt pour la découpe laser
 
 ---
 
@@ -61,15 +62,19 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ### Anneau de lumière
 
+>  Photo de l'assemblage à venir prochainement.
+
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/f12e16e6-4b28-4fe5-bd26-41d977029ba0" /> | Anneau de lumière - Pièce 1 | [anneau-lumiere-1.stl](STL/anneau-lumiere/anneau-lumiere-1.stl) | PLA | 15% | 6 |
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/f0bc8cd6-c245-4c46-8f9d-eaecb71889ed" /> | Anneau de lumière - Pièce 2 | [anneau-lumiere-2.stl](STL/anneau-lumiere/anneau-lumiere-2.stl) | PLA | 15% | 6 |
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/2927ae94-bf80-42b6-ba6f-be4727cbc619" /> | Anneau de lumière - Pièce 3 | [anneau-lumiere-3.stl](STL/anneau-lumiere/anneau-lumiere-3.stl) | PLA | 15% | 6 |
+
 ---
 
-
 ### Autres pièces
+
+>  Photo de l'assemblage à venir prochainement.
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
@@ -77,11 +82,12 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/c5388d61-4350-484c-b8b8-cbfa71b2a66a" /> | Attache Raspberry Pi | [attache-raspberry-pi.stl](STL/autres/attache-raspberry-pi.stl) | PLA | 15% | 1 |
 
 ---
----
 
 ## Découpe laser
 
 ### Étagère
+
+>  Photo de l'assemblage à venir prochainement.
 
 | Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
 |-------|-------|-------------|----------|-----------|----------|
@@ -105,7 +111,33 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/ce368324-fe1d-4ecb-951c-761ca55918eb" /> | Fond - partie 2 arrière | [fond-partie-2-arriere.dxf](DXF/etagere/fond-partie-2-arriere.dxf) | Bois | 4.3mm | 1 |
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/9c44fc2f-fb78-440e-9c0c-775ff7e0fc82" /> | Montant de support avec trou | [montant-support-trou.dxf](DXF/etagere/montant-support-trou.dxf) | Bois | 4.3mm | 1 |
 
+---
 
+### Bac simple
+
+>  Photo de l'assemblage à venir prochainement.
+
+| Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
+|-------|-------|-------------|----------|-----------|----------|
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f5560706-1e66-4f1e-ae85-3080df8e3472" /> | Fond | [bac-simple-fond.dxf](DXF/bac-simple/bac-simple-fond.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/18bd77d9-57af-47bb-ba97-dd82dfa310c8" /> | Mur | [bac-simple-mur.dxf](DXF/bac-simple/bac-simple-mur.dxf) | Bois | 4.3mm | 2 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/8c9d1c79-c666-41b2-9b9b-a77d759f005f" /> | Avant | [bac-simple-avant.dxf](DXF/bac-simple/bac-simple-avant.dxf) | Acrylique | 3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/e8cd9e34-84f1-4dca-b192-6487048924a7" /> | Arrière | [bac-simple-arriere.dxf](DXF/bac-simple/bac-simple-arriere.dxf) | Bois | 4.3mm | 1 |
+
+---
+
+### Bac double
+
+>  Photo de l'assemblage à venir prochainement.
+
+| Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
+|-------|-------|-------------|----------|-----------|----------|
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/9f5769ad-5da0-43bf-b83f-467ae219c10b" /> | Fond | [bac-double-fond.dxf](DXF/bac-double/bac-double-fond.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f572a272-8db7-42b4-a6c2-1301e09de48c" /> | Mur | [bac-double-mur.dxf](DXF/bac-double/bac-double-mur.dxf) | Bois | 4.3mm | 2 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/84a52c7a-8ad8-4d53-8cea-8f2cbf553ea1" /> | Avant | [bac-double-avant.dxf](DXF/bac-double/bac-double-avant.dxf) | Acrylique | 3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/82ab4c4c-5125-4b93-abf2-37d39f755fbf" /> | Arrière | [bac-double-arriere.dxf](DXF/bac-double/bac-double-arriere.dxf) | Bois | 4.3mm | 1 |
+
+---
 
 ## Notes
 
