@@ -15,7 +15,7 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ## Impression 3D
 
-### Assemblage robot
+### Bras robotique
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
@@ -69,3 +69,4 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ## Notes
 - Toutes les dimensions sont en millimètres.
+- L'assemblage est effectué avec des vis M3 de longueur variée
