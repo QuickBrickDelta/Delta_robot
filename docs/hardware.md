@@ -10,7 +10,7 @@ Ce guide couvre l'assemblage physique, l'électronique et la liste des composant
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/aa68dc4d-1664-4c22-bcb0-4b5a6fb88da6" /> | **Alimentation** | Bloc DC 12V 5A | 1 |
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/1d09d913-0b13-4f0c-ba2d-909a5c9281eb" /> | **Joint à rotule** | Joint à rotule fileté M4 | 12 |
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/5d0b0c94-f7e8-4888-9cf5-b6ac15f7f698" /> | **Tiges** | Tige filetée M4-30mm | 6 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/81c8e887-966b-428b-b957-b3c6305357cd" /> | **Caméra ** | Caméra module 3 Raspberry Pi | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/81c8e887-966b-428b-b957-b3c6305357cd" /> | **Caméra** | Caméra module 3 Raspberry Pi | 1 |
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/6e59d47c-f8be-48bd-be10-786d8f84be9a" /> | **Servo moteur SG90** | Servo moteur SG90 | 2 |
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/f57d85bb-15fc-4947-af7a-a8d3ca943967" /> | **Bande lumineuse de DEL** | À connexion USB (5V), intensité variable | 1 |
 | <img width="112" alt="image" src="https://github.com/user-attachments/assets/343a47da-f884-4245-a464-d9bcfb0623e6" /> | **Attache à tiroir** | Attache à tiroir Richelieu | 1 |
