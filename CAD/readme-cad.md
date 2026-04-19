@@ -17,7 +17,7 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ### Bras robotique
 
-<img width="1573" height="664" alt="image" src="https://github.com/user-attachments/assets/41583448-9108-4d05-9339-9e5fb846ad26" />
+<img width="1540" height="1167" alt="image" src="https://github.com/user-attachments/assets/8c864025-0143-4472-a7dc-154266e7ae20" />
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
@@ -62,7 +62,7 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ### Anneau de lumière
 
->  Photo de l'assemblage à venir prochainement.
+<img width="1084" height="765" alt="image" src="https://github.com/user-attachments/assets/b867b47a-c78c-4da3-bb26-e3f8578c50cf" />
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
@@ -72,9 +72,9 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ---
 
-### Autres pièces
+### Attaches de caméra et Raspberry Pi
 
->  Photo de l'assemblage à venir prochainement.
+<img width="1033" height="730" alt="image" src="https://github.com/user-attachments/assets/da5aa852-f6fd-4c1f-a51d-28ca6c502900" />
 
 | Image | Pièce | Fichier STL | Matériau recommandé | Remplissage | Quantité |
 |-------|-------|-------------|-------------------|-------------|----------|
@@ -87,7 +87,8 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ### Étagère
 
->  Photo de l'assemblage à venir prochainement.
+<img width="1399" height="1080" alt="image" src="https://github.com/user-attachments/assets/89841415-3142-4ef0-8972-21747c8361a1" />
+
 
 | Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
 |-------|-------|-------------|----------|-----------|----------|
@@ -115,7 +116,7 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ### Bac simple
 
->  Photo de l'assemblage à venir prochainement.
+<img width="785" height="555" alt="image" src="https://github.com/user-attachments/assets/df614be7-c434-4608-9413-afacc85309c0" />
 
 | Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
 |-------|-------|-------------|----------|-----------|----------|
@@ -128,7 +129,7 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ### Bac double
 
->  Photo de l'assemblage à venir prochainement.
+<img width="1010" height="713" alt="image" src="https://github.com/user-attachments/assets/a804ce87-a23a-46b3-9368-49aac25daff4" />
 
 | Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
 |-------|-------|-------------|----------|-----------|----------|
