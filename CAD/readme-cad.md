@@ -114,12 +114,12 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 <img width="785" height="555" alt="image" src="https://github.com/user-attachments/assets/df614be7-c434-4608-9413-afacc85309c0" />
 
-| Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
-|-------|-------|-------------|----------|-----------|----------|
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f5560706-1e66-4f1e-ae85-3080df8e3472" /> | Fond | [bac-simple-fond.dxf](DXF/bac-simple/bac-simple-fond.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/18bd77d9-57af-47bb-ba97-dd82dfa310c8" /> | Mur | [bac-simple-mur.dxf](DXF/bac-simple/bac-simple-mur.dxf) | Bois | 4.3mm | 2 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/8c9d1c79-c666-41b2-9b9b-a77d759f005f" /> | Avant | [bac-simple-avant.dxf](DXF/bac-simple/bac-simple-avant.dxf) | Acrylique | 3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/e8cd9e34-84f1-4dca-b192-6487048924a7" /> | Arrière | [bac-simple-arriere.dxf](DXF/bac-simple/bac-simple-arriere.dxf) | Bois | 4.3mm | 1 |
+| Image | Pièce | Fichier STL | Fichier DXF | Matériau | Épaisseur | Quantité |
+|-------|-------|-------------|-------------|----------|-----------|----------|
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f5560706-1e66-4f1e-ae85-3080df8e3472" /> | Fond | [bac-simple-fond.stl](STL/bac-simple/bac-simple-fond.stl) | [bac-simple-fond.dxf](DXF/bac-simple/bac-simple-fond.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/18bd77d9-57af-47bb-ba97-dd82dfa310c8" /> | Mur | [bac-simple-mur.stl](STL/bac-simple/bac-simple-mur.stl) | [bac-simple-mur.dxf](DXF/bac-simple/bac-simple-mur.dxf) | Bois | 4.3mm | 2 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/8c9d1c79-c666-41b2-9b9b-a77d759f005f" /> | Avant | [bac-simple-avant.stl](STL/bac-simple/bac-simple-avant.stl) | [bac-simple-avant.dxf](DXF/bac-simple/bac-simple-avant.dxf) | Acrylique | 3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/e8cd9e34-84f1-4dca-b192-6487048924a7" /> | Arrière | [bac-simple-arriere.stl](STL/bac-simple/bac-simple-arriere.stl) | [bac-simple-arriere.dxf](DXF/bac-simple/bac-simple-arriere.dxf) | Bois | 4.3mm | 1 |
 
 ---
 
@@ -127,12 +127,12 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 <img width="1010" height="713" alt="image" src="https://github.com/user-attachments/assets/a804ce87-a23a-46b3-9368-49aac25daff4" />
 
-| Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
-|-------|-------|-------------|----------|-----------|----------|
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/9f5769ad-5da0-43bf-b83f-467ae219c10b" /> | Fond | [bac-double-fond.dxf](DXF/bac-double/bac-double-fond.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f572a272-8db7-42b4-a6c2-1301e09de48c" /> | Mur | [bac-double-mur.dxf](DXF/bac-double/bac-double-mur.dxf) | Bois | 4.3mm | 2 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/84a52c7a-8ad8-4d53-8cea-8f2cbf553ea1" /> | Avant | [bac-double-avant.dxf](DXF/bac-double/bac-double-avant.dxf) | Acrylique | 3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/82ab4c4c-5125-4b93-abf2-37d39f755fbf" /> | Arrière | [bac-double-arriere.dxf](DXF/bac-double/bac-double-arriere.dxf) | Bois | 4.3mm | 1 |
+| Image | Pièce | Fichier STL | Fichier DXF | Matériau | Épaisseur | Quantité |
+|-------|-------|-------------|-------------|----------|-----------|----------|
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/0523141b-1f47-4d5e-acda-529ec7c4f8d9" /> | Fond | [bac-double-fond.stl](STL/bac-double/bac-double-fond.stl) | [bac-double-fond.dxf](DXF/bac-double/bac-double-fond.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/f572a272-8db7-42b4-a6c2-1301e09de48c" /> | Mur | [bac-double-mur.stl](STL/bac-double/bac-double-mur.stl) | [bac-double-mur.dxf](DXF/bac-double/bac-double-mur.dxf) | Bois | 4.3mm | 2 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/84a52c7a-8ad8-4d53-8cea-8f2cbf553ea1" /> | Avant | [bac-double-avant.stl](STL/bac-double/bac-double-avant.stl) | [bac-double-avant.dxf](DXF/bac-double/bac-double-avant.dxf) | Acrylique | 3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/82ab4c4c-5125-4b93-abf2-37d39f755fbf" /> | Arrière | [bac-double-arriere.stl](STL/bac-double/bac-double-arriere.stl) | [bac-double-arriere.dxf](DXF/bac-double/bac-double-arriere.dxf) | Bois | 4.3mm | 1 |
 
 ---
 
