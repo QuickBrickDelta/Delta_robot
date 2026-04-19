@@ -52,6 +52,7 @@ Le robot intègre plusieurs sous-systèmes travaillant en boucle fermée :
 ```
 Delta_robot/
 ├── Arduino/            # Firmware C++ pour OpenRB-150
+├── CAD/                # Fichiers CAD (STL et DXF) d'impression 3D et découpe laser
 ├── CinématiqueRobot/   # Modèles DGM/IGM & Interpolations
 ├── Communication/      # Protocole série Raspberry Pi ↔ Arduino
 ├── docs/               # Documentation détaillée (Hardware, Math, Setup)
