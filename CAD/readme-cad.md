@@ -87,32 +87,28 @@ Les fichiers CAD de ce projet ont été conçus dans [OnShape](https://cad.onsha
 
 ### Étagère
 
-<img width="1399" height="1080" alt="image" src="https://github.com/user-attachments/assets/89841415-3142-4ef0-8972-21747c8361a1" />
+<img width="1812" height="1100" alt="image" src="https://github.com/user-attachments/assets/07498eb2-52a5-475e-8236-1ef4241a7ccb" />
 
-
-| Image | Pièce | Fichier DXF | Matériau | Épaisseur | Quantité |
-|-------|-------|-------------|----------|-----------|----------|
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/d119c056-eee8-4cc7-a28f-14baaefe2141" /> | Plaque de plancher secondaire | [plaque-plancher-secondaire.dxf](DXF/etagere/plaque-plancher-secondaire.dxf) | Bois | 4.3mm | 3 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/7eae5828-5e6c-4d9e-976a-40ad91a3e41c" /> | Tablette 1 | [tablette-1.dxf](DXF/etagere/tablette-1.dxf) | Bois | 4.3mm | 6 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/06924abb-bbbc-46dc-81e3-a851f52b4377" /> | Tablette du haut | [tablette-haut.dxf](DXF/etagere/tablette-haut.dxf) | Bois | 4.3mm | 3 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/4a5b4c12-85ff-49fa-ad58-7b6e523a88d7" /> | Séparateur de bacs | [separateur-bacs.dxf](DXF/etagere/separateur-bacs.dxf) | Bois | 4.3mm | 3 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/cb871467-67e9-4e25-a20c-9a7b6ff25ea8" /> | Plaque de plancher au sol | [plaque-plancher-sol.dxf](DXF/etagere/plaque-plancher-sol.dxf) | Bois | 4.3mm | 3 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/b03c1106-4c59-4e04-9ec5-39431b0c5a6c" /> | Tablette fond pour côté ouvert | [tablette-fond-cote-ouvert.dxf](DXF/etagere/tablette-fond-cote-ouvert.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/cfa4510c-b740-4d77-95ed-5020d7679aab" /> | Séparateur court | [separateur-court.dxf](DXF/etagere/separateur-court.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/baf6fd97-5319-4c1c-a8ee-3f2f5a098c6d" /> | Tablette du fond | [tablette-fond.dxf](DXF/etagere/tablette-fond.dxf) | Bois | 4.3mm | 3 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/b2cc2aed-68cc-4efb-ac48-b24303083262" /> | Fond - partie 1 gauche | [fond-partie-1-gauche.dxf](DXF/etagere/fond-partie-1-gauche.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/b4a5f3b0-5177-457b-8153-a67c389915af" /> | Fond - partie 2 gauche | [fond-partie-2-gauche.dxf](DXF/etagere/fond-partie-2-gauche.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/620d45e0-da2a-49c3-9940-7ec943c34c64" /> | Montant de support | [montant-support.dxf](DXF/etagere/montant-support.dxf) | Bois | 4.3mm | 2 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/6b0282da-0a35-4e67-822a-6c70f6894952" /> | Séparateur long | [separateur-long.dxf](DXF/etagere/separateur-long.dxf) | Bois | 4.3mm | 2 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/e9f2f7c5-65aa-4b27-b8ea-a354448a64f6" /> | Montant droite | [montant-droite.dxf](DXF/etagere/montant-droite.dxf) | Bois | 4.3mm | 3 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/074f6e75-20fd-47e9-ace6-9464af207309" /> | Montant gauche | [montant-gauche.dxf](DXF/etagere/montant-gauche.dxf) | Bois | 4.3mm | 3 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/e7b2010f-e3c0-450a-ae53-f7cf8816150a" /> | Fond - partie 1 droite | [fond-partie-1-droite.dxf](DXF/etagere/fond-partie-1-droite.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/600ae5df-42e1-4d18-a284-a427b9059bf7" /> | Fond - partie 2 droite | [fond-partie-2-droite.dxf](DXF/etagere/fond-partie-2-droite.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/b1b712da-7e19-4b66-b119-34621d731c2b" /> | Fond - partie 1 arrière | [fond-partie-1-arriere.dxf](DXF/etagere/fond-partie-1-arriere.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/ce368324-fe1d-4ecb-951c-761ca55918eb" /> | Fond - partie 2 arrière | [fond-partie-2-arriere.dxf](DXF/etagere/fond-partie-2-arriere.dxf) | Bois | 4.3mm | 1 |
-| <img width="112" alt="image" src="https://github.com/user-attachments/assets/9c44fc2f-fb78-440e-9c0c-775ff7e0fc82" /> | Montant de support avec trou | [montant-support-trou.dxf](DXF/etagere/montant-support-trou.dxf) | Bois | 4.3mm | 1 |
-
----
+| Image | Pièce | Fichier STL | Fichier DXF | Matériau | Épaisseur | Quantité |
+|-------|-------|-------------|-------------|----------|-----------|----------|
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/620d45e0-da2a-49c3-9940-7ec943c34c64" /> | Montant de support | [montant-support.stl](STL/etagere/montant-support.stl) | [montant-support.dxf](DXF/etagere/montant-support.dxf) | Bois | 4.3mm | 2 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/9c44fc2f-fb78-440e-9c0c-775ff7e0fc82" /> | Montant de support avec trou | [montant-support-trou.stl](STL/etagere/montant-support-trou.stl) | [montant-support-trou.dxf](DXF/etagere/montant-support-trou.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/e9f2f7c5-65aa-4b27-b8ea-a354448a64f6" /> | Montant droite | [montant-droite.stl](STL/etagere/montant-droite.stl) | [montant-droite.dxf](DXF/etagere/montant-droite.dxf) | Bois | 4.3mm | 3 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/074f6e75-20fd-47e9-ace6-9464af207309" /> | Montant gauche | [montant-gauche.stl](STL/etagere/montant-gauche.stl) | [montant-gauche.dxf](DXF/etagere/montant-gauche.dxf) | Bois | 4.3mm | 3 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/7eae5828-5e6c-4d9e-976a-40ad91a3e41c" /> | Tablette 1 | [tablette-1.stl](STL/etagere/tablette-1.stl) | [tablette-1.dxf](DXF/etagere/tablette-1.dxf) | Bois | 4.3mm | 7 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/06924abb-bbbc-46dc-81e3-a851f52b4377" /> | Tablette du haut | [tablette-haut.stl](STL/etagere/tablette-haut.stl) | [tablette-haut.dxf](DXF/etagere/tablette-haut.dxf) | Bois | 4.3mm | 3 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/baf6fd97-5319-4c1c-a8ee-3f2f5a098c6d" /> | Tablette du fond | [tablette-fond.stl](STL/etagere/tablette-fond.stl) | [tablette-fond.dxf](DXF/etagere/tablette-fond.dxf) | Bois | 4.3mm | 3 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/d119c056-eee8-4cc7-a28f-14baaefe2141" /> | Plaque de plancher secondaire | [plaque-plancher-secondaire.stl](STL/etagere/plaque-plancher-secondaire.stl) | [plaque-plancher-secondaire.dxf](DXF/etagere/plaque-plancher-secondaire.dxf) | Bois | 4.3mm | 3 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/cb871467-67e9-4e25-a20c-9a7b6ff25ea8" /> | Plaque de plancher au sol | [plaque-plancher-sol.stl](STL/etagere/plaque-plancher-sol.stl) | [plaque-plancher-sol.dxf](DXF/etagere/plaque-plancher-sol.dxf) | Bois | 4.3mm | 3 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/4a5b4c12-85ff-49fa-ad58-7b6e523a88d7" /> | Séparateur de bacs | [separateur-bacs.stl](STL/etagere/separateur-bacs.stl) | [separateur-bacs.dxf](DXF/etagere/separateur-bacs.dxf) | Bois | 4.3mm | 3 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/6b0282da-0a35-4e67-822a-6c70f6894952" /> | Séparateur long | [separateur-long.stl](STL/etagere/separateur-long.stl) | [separateur-long.dxf](DXF/etagere/separateur-long.dxf) | Bois | 4.3mm | 2 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/cfa4510c-b740-4d77-95ed-5020d7679aab" /> | Séparateur court | [separateur-court.stl](STL/etagere/separateur-court.stl) | [separateur-court.dxf](DXF/etagere/separateur-court.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/b2cc2aed-68cc-4efb-ac48-b24303083262" /> | Fond - partie 1 gauche | [fond-partie-1-gauche.stl](STL/etagere/fond-partie-1-gauche.stl) | [fond-partie-1-gauche.dxf](DXF/etagere/fond-partie-1-gauche.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/b4a5f3b0-5177-457b-8153-a67c389915af" /> | Fond - partie 2 gauche | [fond-partie-2-gauche.stl](STL/etagere/fond-partie-2-gauche.stl) | [fond-partie-2-gauche.dxf](DXF/etagere/fond-partie-2-gauche.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/e7b2010f-e3c0-450a-ae53-f7cf8816150a" /> | Fond - partie 1 droite | [fond-partie-1-droite.stl](STL/etagere/fond-partie-1-droite.stl) | [fond-partie-1-droite.dxf](DXF/etagere/fond-partie-1-droite.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/600ae5df-42e1-4d18-a284-a427b9059bf7" /> | Fond - partie 2 droite | [fond-partie-2-droite.stl](STL/etagere/fond-partie-2-droite.stl) | [fond-partie-2-droite.dxf](DXF/etagere/fond-partie-2-droite.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/b1b712da-7e19-4b66-b119-34621d731c2b" /> | Fond - partie 1 arrière | [fond-partie-1-arriere.stl](STL/etagere/fond-partie-1-arriere.stl) | [fond-partie-1-arriere.dxf](DXF/etagere/fond-partie-1-arriere.dxf) | Bois | 4.3mm | 1 |
+| <img width="112" alt="image" src="https://github.com/user-attachments/assets/ce368324-fe1d-4ecb-951c-761ca55918eb" /> | Fond - partie 2 arrière | [fond-partie-2-arriere.stl](STL/etagere/fond-partie-2-arriere.stl) | [fond-partie-2-arriere.dxf](DXF/etagere/fond-partie-2-arriere.dxf) | Bois | 4.3mm | 1 |
 
 ### Bac simple
 
