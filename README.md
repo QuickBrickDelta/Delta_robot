@@ -67,6 +67,7 @@ Delta_robot/
 ##  Documentation détaillée
 
 *   [**Guide Matériel**](docs/hardware.md) : Liste des pièces, électronique et montage.
+*   [**Fichiers CAD**](CAD/readme-cad.md) : Fichiers CAD des pièces destinées à l'impression 3D et la découpe laser.
 *   [**Installation Logicielle**](docs/software_setup.md) : Configuration de l'environnement Python et flashage Arduino.
 *   [**Mathématiques & Cinématique**](docs/kinematics.md) : Détails sur l'IGM et la planification de trajectoire.
 *   [**Contribuer**](CONTRIBUTING.md) : Comment aider à améliorer le projet.
